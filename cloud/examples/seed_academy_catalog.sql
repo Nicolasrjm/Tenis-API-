@@ -1,13 +1,14 @@
 -- ==============================================================================
--- MOTION TENNIS — SEED: CATÁLOGO OFICIAL DA ACADEMY (SLOTS PLANEJADOS / RASCUNHOS)
+-- MOTION TENNIS — SEED: CATÁLOGO OFICIAL DA ACADEMY (SLOTS RASCUNHOS / DRAFT)
 -- ==============================================================================
 -- Descrição: Popula a estrutura dos 6 módulos e os 18 slots oficiais de aprendizagem
 -- da Motion Tennis Academy correspondentes ao estado real do SQLite de produção.
--- REGRAS E PRIVACIDADE:
--- 1. NENHUMA aula é publicada automaticamente (is_published = FALSE, status = 'VÍDEO EM BREVE').
--- 2. Aulas sem gravação confirmada NÃO possuem URLs ou IDs de YouTube fictícios (campos NULL).
--- 3. Aulas em rascunho permanecem INVISÍVEIS ao público e visitantes (RLS bloqueia).
--- 4. O comando é 100% IDEMPOTENTE e NÃO sobrescreve status, vídeos ou publicações
+-- REGRAS E PRIVACIDADE (Fase 7B.2):
+-- 1. Status técnico padronizado para 'draft' (VÍDEO EM BREVE é tratado na UI).
+-- 2. is_published = FALSE para todas as 18 aulas.
+-- 3. NENHUM link ou ID fictício de YouTube (campos estritamente NULL).
+-- 4. Rascunhos permanecem INVISÍVEIS ao público e visitantes (RLS bloqueia).
+-- 5. O comando é 100% IDEMPOTENTE e NÃO sobrescreve status, vídeos ou publicações
 --    que forem atribuídos posteriormente por administradores no painel.
 -- ==============================================================================
 
@@ -43,7 +44,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     1,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -60,7 +61,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     2,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -77,7 +78,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     3,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 
@@ -96,7 +97,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     4,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -113,7 +114,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     5,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -130,7 +131,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     6,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 
@@ -149,7 +150,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     7,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -166,7 +167,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     8,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -183,7 +184,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     9,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 
@@ -202,7 +203,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     10,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -219,7 +220,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     11,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -236,7 +237,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     12,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 
@@ -255,7 +256,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     13,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -272,7 +273,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     14,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -289,7 +290,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     15,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 
@@ -308,7 +309,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     16,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -325,7 +326,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     17,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 ),
 (
@@ -342,7 +343,7 @@ INSERT INTO public.academy_lessons (
     NULL,
     NULL,
     18,
-    'VÍDEO EM BREVE',
+    'draft',
     FALSE
 )
 ON CONFLICT (id) DO UPDATE SET

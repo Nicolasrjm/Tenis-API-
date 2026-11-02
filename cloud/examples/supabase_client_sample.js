@@ -1,12 +1,13 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — CLIENTE SUPABASE DE EXEMPLO COM AUTENTICAÇÃO POR EQUIPAMENTO
+ * MOTION TENNIS — CLIENTE SUPABASE DE EXEMPLO (FASE 7B.3 HARDENING FINAL)
  * ==============================================================================
  * Demonstra a integração segura entre o ecossistema Motion Tennis e a nuvem:
- * 1. Visitante/Atleta: Consulta o catálogo público gratuito da Academy via chave anon.
- * 2. Atleta Autenticado: Acessa seu próprio perfil e histórico com RLS ativo.
- * 3. Notebook da Quadra: Sincroniza partidas e telemetria chamando RPCs seguras
- *    com sua chave individual revogável (NÃO utiliza service_role!).
+ * 1. Visitante: Consulta o catálogo gratuito da Academy.
+ * 2. Notebook da Quadra: Emite desafio de pareamento temporário via issue_equipment_pairing_challenge_v1.
+ * 3. Atleta Autenticado: Pareia com o notebook via claim_equipment_pairing_v1 conferindo o hash do código.
+ * 4. Notebook da Quadra: Envia telemetria (Heartbeat) e sincroniza partidas atômicas
+ *    via RPC com sua credencial individual revogável (NÃO utiliza service_role!).
  *
  * NUNCA insira chaves reais neste arquivo. Defina as variáveis no seu .env.local.
  * ==============================================================================
@@ -20,6 +21,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sua-chave-publica-an
 
 // Credenciais individuais do notebook (geradas pelo administrador e revogáveis individualmente)
 const EQUIPMENT_ID = process.env.EQUIPMENT_ID || '00000000-0000-0000-0000-000000000000';
+const EQUIPMENT_HARDWARE_CODE = process.env.EQUIPMENT_HARDWARE_CODE || 'COURT_NOTEBOOK_01';
 const EQUIPMENT_API_KEY = process.env.EQUIPMENT_API_KEY || 'mt_eq_live_exemplo_chave_individual';
 
 // 2. Cliente Padrão (utilizado pelo Notebook e pelo App Mobile)
@@ -50,10 +52,30 @@ async function fetchPublishedAcademyLessons() {
 }
 
 /**
- * Exemplo 2: Atleta autenticado consulta suas próprias partidas
+ * Exemplo 2: Notebook emite desafio de pareamento com TTL de 300 segundos (Fase 7B.3)
  */
-async function fetchAthleteSessions(athleteJwtToken) {
-  console.log('\n--- 2. CONSULTA DO HISTÓRICO DO ATLETA (RLS ATIVO) ---');
+async function issueCourtChallenge(challengeCode = 'MT7788') {
+  console.log('\n--- 2. NOTEBOOK EMITE DESAFIO DE PAREAMENTO (RPC) ---');
+  const { data, error } = await publicClient.rpc('issue_equipment_pairing_challenge_v1', {
+    p_hardware_code: EQUIPMENT_HARDWARE_CODE,
+    p_api_key: EQUIPMENT_API_KEY,
+    p_challenge_code: challengeCode,
+    p_ttl_seconds: 300
+  });
+
+  if (error) {
+    console.error('Erro ao emitir desafio:', error.message);
+    return null;
+  }
+  console.log('Desafio emitido com sucesso:', data);
+  return data;
+}
+
+/**
+ * Exemplo 3: Atleta autenticado pareia com o notebook via QR Code (RPC Segura com validação de hash)
+ */
+async function claimCourtPairing(athleteJwtToken, hardwareCode, pairingCode) {
+  console.log('\n--- 3. PAREAMENTO SEGURO ATLETA-QUADRA (RPC) ---');
   const athleteClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: {
       headers: {
@@ -62,23 +84,23 @@ async function fetchAthleteSessions(athleteJwtToken) {
     }
   });
 
-  const { data, error } = await athleteClient
-    .from('synced_sessions')
-    .select('id, mode, shots_count, hits_count, accuracy, total_score, started_at')
-    .order('started_at', { ascending: false });
+  const { data, error } = await athleteClient.rpc('claim_equipment_pairing_v1', {
+    p_hardware_code: hardwareCode,
+    p_pairing_code: pairingCode
+  });
 
   if (error) {
-    console.error('Erro ao consultar sessões:', error.message);
+    console.error('Erro no pareamento:', error.message);
     return;
   }
-  console.log(`Histórico carregado: ${data.length} partidas retornadas para o atleta.`);
+  console.log('Pareamento realizado com sucesso:', data);
 }
 
 /**
- * Exemplo 3: Notebook envia telemetria (Heartbeat de 60s) sem service_role
+ * Exemplo 4: Notebook envia telemetria (Heartbeat de 60s) sem service_role
  */
 async function sendEquipmentHeartbeat(metrics = {}) {
-  console.log('\n--- 3. ENVIO DE TELEMETRIA POR RPC DO EQUIPAMENTO ---');
+  console.log('\n--- 4. ENVIO DE TELEMETRIA POR RPC DO EQUIPAMENTO ---');
   const { data, error } = await publicClient.rpc('record_equipment_heartbeat_v1', {
     p_equipment_id: EQUIPMENT_ID,
     p_api_key: EQUIPMENT_API_KEY,
@@ -99,10 +121,10 @@ async function sendEquipmentHeartbeat(metrics = {}) {
 }
 
 /**
- * Exemplo 4: Notebook sincroniza partida finalizada chamando RPC segura (Idempotente)
+ * Exemplo 5: Notebook sincroniza partida finalizada chamando RPC segura (Idempotente)
  */
 async function syncSessionViaEquipmentRpc(outboxEvent) {
-  console.log('\n--- 4. SINCRONIZAÇÃO ATÔMICA DA PARTIDA VIA RPC SEGURA ---');
+  console.log('\n--- 5. SINCRONIZAÇÃO ATÔMICA DA PARTIDA VIA RPC SEGURA ---');
   const { data, error } = await publicClient.rpc('sync_equipment_session_v1', {
     p_equipment_id: EQUIPMENT_ID,
     p_api_key: EQUIPMENT_API_KEY,
@@ -124,7 +146,8 @@ async function syncSessionViaEquipmentRpc(outboxEvent) {
 module.exports = {
   publicClient,
   fetchPublishedAcademyLessons,
-  fetchAthleteSessions,
+  issueCourtChallenge,
+  claimCourtPairing,
   sendEquipmentHeartbeat,
   syncSessionViaEquipmentRpc
 };

@@ -58,7 +58,8 @@
         },
         "user_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "ID do atleta que deve possuir vínculo ativo com este equipamento"
         },
         "mode": {
           "type": "string",
@@ -115,16 +116,16 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["x", "y", "score", "is_hit"],
+            "required": ["x", "y", "score"],
             "properties": {
               "x": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
               "y": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
-              "sector_id": { "type": "integer", "minimum": 0, "maximum": 6 },
+              "sector_id": { "type": ["integer", "null"], "minimum": 0, "maximum": 6 },
               "score": { "type": "integer", "minimum": 0 },
-              "force_kmh": { "type": "number", "minimum": 0 },
-              "is_hit": { "type": "boolean" },
-              "is_bullseye": { "type": "boolean" },
-              "shot_time_offset_ms": { "type": "integer", "minimum": 0 }
+              "force_kmh": { "type": ["number", "null"], "minimum": 0.0 },
+              "is_hit": { "type": ["boolean", "null"] },
+              "is_bullseye": { "type": "boolean", "default": false },
+              "shot_time_offset_ms": { "type": ["integer", "null"], "minimum": 0 }
             }
           }
         }

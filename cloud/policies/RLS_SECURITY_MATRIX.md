@@ -1,53 +1,50 @@
-# MOTION TENNIS — MATRIZ DE SEGURANÇA E ROW LEVEL SECURITY (RLS) (REVISADA FASE 7B.1)
+# MOTION TENNIS — MATRIZ DE SEGURANÇA E ROW LEVEL SECURITY (RLS) (COMPATIBILIDADE REAL)
 
-Este documento estabelece as regras de controle de acesso (Least Privilege) e as garantias de integridade da infraestrutura PostgreSQL no Supabase.
+Este documento estabelece a especificação formal de controle de acesso (Least Privilege), privilégios SQL (GRANT/REVOKE), proteção de colunas, esquema privado de segredos e isolamento de dados do **Motion Tennis** no PostgreSQL (Supabase), estritamente alinhado com a modelagem do SQLite de produção e o `gameEngine.js`.
 
 ---
 
-## 1. Perfis de Acesso (Roles) e Credenciais
+## 1. Perfis de Acesso (Roles) e Privilégios SQL
 
-| Role | Identificação | Descrição e Contexto de Uso |
+| Role | Identificação | Escopo de Permissões SQL |
 | :--- | :--- | :--- |
-| **`anon`** | `auth.role() = 'anon'` | Visitante não autenticado (app mobile antes do login ou site institucional). |
-| **`authenticated_athlete`** | `auth.role() = 'authenticated'` | Atleta devidamente autenticado via Supabase Auth (possui `auth.uid()`). |
-| **`equipment_notebook`** | Chave individual revogável (`EQUIPMENT_API_KEY`) via RPC segura | Notebook físico na quadra. **NÃO possui service_role.** Autentica-se por hash SHA-256 via RPC `SECURITY DEFINER`. |
-| **`service_role` (Admin)** | Chave privada mestre do Supabase | **EXCLUSIVA** para scripts de migração e manutenção do administrador. **NUNCA** distribuída a hardwares de quadra. |
+| **`anon`** | `auth.role() = 'anon'` | Visitante não logado. Acesso de leitura **exclusivo** a aulas públicas da Academy (`status = 'published' AND is_published = TRUE`). **Zero** acesso a equipamentos, jogadores, partidas ou segredos. Não possui visualização pública de quadras (evita scraping). |
+| **`authenticated`** | `auth.role() = 'authenticated'` | Atleta autenticado (`auth.uid()`). Acesso de leitura estritamente aos seus próprios dados e listagem de equipamentos ativos. Permissão de UPDATE restrita a colunas cosméticas (`display_name`, `avatar`) em `player_profiles`. Escrita direta em pareamentos bloqueada (exige RPC atômica). |
+| **`equipment_notebook`** | Chave individual revogável (`EQUIPMENT_API_KEY`) | Notebook da quadra. **NÃO possui service_role.** Autentica-se chamando RPCs seguras (`issue_equipment_pairing_challenge_v1`, `sync_equipment_session_v1`, `record_equipment_heartbeat_v1`). Valida hash SHA-256 no schema privado (`private.equipment_secrets`). |
+| **`service_role`** | Chave mestre privada do Supabase | **EXCLUSIVA** para migrações, rotinas manuais de auditoria administrativa (`reconcile_player_stats`) e manutenção. **NUNCA** distribuída a hardwares físicos ou aplicativos clientes. |
 
 ---
 
-## 2. Matriz de Permissões por Tabela
+## 2. Matriz de Permissões por Tabela e View
 
-| Tabela | anon | authenticated_athlete | equipment_notebook (via RPC) | service_role (Admin) | Mecanismo de Proteção |
+| Objeto / Tabela | anon | authenticated | equipment_notebook (via RPC) | service_role | Mecanismo de Hardening |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| `player_profiles` | ❌ Bloqueado | **SELECT** (próprio `user_id`),<br>**UPDATE** (apenas `display_name` e `avatar`) | ❌ Sem acesso direto | **FULL** | **Gatilho `protect_player_profile_fields`:** Lança exceção se cliente tentar alterar XP, nível ou scores. |
-| `player_attributes` | ❌ Bloqueado | **SELECT** (próprio atleta) | ❌ Sem acesso direto | **FULL** | Leitura dos 6 atributos esportivos; escrita exclusiva de rotinas seguras. |
-| `equipments` | **SELECT** (`is_active = TRUE`) | **SELECT** (`is_active = TRUE`) | **SELECT / UPDATE** (telemetria própria) | **FULL** | Lista pública de quadras para pareamento; dados sensíveis não expostos. |
-| `equipment_secrets` | ❌ **BLOQUEIO TOTAL** | ❌ **BLOQUEIO TOTAL** | ❌ Acesso interno à RPC | **FULL** | **SEGURANÇA MÁXIMA:** Hashes de credenciais e controle de tentativas falhas inacessíveis a clientes. |
-| `equipment_heartbeats`| ❌ Bloqueado | ❌ Bloqueado | **INSERT** (via RPC) | **FULL** | Série temporal de pings a cada 60s para cálculo dinâmico de status online. |
-| `equipment_pairings` | ❌ Bloqueado | **FULL** (`pairing_role = 'athlete'`) | ❌ Sem acesso direto | **FULL** | Atleta pode parear smartphone à quadra. Restrição CHECK impede elevação a 'operator'. |
-| `synced_sessions` | ❌ Bloqueado | **SELECT** (próprio `user_id`) | **INSERT** (via RPC com idempotência) | **FULL** | **IMUTÁVEL:** Partidas não podem ser forjadas, alteradas ou deletadas pelo app mobile. |
-| `synced_shots` | ❌ Bloqueado | **SELECT** (próprio `user_id`) | **INSERT** (via RPC com a sessão) | **FULL** | Impactos detalhados e mapa de calor do atleta. |
+| `player_profiles` | ❌ Bloqueado | **SELECT** (próprio `user_id`),<br>**UPDATE** (`display_name`, `avatar`) | ❌ Sem acesso direto | **FULL** | **Dupla camada:** `GRANT UPDATE (display_name, avatar)` + Gatilho `protect_player_profile_fields` (bloqueia alteração de `xp`, `xp_next`, `level`, `title`, etc.). Títulos restritos aos 6 oficiais. |
+| `player_attributes` | ❌ Bloqueado | **SELECT** (próprio atleta) | ❌ Sem acesso direto | **FULL** | **Normalizada:** 6 atributos esportivos com `(user_id, key)` único, compatível com `attributes` do SQLite e páginas `EvolutionPage` e `StatisticsPage`. Escrita exclusiva de rotinas seguras. |
+| `equipments` | ❌ Bloqueado | **SELECT** (apenas ativos) | **SELECT / UPDATE** (telemetria) | **FULL** | Consulta de quadras restrita a usuários logados; não exposta a `anon`. |
+| `private.equipment_secrets` | ❌ **BLOQUEIO TOTAL** | ❌ **BLOQUEIO TOTAL** | ❌ Acesso interno à RPC | **FULL** | **SCHEMA PRIVADO:** Inacessível na Data API (PostgREST). Controle de 5 tentativas e bloqueio temporário. |
+| `private.equipment_pairing_challenges` | ❌ **BLOQUEIO TOTAL** | ❌ **BLOQUEIO TOTAL** | ❌ Acesso interno à RPC | **FULL** | **SCHEMA PRIVADO:** Tabela dedicada para desafios temporários (TTL 300s). Armazena hash SHA-256, consumida atomicamente. |
+| `equipment_heartbeats`| ❌ Bloqueado | ❌ Bloqueado | **INSERT** (via RPC) | **FULL** | Telemetria temporal com janela de 150s para cálculo dinâmico de status online. |
+| `equipment_pairings` | ❌ Bloqueado | **SELECT, DELETE** (próprio id) | ❌ Sem acesso direto | **FULL** | **Escrita direta bloqueada:** Pareamento ativo só pode ser criado via RPC `claim_equipment_pairing_v1` com consumo atômico de desafio não expirado. Role `'athlete'` estrito. |
+| `synced_sessions` | ❌ Bloqueado | **SELECT** (próprio `user_id`) | **INSERT** (via RPC atômica) | **FULL** | **IMUTÁVEL:** Check `ended_at >= started_at` e teto matemático real de XP (`xp_granted <= total_score + 500`). Retenção perpétua com `ON DELETE RESTRICT` no `equipment_id`. |
+| `synced_shots` | ❌ Bloqueado | **SELECT** (via `session_id`) | **INSERT** (via RPC atômica) | **FULL** | **Integridade estrita:** Sem redundância de `user_id`. `force_kmh` e `is_hit` sem valores fictícios (preservam NULL). |
 | `player_achievements`| ❌ Bloqueado | **SELECT** (próprio `user_id`) | ❌ Sem acesso direto | **FULL** | Conquistas desbloqueadas gravadas unicamente por procedimentos seguros. |
-| `academy_lessons` | **SELECT** (`published`) | **SELECT** (`published`) | ❌ Sem acesso direto | **FULL** | **100% GRATUITA:** Qualquer visitante lê aulas publicadas. Rascunhos permanecem privados. |
+| `academy_lessons` | **SELECT** (`published`) | **SELECT** (`published`) | ❌ Sem acesso direto | **FULL** | **Múltiplas aulas por módulo:** `id` textual compatível com SQLite (`prec_1`, `cons_1`, etc.), sem `UNIQUE(module_key)`. Rascunhos privados. Constraint `chk_published_requires_video`. |
 | `academy_progress` | ❌ Bloqueado | **FULL** (próprio `user_id`) | ❌ Sem acesso direto | **FULL** | Atleta rastreia suas próprias aulas concluídas. |
-| `sync_checkpoints` | ❌ Bloqueado | ❌ Bloqueado | **INSERT, SELECT** (via RPC) | **FULL** | Controle interno de idempotência *exactly-once*. |
+| `sync_checkpoints` | ❌ Bloqueado | ❌ Bloqueado | **INSERT, SELECT** (via RPC) | **FULL** | Idempotência atômica gravada **após** a inserção de sessão e tiros. Detecta colisão de `event_id` ou `local_session_id` com payload divergente. |
+| `v_player_career_summary` | ❌ Bloqueado | **SELECT** (próprio `user_id`) | ❌ Sem acesso direto | **FULL** | **SECURITY INVOKER = TRUE:** A view executa sob as regras RLS do usuário chamador, agregando atributos via JSON. |
 
 ---
 
-## 3. Diretrizes de Segurança e Imutabilidade
+## 3. Matriz de Permissões de Execução em Funções (EXECUTE)
 
-1. **Eliminação da Dependência de `service_role` no Notebook:**
-   - O notebook físico na quadra utiliza a chave pública anônima padrão do Supabase mais sua credencial individual (`EQUIPMENT_ID` e `EQUIPMENT_API_KEY`).
-   - As operações de gravação ocorrem via RPC segura (`sync_equipment_session_v1` e `record_equipment_heartbeat_v1`).
-   - Se o hardware for roubado ou inspecionado, o invasor NÃO tem acesso à chave `service_role` mestre do projeto. A credencial daquela quadra pode ser revogada instantaneamente no painel com `UPDATE equipments SET is_active = FALSE, revoked_at = NOW() WHERE id = '...'`.
-
-2. **Proteção contra Forjamento de XP e Níveis:**
-   - O aplicativo móvel não tem permissão de UPDATE nos campos de estatística do atleta. O gatilho `protect_player_profile_fields()` impede qualquer mutação arbitrária em `xp`, `level`, `title`, `precision`, `total_shots`, `total_hits`, etc.
-   - Partidas inseridas pelo notebook são transacionais e atômicas: a sessão, os tiros e o checkpoint são gravados no mesmo bloco.
-
-3. **Academy com Rascunhos Seguros e Publicação Auditada:**
-   - O seed inicial não publica nenhuma aula fictícia. Todos os 18 slots iniciam com `is_published = FALSE` e `status = 'VÍDEO EM BREVE'`.
-   - A restrição `chk_published_requires_video` garante que uma aula jamais possa ser publicada sem um ID real de YouTube de 11 caracteres.
-
-4. **Blindagem contra Ataques de Repetição (Replay):**
-   - O checkpoint de sincronização valida `UNIQUE (equipment_id, event_id)` e `UNIQUE (equipment_id, local_session_id)`. Se o mesmo evento for reenviado por oscilação de rede, o PostgreSQL retorna confirmação imediata sem reprocessar dados ou re-conceder XP.
+| Função SQL | PUBLIC | anon | authenticated | service_role | Justificativa de Segurança |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| `set_updated_at()` | ❌ REVOKED | ❌ REVOKED | **GRANT** | **GRANT** | Gatilho interno de integridade temporal. |
+| `is_equipment_online(UUID)` | ❌ REVOKED | ❌ REVOKED | **GRANT** | **GRANT** | Cálculo dinâmico online/offline (janela 150s). |
+| `record_equipment_heartbeat_v1(...)` | ❌ REVOKED | **GRANT** | **GRANT** | **GRANT** | Notebook envia ping autenticando via hash SHA-256 no schema privado. |
+| `issue_equipment_pairing_challenge_v1(...)` | ❌ REVOKED | **GRANT** | **GRANT** | **GRANT** | Equipamento autenticado emite desafio de pareamento com código alfanumérico e TTL de 300 segundos. |
+| `claim_equipment_pairing_v1(...)` | ❌ REVOKED | ❌ REVOKED | **GRANT** | **GRANT** | Atleta logado vincula smartphone à quadra conferindo o hash do código e consumindo atomicamente o desafio. |
+| `sync_equipment_session_v1(...)` | ❌ REVOKED | **GRANT** | **GRANT** | **GRANT** | Ingestão atômica. Valida se atleta está ativamente pareado à quadra com vínculo NÃO expirado (`expires_at > NOW()`), teto real de XP e concorrência estrita. |
+| `reconcile_player_stats(UUID)` | ❌ **REVOKED** | ❌ **REVOKED** | ❌ **REVOKED** | **GRANT** | **ADMIN EXCLUSIVO:** Fórmula real de títulos e níveis do `gameEngine.js`. Não é chamada automaticamente. |
+| `protect_player_profile_fields()` | ❌ REVOKED | ❌ REVOKED | **GRANT** | **GRANT** | Gatilho que impede atleta de alterar XP ou níveis. |

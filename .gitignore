@@ -1,0 +1,78 @@
+
+# Dependências
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Configurações privadas
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+key.properties
+
+# Bancos de dados e backups
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+backups/
+*.bak
+
+# Arquivos gerados
+dist/
+build/
+.gradle/
+server/public/
+*.apk
+*.aab
+*.log
+
+# Android - configurações locais
+local.properties
+.cxx/
+captures/
+
+# Sistema operacional e IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Arquivos compilados do frontend
+**/server/public/
+
+# Dependências e ambientes locais
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/dist/
+**/build/
+**/.gradle/
+
+# Bancos de dados reais
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Credenciais e configurações privadas
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+key.properties
+
+# Arquivos gerados
+*.apk
+*.aab
+*.log
+**/local.properties

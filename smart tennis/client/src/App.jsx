@@ -1,0 +1,172 @@
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Layouts
+import PlayerLayout from './layouts/PlayerLayout';
+import AdminLayout from './layouts/AdminLayout';
+import MobileLayout from './layouts/MobileLayout';
+
+// Guards
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Public pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import MobileConnectPage from './pages/mobile/MobileConnectPage';
+import MobileDashboardPage from './pages/mobile/MobileDashboardPage';
+import MobileHistoryPage from './pages/mobile/MobileHistoryPage';
+import MobileEvolutionPage from './pages/mobile/MobileEvolutionPage';
+import MobileAcademyPage from './pages/mobile/MobileAcademyPage';
+import MobileAcademyLessonPage from './pages/mobile/MobileAcademyLessonPage';
+import MobileProfilePage from './pages/mobile/MobileProfilePage';
+import { isNativeMobile } from './services/serverConfig';
+
+// Player pages
+import DashboardPage from './pages/DashboardPage';
+import PlayPage from './pages/PlayPage';
+import StatisticsPage from './pages/StatisticsPage';
+import EvolutionPage from './pages/EvolutionPage';
+import AcademyPage from './pages/AcademyPage';
+import AcademyLessonPage from './pages/AcademyLessonPage';
+import SkillAcademyPage from './pages/SkillAcademyPage';
+import HistoryPage from './pages/HistoryPage';
+import AchievementsPage from './pages/AchievementsPage';
+import ProfilePage from './pages/ProfilePage';
+
+// Admin pages
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminEquipmentsPage from './pages/admin/AdminEquipmentsPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSessionsPage from './pages/admin/AdminSessionsPage';
+import AdminSensorsPage from './pages/admin/AdminSensorsPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminAcademyPage from './pages/admin/AdminAcademyPage';
+
+// Global services
+import { wsClient } from './services/websocket';
+import { useAuth } from './context/AuthContext';
+
+// Level-up modal
+import LevelUpModal from './components/LevelUpModal';
+import ConnectMobileModal from './components/ConnectMobileModal';
+
+export default function App() {
+  const { user, setUser, isGuest } = useAuth();
+  const [modalData, setModalData] = useState(null);
+
+  // Connect WebSocket and listen for real-time events (ignorados no Modo Visitante)
+  useEffect(() => {
+    wsClient.connect();
+
+    const unsubLevel = wsClient.on('LEVEL_UP', (payload) => {
+      if (isGuest) return;
+      setModalData({
+        type: 'LEVEL_UP',
+        level: payload.level,
+        title: payload.title,
+        xpReward: 250,
+      });
+    });
+
+    const unsubAch = wsClient.on('ACHIEVEMENT_UNLOCKED', (payload) => {
+      if (isGuest) return;
+      const ach = Array.isArray(payload) ? payload[0] : payload;
+      if (ach) {
+        setModalData({
+          type: 'ACHIEVEMENT',
+          title: ach.title,
+          description: ach.description,
+          xpReward: ach.xp_reward,
+        });
+      }
+    });
+
+    const unsubPlayer = wsClient.on('PLAYER_UPDATED', (payload) => {
+      if (isGuest) return;
+      if (setUser && payload) setUser((prev) => (prev ? { ...prev, ...payload } : prev));
+    });
+
+    return () => {
+      unsubLevel();
+      unsubAch();
+      unsubPlayer();
+    };
+  }, [isGuest, setUser]);
+
+  return (
+    <>
+      <Routes>
+        {/* ── Public ── */}
+        <Route path="/" element={isNativeMobile() ? <Navigate to="/mobile/connect" replace /> : <LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/connect-qr" element={<div className="min-h-screen bg-[#07110B] flex items-center justify-center p-4"><ConnectMobileModal isOpen={true} onClose={() => {}} /></div>} />
+
+        {/* ── Dedicated Mobile Area (Fase 6B) ── */}
+        <Route path="/mobile" element={<MobileLayout />}>
+          <Route index element={<Navigate to={isGuest ? '/mobile/academy' : '/mobile/dashboard'} replace />} />
+          <Route path="connect" element={<MobileConnectPage />} />
+          <Route path="dashboard" element={<MobileDashboardPage />} />
+          <Route path="history" element={<MobileHistoryPage />} />
+          <Route path="evolution" element={<MobileEvolutionPage />} />
+          <Route path="academy" element={<MobileAcademyPage />} />
+          <Route path="academy/aula/:id" element={<MobileAcademyLessonPage />} />
+          <Route path="profile" element={<MobileProfilePage />} />
+        </Route>
+
+        {/* ── Public Motion Tennis Academy (100% Gratuito, Sem Login) ── */}
+        <Route path="/academy" element={<AcademyPage />} />
+        <Route path="/academy/aula/:id" element={<AcademyLessonPage />} />
+        <Route path="/academy/:skill" element={<SkillAcademyPage />} />
+
+        {/* ── Player & Guest Area ── */}
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute allowGuest>
+              <PlayerLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to={isGuest ? '/app/play' : '/app/dashboard'} replace />} />
+          <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="play" element={<PlayPage onLevelUp={isGuest ? undefined : setModalData} />} />
+          <Route path="statistics" element={<ProtectedRoute><StatisticsPage /></ProtectedRoute>} />
+          <Route path="evolution" element={<ProtectedRoute><EvolutionPage /></ProtectedRoute>} />
+          <Route path="academy" element={<AcademyPage />} />
+          <Route path="academy/aula/:id" element={<AcademyLessonPage />} />
+          <Route path="academy/:skill" element={<SkillAcademyPage />} />
+          <Route path="history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+          <Route path="achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+          <Route path="profile" element={<ProtectedRoute><ProfilePage player={user} onPlayerUpdate={(p) => setUser((prev) => ({ ...prev, ...p }))} /></ProtectedRoute>} />
+        </Route>
+
+        {/* ── Admin Area ── */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/overview" replace />} />
+          <Route path="overview" element={<AdminOverviewPage />} />
+          <Route path="academy" element={<AdminAcademyPage />} />
+          <Route path="equipments" element={<AdminEquipmentsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="sessions" element={<AdminSessionsPage />} />
+          <Route path="sensors" element={<AdminSensorsPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+        </Route>
+
+        {/* ── Catch-all ── */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Global celebration modal (somente para jogadores autenticados) */}
+      {!isGuest && <LevelUpModal data={modalData} onClose={() => setModalData(null)} />}
+    </>
+  );
+}

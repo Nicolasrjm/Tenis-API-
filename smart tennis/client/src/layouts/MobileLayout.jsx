@@ -1,0 +1,188 @@
+import React, { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+  Home,
+  Clock,
+  TrendingUp,
+  GraduationCap,
+  User,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  RefreshCw,
+  Sparkles
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { testServerConnection, getSavedServerUrl } from '../services/serverConfig';
+
+export default function MobileLayout() {
+  const { user, isGuest } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [connectionState, setConnectionState] = useState({
+    online: true,
+    latency: null,
+    serverName: 'Motion Tennis Server'
+  });
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    checkConnection();
+    const interval = setInterval(checkConnection, 12000);
+
+    const onServerChanged = () => checkConnection();
+    window.addEventListener('smart_tennis_server_changed', onServerChanged);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('smart_tennis_server_changed', onServerChanged);
+    };
+  }, []);
+
+  const checkConnection = async () => {
+    setIsChecking(true);
+    const res = await testServerConnection();
+    setIsChecking(false);
+    if (res.success) {
+      setConnectionState({
+        online: true,
+        latency: res.latency,
+        serverName: res.serverName || 'Motion Tennis Server'
+      });
+    } else {
+      setConnectionState({
+        online: false,
+        latency: null,
+        serverName: null
+      });
+    }
+  };
+
+  const navItems = [
+    { to: '/mobile/dashboard', label: 'Início', icon: Home, testId: 'nav-mobile-home' },
+    { to: '/mobile/history', label: 'Histórico', icon: Clock, testId: 'nav-mobile-history' },
+    { to: '/mobile/evolution', label: 'Evolução', icon: TrendingUp, testId: 'nav-mobile-evolution' },
+    { to: '/mobile/academy', label: 'Academy', icon: GraduationCap, testId: 'nav-mobile-academy' },
+    { to: '/mobile/profile', label: 'Perfil', icon: User, testId: 'nav-mobile-profile' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#060D09] text-[#F5F7F5] flex flex-col justify-between selection:bg-[#39FF88] selection:text-black">
+      
+      {/* Top Mobile Header */}
+      <header className="sticky top-0 z-40 bg-[#060D09]/95 backdrop-blur border-b border-[#142A1B] px-4 py-2.5 flex items-center justify-between safe-area-top">
+        {/* Brand Logo */}
+        <div 
+          onClick={() => navigate('/mobile/dashboard')}
+          className="flex items-center space-x-2 cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-lg bg-[#0D1E13] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88] shadow-[0_0_10px_rgba(57,255,136,0.2)]">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="3" fill="#39FF88" />
+            </svg>
+          </div>
+          <span className="text-sm font-black tracking-wider uppercase">
+            MOTION <span className="text-[#39FF88]">TENNIS</span>
+          </span>
+        </div>
+
+        {/* Status / Connect Pill */}
+        <div className="flex items-center space-x-2">
+          {/* Connection Indicator Button (Tapping opens /mobile/connect) */}
+          <button
+            onClick={() => navigate('/mobile/connect')}
+            data-testid="header-connection-pill"
+            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border transition ${
+              connectionState.online
+                ? 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88] hover:bg-[#132B1B]'
+                : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
+            }`}
+            title="Toque para gerenciar conexão do servidor"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              connectionState.online
+                ? 'bg-[#39FF88] shadow-[0_0_6px_#39FF88] animate-pulse'
+                : 'bg-rose-500'
+            }`} />
+            <span>
+              {connectionState.online 
+                ? (connectionState.latency ? `${connectionState.latency}ms` : 'Online') 
+                : 'Offline'}
+            </span>
+          </button>
+
+          {/* User mini badge */}
+          {user ? (
+            <div 
+              onClick={() => navigate('/mobile/profile')}
+              className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-[#0D1E13] border border-[#1B3624] cursor-pointer"
+            >
+              <span className="text-xs">{user.avatar || '🎾'}</span>
+              <span className="text-[11px] font-bold text-white max-w-[70px] truncate">
+                {user.name}
+              </span>
+            </div>
+          ) : isGuest ? (
+            <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Visitante</span>
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      {/* Offline Alert Banner */}
+      {!connectionState.online && location.pathname !== '/mobile/connect' && (
+        <div className="bg-rose-950/90 border-b border-rose-500/30 px-4 py-2 flex items-center justify-between text-xs text-rose-200">
+          <div className="flex items-center space-x-2 truncate mr-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="truncate">Sem conexão com o notebook. Dados locais em cache.</span>
+          </div>
+          <button
+            onClick={() => navigate('/mobile/connect')}
+            className="px-2.5 py-1 rounded-lg bg-rose-900 text-rose-100 font-bold text-[10px] shrink-0 uppercase"
+          >
+            Reconectar
+          </button>
+        </div>
+      )}
+
+      {/* Main Screen Outlet */}
+      <main className="flex-1 pb-24 overflow-y-auto">
+        <Outlet />
+      </main>
+
+      {/* Fixed Bottom Navigation Bar (5 Items) */}
+      <nav 
+        data-testid="mobile-bottom-navigation"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#07110B]/98 backdrop-blur-md border-t border-[#142A1B] px-1 py-1.5 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+      >
+        <div className="max-w-md mx-auto grid grid-cols-5 gap-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                data-testid={item.testId}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 rounded-xl text-[10px] font-semibold transition ${
+                    isActive
+                      ? 'bg-[#122A1A] text-[#39FF88] font-bold shadow-[0_0_12px_rgba(57,255,136,0.15)]'
+                      : 'text-[#8C9891] hover:text-[#F5F7F5]'
+                  }`
+                }
+              >
+                <Icon className="w-5 h-5 mb-0.5" />
+                <span className="truncate">{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
+
+    </div>
+  );
+}

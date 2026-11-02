@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PairingClaimRequest",
+  "description": "Contrato para reivindicação de pareamento dinâmico entre o smartphone do atleta e um notebook na quadra",
+  "type": "object",
+  "required": [
+    "user_id",
+    "equipment_id",
+    "pairing_token",
+    "requested_at"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID do usuário autenticado no app mobile (Supabase Auth UID)"
+    },
+    "equipment_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "ID do equipamento físico exibido no QR Code da quadra"
+    },
+    "pairing_token": {
+      "type": "string",
+      "description": "Token temporário assinado gerado pelo notebook da quadra (expiração curta de 5 minutos)"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "device_info": {
+      "type": "object",
+      "properties": {
+        "model": { "type": "string" },
+        "platform": { "type": "string", "enum": ["android", "ios", "web"] },
+        "os_version": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { get, run } = require('../database/db');
 const guestSessionService = require('./guestSessionService');
+const { verifySupabaseToken, getLinkedUserByCloudId } = require('./cloudIdentityService');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'smart-tennis-secret-key-2026';
 
@@ -54,6 +55,56 @@ function verifyToken(token) {
   }
 }
 
+/**
+ * Resolve o usuário autenticado a partir de um token local clássico (2 partes)
+ * ou de um token JWT do Supabase Auth (3 partes).
+ */
+async function resolveTokenUser(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.trim().split('.');
+
+  // 1. Token local clássico do Motion Tennis (2 partes: payloadBase64.hmacSignature)
+  if (parts.length === 2) {
+    const payload = verifyToken(token);
+    if (!payload) return null;
+    const user = await get('SELECT id, username, name, role, avatar, status FROM users WHERE id = ?', [payload.id]);
+    if (!user || user.status === 'inactive') return { error: 'Usuário desativado ou não encontrado.', status: 403 };
+    return { user, authType: 'local' };
+  }
+
+  // 2. Token Supabase Auth (3 partes: header.payload.signature)
+  if (parts.length === 3) {
+    const verifyRes = await verifySupabaseToken(token);
+    if (!verifyRes.valid) {
+      return { error: verifyRes.error || 'Token Supabase Auth inválido.', code: verifyRes.code, status: 401 };
+    }
+
+    const linkedUser = await getLinkedUserByCloudId(verifyRes.cloudUserId);
+    if (!linkedUser) {
+      return {
+        error: 'Esta conta Supabase Auth ainda não está associada a nenhum atleta neste equipamento. Faça login com suas credenciais locais para vinculá-la.',
+        code: 'CLOUD_USER_NOT_LINKED',
+        cloudUserId: verifyRes.cloudUserId,
+        email: verifyRes.email,
+        status: 403
+      };
+    }
+
+    if (linkedUser.status === 'inactive') {
+      return { error: 'Usuário desativado ou não encontrado.', status: 403 };
+    }
+
+    return {
+      user: linkedUser,
+      authType: 'supabase',
+      cloudUserId: verifyRes.cloudUserId,
+      email: verifyRes.email
+    };
+  }
+
+  return null;
+}
+
 // Middleware: Require valid authenticated user login (rejects guests and unauthenticated requests)
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -71,16 +122,16 @@ async function requireAuth(req, res, next) {
     });
   }
 
-  const payload = verifyToken(token);
-  if (!payload) {
-    return res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.' });
+  const resolved = await resolveTokenUser(token);
+  if (!resolved || resolved.error) {
+    const status = resolved?.status || 401;
+    return res.status(status).json({
+      error: resolved?.error || 'Sessão inválida ou expirada. Faça login novamente.',
+      code: resolved?.code || 'INVALID_SESSION'
+    });
   }
 
-  // Fetch fresh user from DB
-  const user = await get('SELECT id, username, name, role, avatar, status FROM users WHERE id = ?', [payload.id]);
-  if (!user || user.status === 'inactive') {
-    return res.status(403).json({ error: 'Usuário desativado ou não encontrado.' });
-  }
+  const user = resolved.user;
 
   // Impede que um jogador não-admin consulte/modifique dados de outro user_id via query ou body
   const requestedUserId = req.query?.user_id !== undefined ? req.query.user_id : req.body?.user_id;
@@ -95,7 +146,9 @@ async function requireAuth(req, res, next) {
   }
 
   req.user = user;
-  req.actor = { type: 'user', userId: user.id, user };
+  req.authType = resolved.authType;
+  req.cloudUserId = resolved.cloudUserId || null;
+  req.actor = { type: 'user', userId: user.id, user, cloudUserId: resolved.cloudUserId || null };
   next();
 }
 
@@ -139,16 +192,17 @@ async function requireUserOrGuest(req, res, next) {
     return next();
   }
 
-  // 2. Tenta validar como usuário cadastrado
-  const payload = verifyToken(token);
-  if (!payload) {
-    return res.status(401).json({ error: 'Sessão inválida ou expirada.' });
+  // 2. Tenta validar como usuário cadastrado (local ou Supabase)
+  const resolved = await resolveTokenUser(token);
+  if (!resolved || resolved.error) {
+    const status = resolved?.status || 401;
+    return res.status(status).json({
+      error: resolved?.error || 'Sessão inválida ou expirada.',
+      code: resolved?.code || 'INVALID_SESSION'
+    });
   }
 
-  const user = await get('SELECT id, username, name, role, avatar, status FROM users WHERE id = ?', [payload.id]);
-  if (!user || user.status === 'inactive') {
-    return res.status(403).json({ error: 'Usuário desativado ou não encontrado.' });
-  }
+  const user = resolved.user;
 
   // Bloqueia tentativa de falsificação de user_id por jogador comum
   const requestedUserId = req.body?.user_id !== undefined ? req.body.user_id : req.query?.user_id;
@@ -164,10 +218,13 @@ async function requireUserOrGuest(req, res, next) {
 
   req.user = user;
   req.guest = null;
+  req.authType = resolved.authType;
+  req.cloudUserId = resolved.cloudUserId || null;
   req.actor = {
     type: 'user',
     userId: user.id,
-    user
+    user,
+    cloudUserId: resolved.cloudUserId || null
   };
   return next();
 }
@@ -185,6 +242,7 @@ module.exports = {
   verifyPassword,
   generateToken,
   verifyToken,
+  resolveTokenUser,
   requireAuth,
   requireUserOrGuest,
   requireAdmin

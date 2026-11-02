@@ -367,6 +367,70 @@ async function runNonDestructiveMigrations() {
       `, [p.id, a.key, a.name, a.objective, a.strong_points, a.improvement_points, a.coach_tip]);
     }
   }
+
+  // 5. Etapa B: Preparar associação segura com Supabase Auth sem alterar dados existentes
+  if (!(await hasColumn('users', 'supabase_user_id'))) {
+    await run(`ALTER TABLE users ADD COLUMN supabase_user_id TEXT`);
+  }
+  await exec(`
+    CREATE TABLE IF NOT EXISTS user_cloud_identities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'supabase',
+      cloud_user_id TEXT NOT NULL,
+      email TEXT,
+      metadata_json TEXT,
+      linked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, provider),
+      UNIQUE(provider, cloud_user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_cloud_identities_cloud_id ON user_cloud_identities(provider, cloud_user_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_supabase_user_id ON users(supabase_user_id) WHERE supabase_user_id IS NOT NULL;
+  `);
+
+  // 6. Etapa C: Fila local de sincronização Cloud Outbox (Offline-First)
+  await exec(`
+    CREATE TABLE IF NOT EXISTS cloud_outbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id TEXT NOT NULL UNIQUE,
+      session_id TEXT,
+      match_id TEXT,
+      user_id INTEGER,
+      cloud_user_id TEXT,
+      equipment_id TEXT,
+      event_type TEXT NOT NULL DEFAULT 'MATCH_FINISHED',
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      max_retries INTEGER NOT NULL DEFAULT 10,
+      next_retry_at DATETIME,
+      last_error TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      confirmed_at DATETIME
+    );
+    CREATE INDEX IF NOT EXISTS idx_cloud_outbox_status_retry ON cloud_outbox(status, next_retry_at);
+    CREATE INDEX IF NOT EXISTS idx_cloud_outbox_session ON cloud_outbox(session_id);
+    CREATE INDEX IF NOT EXISTS idx_cloud_outbox_user ON cloud_outbox(user_id);
+  `);
+
+  // Adiciona colunas granulares de impacto na tabela personal_match_impacts se ela existir
+  const pmiExists = await get(`SELECT name FROM sqlite_master WHERE type='table' AND name='personal_match_impacts'`);
+  if (pmiExists) {
+    if (!(await hasColumn('personal_match_impacts', 'shot_score'))) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_score INTEGER DEFAULT 0`);
+    }
+    if (!(await hasColumn('personal_match_impacts', 'shot_xp'))) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_xp INTEGER DEFAULT 0`);
+    }
+    if (!(await hasColumn('personal_match_impacts', 'force_kmh'))) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN force_kmh REAL DEFAULT 80.0`);
+    }
+    if (!(await hasColumn('personal_match_impacts', 'is_bullseye'))) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN is_bullseye INTEGER DEFAULT 0`);
+    }
+  }
 }
 
 async function seedDemoData() {

@@ -169,6 +169,13 @@ export const api = {
   getGuestMe: () => fetchJson('/auth/guest/me'),
   logoutGuest: () => fetchJson('/auth/guest/logout', { method: 'POST' }),
 
+  // Cloud Auth & Supabase Identity (Etapa B)
+  getCloudConfig: () => fetchJson('/auth/cloud/config'),
+  getCloudStatus: () => fetchJson('/auth/cloud/status'),
+  linkCloudAccount: (data) => fetchJson('/auth/cloud/link', { method: 'POST', body: JSON.stringify(data) }),
+  unlinkCloudAccount: () => fetchJson('/auth/cloud/unlink', { method: 'POST' }),
+  loginWithSupabaseToken: (accessToken) => fetchJson('/auth/cloud/login-with-token', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) }),
+
   // Player
   getPlayer: () => fetchJson('/player'),
   updatePlayer: (data) => fetchJson('/player', { method: 'PUT', body: JSON.stringify(data) }),

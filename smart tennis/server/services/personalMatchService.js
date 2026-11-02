@@ -15,6 +15,7 @@ const { broadcastEvent } = require('./eventHub');
 const guestSessionService = require('./guestSessionService');
 const iotLocalizationService = require('./iotLocalizationService');
 const arduinoIngestService = require('./arduinoIngestService');
+const cloudOutboxService = require('./cloudOutboxService');
 
 const PERSONAL_MATCH_SECONDS = 300; // 5 minutos exatos em produção
 const PERSONAL_PREPARE_SECONDS = 5; // 5 segundos de contagem regressiva antes da partida
@@ -107,14 +108,35 @@ async function ensurePersonalMatchTables() {
       ON personal_match_impacts(match_id, client_event_id) WHERE client_event_id IS NOT NULL;
   `);
 
-  // Migração não-destrutiva para adicionar prepare_started_at se a tabela já existia
+  // Migração não-destrutiva para adicionar prepare_started_at e is_simulation se a tabela já existia
   try {
     const cols = await all(`PRAGMA table_info(personal_matches)`);
     if (!cols.some((c) => c.name === 'prepare_started_at')) {
       await run(`ALTER TABLE personal_matches ADD COLUMN prepare_started_at INTEGER`);
     }
+    if (!cols.some((c) => c.name === 'is_simulation')) {
+      await run(`ALTER TABLE personal_matches ADD COLUMN is_simulation INTEGER DEFAULT 0`);
+    }
   } catch (err) {}
 
+  // Migração não-destrutiva para colunas granulares de sincronização em personal_match_impacts
+  try {
+    const impCols = await all(`PRAGMA table_info(personal_match_impacts)`);
+    if (!impCols.some((c) => c.name === 'shot_score')) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_score INTEGER DEFAULT 0`);
+    }
+    if (!impCols.some((c) => c.name === 'shot_xp')) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_xp INTEGER DEFAULT 0`);
+    }
+    if (!impCols.some((c) => c.name === 'force_kmh')) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN force_kmh REAL DEFAULT 80.0`);
+    }
+    if (!impCols.some((c) => c.name === 'is_bullseye')) {
+      await run(`ALTER TABLE personal_match_impacts ADD COLUMN is_bullseye INTEGER DEFAULT 0`);
+    }
+  } catch (err) {}
+
+  await cloudOutboxService.ensureOutboxTable();
   await iotLocalizationService.ensureIotAndWallTables();
 }
 
@@ -290,6 +312,18 @@ async function finalizePersonalMatch(match, nextState, endReason, endedAt = Date
         match.sensor_coordinates_json || null
       ]
     );
+
+    // ETAPA C: Enfileiramento automático na cloud_outbox (Offline-First)
+    try {
+      await cloudOutboxService.createMatchFinishedEvent({
+        match,
+        durationSeconds,
+        sessionId,
+        endedAt
+      });
+    } catch (outboxErr) {
+      console.warn('[OUTBOX] Falha ao enfileirar evento de partida finalizada:', outboxErr.message);
+    }
   }
 
   broadcastEvent('PERSONAL_MATCH_UPDATED', buildMatchState(match, endedAt));
@@ -1021,18 +1055,28 @@ function registerPersonalImpact({
       ]
     );
 
+    if (isSimulation) {
+      match.is_simulation = 1;
+    }
+
     const hitId = engineResult.hit ? engineResult.hit.id : null;
     const shotId = engineResult.hit ? engineResult.hit.shot_id : null;
+    const shotScore = engineResult.hit ? engineResult.hit.score : 0;
+    const shotXp = engineResult.hit ? engineResult.hit.xp : 0;
+    const shotSpeed = engineResult.hit && engineResult.hit.speed !== undefined ? engineResult.hit.speed : (speed || 80);
+    const isBullseye = engineResult.hit && engineResult.hit.is_bullseye ? 1 : 0;
 
     await run(
       `INSERT OR IGNORE INTO personal_match_impacts (
          match_id, user_id, client_event_id, hit_id, shot_id, x, y,
-         sector_id, classification, accepted, points, reason, created_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+         sector_id, classification, accepted, points, reason, created_at,
+         shot_score, shot_xp, force_kmh, is_bullseye
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
       [
         match.id, effectiveUserId, clientEventId || null, hitId, shotId,
         resolvedX, resolvedY, cls.sectorId || null, cls.classification,
-        matchPoints, reason, now
+        matchPoints, reason, now,
+        shotScore, shotXp, shotSpeed, isBullseye
       ]
     );
 

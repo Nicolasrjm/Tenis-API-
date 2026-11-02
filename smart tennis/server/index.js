@@ -4,6 +4,9 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 
+// Carregamento centralizado de variáveis de ambiente e segurança
+require('./config/supabaseConfig');
+
 const { initializeDatabase } = require('./database/initDb');
 const { initEventHub } = require('./services/eventHub');
 
@@ -31,6 +34,7 @@ const personalMatchService = require('./services/personalMatchService');
 const guestSessionService = require('./services/guestSessionService');
 const iotLocalizationService = require('./services/iotLocalizationService');
 const academyService = require('./services/academyService');
+const cloudSyncWorker = require('./services/cloudSyncWorker');
 
 const app = express();
 const server = http.createServer(app);
@@ -115,6 +119,9 @@ async function startServer() {
 
     // Fase 4: Motion Tennis Academy (acesso gratuito, catálogo de 12 aulas, embed YouTube e progresso)
     await academyService.ensureAcademyTables();
+
+    // Etapa C: Inicia o worker de sincronização offline-first da cloud_outbox
+    cloudSyncWorker.startWorker({ intervalMs: 20000 });
 
     initEventHub(server);
 

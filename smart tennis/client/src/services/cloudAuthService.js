@@ -14,6 +14,8 @@
  */
 
 import { api } from './api.js';
+import { isWebDemoMode } from './appEnvironment.js';
+import { isMobileDevice } from './serverConfig.js';
 
 /**
  * Autentica o usuário diretamente no serviço oficial Supabase Auth com e-mail e senha,
@@ -206,6 +208,16 @@ export async function getCloudConfig() {
       return remote;
     }
   } catch (_) {}
+
+  // 4. Fallback público oficial Motion Tennis (garante autenticação mobile e Vercel)
+  if (isWebDemoMode() || isMobileDevice()) {
+    return {
+      configured: true,
+      supabaseUrl: 'https://pstzmbtqkcrhtdvwqnuv.supabase.co',
+      anonKey: 'sb_publishable_7eZ5Tbzu0avGMEQ9rLLmqw_mjReLqqT',
+      audience: 'authenticated'
+    };
+  }
 
   return { configured: false, supabaseUrl: '', anonKey: '' };
 }

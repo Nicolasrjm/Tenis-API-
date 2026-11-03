@@ -22,6 +22,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { isMobileDevice } from '../services/serverConfig';
 import ConnectMobileModal from '../components/ConnectMobileModal';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
@@ -33,6 +34,13 @@ export default function PlayerLayout() {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [desempenhoOpen, setDesempenhoOpen] = useState(false);
   const desempenhoRef = useRef(null);
+
+  // Redireciona dispositivo móvel para a experiência mobile dedicada caso acesse /app ou /app/dashboard
+  useEffect(() => {
+    if (isMobileDevice() && (location.pathname === '/app' || location.pathname === '/app/dashboard')) {
+      navigate('/mobile/dashboard', { replace: true });
+    }
+  }, [location.pathname]);
 
   // Fecha dropdown ao clicar fora ou pressionar ESC
   useEffect(() => {

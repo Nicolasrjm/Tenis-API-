@@ -105,7 +105,7 @@ export default function LandingPage() {
               {/* Badge Esportivo */}
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-xs text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9]">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#B8F044] border border-[#142B3D] dark:border-[#B8F044] animate-pulse"></span>
-                <span className="tracking-wide">EQUIPAMENTO FÍSICO COM PLATAFORMA DIGITAL CONECTADA</span>
+                <span className="tracking-wide uppercase">Plataforma Esportiva Interativa</span>
               </div>
 
               {/* Título Principal com Barlow Condensed */}
@@ -115,11 +115,11 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-2xl sm:text-3xl font-extrabold text-[#142B3D] dark:text-[#F1F5F9] leading-snug font-sport">
-                Treino inteligente na parede. Performance real em quadra.
+                Treine melhor. Acompanhe sua evolução.
               </p>
 
               <p className="text-base sm:text-lg text-[#475569] dark:text-[#A8BAC8] max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                Treine precisão, acompanhe seu desempenho e transforme seus resultados em dados com nossa matriz de sensores físicos de alto impacto.
+                Transforme cada treino em uma experiência interativa. Desenvolva sua precisão, acompanhe seus resultados e evolua com o Motion Tennis.
               </p>
 
               {/* Botões de Ação */}
@@ -142,16 +142,16 @@ export default function LandingPage() {
               {/* Destaques Rápidos */}
               <div className="pt-6 grid grid-cols-3 gap-4 border-t border-[#B8C6D0] dark:border-[#344653] max-w-md mx-auto lg:mx-0 text-left">
                 <div>
-                  <div className="text-xl font-black font-sport text-[#142B3D] dark:text-[#F1F5F9]">3 SENSORES</div>
-                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">KY-037 por Parede</div>
+                  <div className="text-lg sm:text-xl font-black font-sport text-[#142B3D] dark:text-[#F1F5F9] leading-tight">INTERATIVO</div>
+                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Treinamento Dinâmico</div>
                 </div>
                 <div>
-                  <div className="text-xl font-black font-sport text-[#2563EB] dark:text-[#60A5FA]">OFFLINE</div>
-                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">SQLite em Localhost</div>
+                  <div className="text-lg sm:text-xl font-black font-sport text-[#2563EB] dark:text-[#60A5FA] leading-tight">DESEMPENHO</div>
+                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Acompanhamento Real</div>
                 </div>
                 <div>
-                  <div className="text-xl font-black font-sport text-[#FF7548]">ACADEMY</div>
-                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Treinos Especializados</div>
+                  <div className="text-lg sm:text-xl font-black font-sport text-emerald-600 dark:text-[#B8F044] leading-tight">EVOLUÇÃO</div>
+                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Progresso Esportivo</div>
                 </div>
               </div>
             </div>
@@ -161,14 +161,14 @@ export default function LandingPage() {
               <div className="relative p-5 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-[0_10px_30px_-5px_rgba(16,24,32,0.15)] w-full max-w-[460px]">
                 <div className="absolute -top-3.5 left-6 px-3 py-1 rounded-full bg-[#142B3D] dark:bg-[#0D1B2A] text-[#B8F044] border border-[#142B3D] dark:border-[#344653] text-[10px] font-bold tracking-wider shadow-sm flex items-center space-x-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#B8F044] animate-ping"></span>
-                  <span>ALVO MOTION TENNIS CONECTADO</span>
+                  <span>ALVO MOTION TENNIS</span>
                 </div>
                 {/* Contêiner escuro interno para garantir alto contraste do alvo com a bola */}
                 <div className="rounded-2xl bg-[#050D07] p-3 border border-[#1B3624] overflow-hidden">
                   <CourtTarget interactive={false} gameMode="single" activeSensorId={5} />
                 </div>
                 <div className="mt-3 text-center text-xs font-semibold text-[#475569] dark:text-[#A8BAC8]">
-                  3 sensores físicos KY-037 e projeção de 6 setores de treino
+                  Seis setores de treinamento interativo
                 </div>
               </div>
             </div>
@@ -195,9 +195,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA] mb-3">
                 <Target className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Parede de Treino Conectada</h3>
+              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Treinamento Interativo</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Estrutura de treino na quadra com 3 sensores KY-037 conectados ao Arduino e 6 setores visuais de treinamento.
+                Prática dinâmica com projeção inteligente de 6 setores que estimulam precisão, regularidade e foco nos golpes.
               </p>
             </div>
 
@@ -205,9 +205,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-lime-100 dark:bg-lime-950/60 border border-lime-300 dark:border-lime-500/40 flex items-center justify-center text-[#142B3D] dark:text-[#B8F044] mb-3">
                 <Cpu className="w-6 h-6 text-[#142B3D] dark:text-[#B8F044]" />
               </div>
-              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Processamento Eletrônico</h3>
+              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Métricas em Tempo Real</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Microcontrolador com leitura analógica rápida para medir velocidade de contato e mapear o ponto atingido.
+                Feedback imediato de impacto, pontuação e zonas atingidas para direcionar os ajustes do atleta a cada repetição.
               </p>
             </div>
 
@@ -215,9 +215,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-950/60 border border-orange-200 dark:border-orange-500/40 flex items-center justify-center text-[#FF7548] mb-3">
                 <TrendingUp className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Análise de Performance</h3>
+              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Evolução Esportiva</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Dashboard com evolução técnica de 6 atributos, histórico de sessões, gamificação RPG e Motion Tennis Academy.
+                Acompanhe seu histórico de treinos, evolução técnica de habilidades e conteúdos práticos da Motion Tennis Academy.
               </p>
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function LandingPage() {
               Como funciona o treinamento
             </h2>
             <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] mt-2 font-medium">
-              Da raquete aos dados digitais em milissegundos
+              Da raquete aos dados digitais com feedback imediato
             </p>
           </div>
 
@@ -246,25 +246,25 @@ export default function LandingPage() {
               </span>
               <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">JOGUE</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                O jogador desfere seus golpes no equipamento físico Motion Tennis.
+                Desfira seus golpes na parede de treino interativa Motion Tennis.
               </p>
             </div>
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm hover:shadow-md hover:border-[#B8F044] transition-all space-y-3">
               <span className="text-xs font-black text-[#B8F044] bg-[#142B3D] dark:bg-[#0D1B2A] px-3 py-1.5 rounded-lg inline-block font-mono tracking-wider">
                 02
               </span>
-              <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">DETECTE</h3>
+              <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">ACERTE</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Os sensores capturam o impacto no milissegundo do contato da bola.
+                O impacto é detectado instantaneamente no setor visual correspondente.
               </p>
             </div>
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm hover:shadow-md hover:border-[#B8F044] transition-all space-y-3">
               <span className="text-xs font-black text-[#B8F044] bg-[#142B3D] dark:bg-[#0D1B2A] px-3 py-1.5 rounded-lg inline-block font-mono tracking-wider">
                 03
               </span>
-              <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">REGISTRE</h3>
+              <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">PONTUE</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                O sistema calcula coordenadas, pontuação, velocidade e atualiza o banco local.
+                Acompanhe a contagem de pontos, precisão e velocidade a cada repetição.
               </p>
             </div>
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm hover:shadow-md hover:border-[#B8F044] transition-all space-y-3">
@@ -273,7 +273,7 @@ export default function LandingPage() {
               </span>
               <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport tracking-wide">EVOLUA</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Acompanhe suas estatísticas, desbloqueie habilidades e acesse a Academy.
+                Acompanhe suas estatísticas, monitore seu histórico e acesse os treinos técnicos.
               </p>
             </div>
           </div>
@@ -285,10 +285,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-xs font-black tracking-widest text-[#2563EB] dark:text-[#60A5FA] uppercase">
-              ENGENHARIA
+              INOVAÇÃO
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-[#142B3D] dark:text-[#F1F5F9] mt-2 font-sport">
-              Tecnologia Esportiva Robusta
+              Tecnologia a Serviço do Esporte
             </h2>
           </div>
 
@@ -296,20 +296,20 @@ export default function LandingPage() {
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-3 hover:border-[#B8F044] transition-all">
               <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
                 <Radio className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
-                <span>Sensores Acústicos KY-037</span>
+                <span>Detecção Instantânea</span>
               </h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                3 sensores acústicos KY-037 instalados na parede capturam as vibrações de impacto da bola em tempo real, integrando o treino físico aos 6 setores visuais projetados.
+                Estrutura de alta sensibilidade que registra o momento exato do impacto da bola, integrando a batida física aos setores visuais de treinamento.
               </p>
             </div>
 
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-3 hover:border-[#B8F044] transition-all">
               <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
                 <Wifi className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
-                <span>Comunicação em Tempo Real</span>
+                <span>Acesso Multidispositivo</span>
               </h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                WebSocket local de ultra-baixa latência e endpoint HTTP padronizado para ESP32 e Arduino, garantindo feedback sonoro e visual instantâneo.
+                Treine na quadra com o equipamento e acompanhe suas estatísticas, histórico e videoaulas de onde estiver pelo celular ou computador.
               </p>
             </div>
           </div>
@@ -329,18 +329,18 @@ export default function LandingPage() {
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto text-left">
             <div className="p-6 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-2 hover:border-[#B8F044] transition-all">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Precisão Comprovada</h4>
-              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Dados concretos em vez de palpites visuais sobre o ponto de queda da bola.</p>
+              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Métricas Claras</h4>
+              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Acompanhe dados concretos de aproveitamento e precisão para aprimorar seu jogo.</p>
             </div>
             <div className="p-6 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-2 hover:border-[#B8F044] transition-all">
               <CheckCircle2 className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
-              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Gamificação e Retenção</h4>
-              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Atletas mais motivados através de níveis, recompensas de XP e desafios cronometrados.</p>
+              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Motivação e Metas</h4>
+              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Atletas mais motivados através de níveis, metas de evolução e desafios estruturados.</p>
             </div>
             <div className="p-6 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-2 hover:border-[#B8F044] transition-all">
               <CheckCircle2 className="w-5 h-5 text-[#FF7548]" />
-              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Gestão de Equipamentos</h4>
-              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Painel administrativo para academias e clubes monitorarem múltiplos equipamentos.</p>
+              <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">Gestão Esportiva</h4>
+              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">Ambiente prático para academias, clubes e técnicos acompanharem a evolução de atletas.</p>
             </div>
           </div>
         </div>
@@ -391,7 +391,7 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto px-4 space-y-4">
           <h3 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport">Sobre o Motion Tennis</h3>
           <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-            Desenvolvido para conectar a prática real em quadra com a precisão dos dados digitais. Operando 100% offline em localhost com banco SQLite, sem dependência de serviços externos.
+            Desenvolvido para conectar a prática esportiva na quadra ao acompanhamento de evolução técnica do atleta, unindo treinamento interativo e análise de desempenho.
           </p>
           <div className="pt-4">
             <Link

@@ -15,7 +15,8 @@ import {
   KeyRound
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { isNativeMobile } from '../services/serverConfig';
+import { isNativeMobile, isMobileDevice } from '../services/serverConfig';
+import { isWebDemoMode } from '../services/appEnvironment';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function LoginPage() {
@@ -94,41 +95,72 @@ export default function LoginPage() {
     setError(null);
     setInfoMessage(null);
 
-    if (!emailOrUser.trim() || !password) {
+    const rawInput = (emailOrUser || '').trim();
+    if (!rawInput || !password) {
       setError('Informe seu e-mail (ou usuário) e senha.');
+      return;
+    }
+
+    const isEmail = rawInput.includes('@');
+    const isMobile = isMobileDevice();
+    const isWebDemo = isWebDemoMode();
+
+    // Se estiver no celular ou na Vercel (sem servidor local SQLite) e não digitou e-mail
+    if ((isMobile || isWebDemo) && !isEmail) {
+      setError('No celular ou acesso online, utilize o seu e-mail cadastrado (ex: atleta@exemplo.com).');
       return;
     }
 
     setLoading(true);
 
     try {
-      if (emailOrUser.includes('@')) {
+      if (isEmail) {
         // Tentativa de login Cloud via Supabase Auth
         try {
-          await loginCloud(emailOrUser.trim(), password);
-          setInfoMessage('Login cloud validado! Redirecionando...');
+          const authUser = await loginCloud(rawInput.toLowerCase(), password);
+          setInfoMessage('Login validado! Redirecionando...');
           setTimeout(() => {
-            navigate(isNativeMobile() ? '/mobile/dashboard' : '/app/dashboard');
+            if (isMobile) {
+              navigate('/mobile/dashboard');
+            } else if (authUser?.role === 'admin') {
+              navigate('/admin/overview');
+            } else {
+              navigate('/app/dashboard');
+            }
           }, 350);
           return;
         } catch (cloudErr) {
           // Se for erro específico de confirmação de e-mail, guarda o e-mail para permitir reenvio
           if (cloudErr.requiresConfirmation || (cloudErr.message && cloudErr.message.includes('confirmado'))) {
-            setUnconfirmedEmail(emailOrUser.trim());
+            setUnconfirmedEmail(rawInput.toLowerCase());
           }
           throw cloudErr;
         }
       } else {
         // Login local via identificador de atleta SQLite
-        await login(emailOrUser.trim(), password);
-        setInfoMessage('Login local validado! Redirecionando...');
+        const localUser = await login(rawInput, password);
+        setInfoMessage('Login validado! Redirecionando...');
         setTimeout(() => {
-          navigate(isNativeMobile() ? '/mobile/dashboard' : '/app/dashboard');
+          if (isMobile) {
+            navigate('/mobile/dashboard');
+          } else if (localUser?.role === 'admin') {
+            navigate('/admin/overview');
+          } else {
+            navigate('/app/dashboard');
+          }
         }, 350);
         return;
       }
     } catch (err) {
-      setError(err.message || 'Falha na autenticação. Verifique suas credenciais.');
+      let msg = err.message || 'Falha na autenticação. Verifique suas credenciais.';
+      if (msg.includes('UNEXPECTED_HTML_RESPONSE') || msg.includes('Failed to fetch') || msg.includes('NETWORK_ERROR') || msg.includes('NetworkError')) {
+        if (isEmail) {
+          msg = 'Falha ao conectar com o serviço online. Verifique sua conexão com a internet.';
+        } else {
+          msg = 'Servidor local da quadra inacessível. Utilize seu e-mail cadastrado para entrar via nuvem.';
+        }
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -172,7 +204,7 @@ export default function LoginPage() {
       } else {
         setInfoMessage('Conta criada com sucesso! Redirecionando...');
         setTimeout(() => {
-          navigate('/app/dashboard');
+          navigate(isMobileDevice() ? '/mobile/dashboard' : '/app/dashboard');
         }, 800);
       }
     } catch (err) {
@@ -372,6 +404,10 @@ export default function LoginPage() {
                   <input
                     ref={usernameInputRef}
                     type="text"
+                    inputMode={emailOrUser.includes('@') || emailOrUser === '' ? 'email' : 'text'}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                     value={emailOrUser}
                     onChange={(e) => setEmailOrUser(e.target.value)}
                     placeholder="atleta@exemplo.com"

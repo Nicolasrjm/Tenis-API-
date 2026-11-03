@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api, setAuthToken, getAuthToken, setGuestToken, getGuestToken } from '../services/api';
 import { syncService } from '../services/syncService';
 import { cloudAuthService } from '../services/cloudAuthService';
+import { isWebDemoMode } from '../services/appEnvironment';
+import { getSavedServerUrl } from '../services/serverConfig';
 
 const AuthContext = createContext(null);
 
@@ -19,10 +21,50 @@ export function AuthProvider({ children }) {
   }, []);
 
   const checkCurrentAuth = async () => {
+    const cloudSession = cloudAuthService.getStoredCloudSession();
     const token = getAuthToken();
     const guestToken = getGuestToken();
 
-    if (token) {
+    // 1. Em ambiente Vercel (web_demo) ou quando houver sessão Cloud ativa sem servidor local, restaura imediatamente
+    if (cloudSession?.accessToken && (isWebDemoMode() || !getSavedServerUrl() || !token)) {
+      if (cloudSession.expiresAt && cloudSession.expiresAt < Date.now() + 60000 && cloudSession.refreshToken) {
+        try {
+          const refreshed = await cloudAuthService.refreshCloudSession({
+            refreshToken: cloudSession.refreshToken
+          });
+          setUser({
+            id: refreshed.user?.id || cloudSession.user?.id,
+            cloudUserId: refreshed.user?.id || cloudSession.user?.id,
+            name: refreshed.user?.user_metadata?.name || refreshed.user?.email?.split('@')[0] || cloudSession.user?.name,
+            email: refreshed.user?.email || cloudSession.user?.email,
+            role: 'player',
+            avatar: '🎾',
+            status: 'active',
+            isCloudOnly: true
+          });
+          setLoading(false);
+          return;
+        } catch (_) {
+          cloudAuthService.clearCloudSession();
+        }
+      } else {
+        setUser({
+          id: cloudSession.user?.id,
+          cloudUserId: cloudSession.user?.id,
+          name: cloudSession.user?.user_metadata?.name || cloudSession.user?.email?.split('@')[0] || 'Atleta',
+          email: cloudSession.user?.email,
+          role: 'player',
+          avatar: '🎾',
+          status: 'active',
+          isCloudOnly: true
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 2. Validação local no notebook via SQLite (quando token local existe e não é web_demo)
+    if (token && !isWebDemoMode()) {
       try {
         const data = await api.getMe();
         if (data?.user) {
@@ -33,15 +75,12 @@ export function AuthProvider({ children }) {
           return;
         }
       } catch (e) {
-        // Se falhar ao conectar ao servidor local, não remove o token imediatamente
-        // para permitir fallback para a sessão cloud
+        // Se falhar ao conectar ao servidor local, tenta fallback para a sessão cloud
       }
     }
 
-    // Verifica se há sessão cloud válida persistida no dispositivo (Acesso Remoto / Celular)
-    const cloudSession = cloudAuthService.getStoredCloudSession();
+    // 3. Fallback adicional para sessão cloud caso a chamada local tenha falhado
     if (cloudSession?.accessToken) {
-      // Se estiver próximo de expirar (menos de 60 segundos), tenta renovar
       if (cloudSession.expiresAt && cloudSession.expiresAt < Date.now() + 60000 && cloudSession.refreshToken) {
         try {
           const refreshed = await cloudAuthService.refreshCloudSession({

@@ -19,7 +19,7 @@ import MobileEvolutionPage from './pages/mobile/MobileEvolutionPage';
 import MobileAcademyPage from './pages/mobile/MobileAcademyPage';
 import MobileAcademyLessonPage from './pages/mobile/MobileAcademyLessonPage';
 import MobileProfilePage from './pages/mobile/MobileProfilePage';
-import { isNativeMobile } from './services/serverConfig';
+import { isNativeMobile, isMobileDevice } from './services/serverConfig';
 
 // Player pages
 import DashboardPage from './pages/DashboardPage';
@@ -106,18 +106,18 @@ export default function App() {
         <Route path="/mobile" element={<MobileLayout />}>
           <Route index element={<Navigate to={isGuest ? '/mobile/academy' : '/mobile/dashboard'} replace />} />
           <Route path="connect" element={<MobileConnectPage />} />
-          <Route path="dashboard" element={<MobileDashboardPage />} />
-          <Route path="history" element={<MobileHistoryPage />} />
-          <Route path="evolution" element={<MobileEvolutionPage />} />
+          <Route path="dashboard" element={<ProtectedRoute><MobileDashboardPage /></ProtectedRoute>} />
+          <Route path="history" element={<ProtectedRoute><MobileHistoryPage /></ProtectedRoute>} />
+          <Route path="evolution" element={<ProtectedRoute><MobileEvolutionPage /></ProtectedRoute>} />
           <Route path="academy" element={<MobileAcademyPage />} />
           <Route path="academy/aula/:id" element={<MobileAcademyLessonPage />} />
-          <Route path="profile" element={<MobileProfilePage />} />
+          <Route path="profile" element={<ProtectedRoute><MobileProfilePage /></ProtectedRoute>} />
         </Route>
 
         {/* ── Redirecionamento da Academy para os 2 pontos oficiais de acesso do atleta (Notebook / Celular) ── */}
-        <Route path="/academy" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
-        <Route path="/academy/aula/:id" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
-        <Route path="/academy/:skill" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
+        <Route path="/academy" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
+        <Route path="/academy/aula/:id" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
+        <Route path="/academy/:skill" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
 
         {/* ── Player & Guest Area ── */}
         <Route

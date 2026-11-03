@@ -11,6 +11,27 @@ export function isNativeMobile() {
 }
 
 /**
+ * Retorna true se o acesso for proveniente de um dispositivo móvel (celular ou tablet),
+ * seja executando no navegador web (Chrome, Safari, Firefox) ou no app nativo Capacitor.
+ */
+export function isMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  if (isNativeMobile()) return true;
+
+  const ua = (navigator.userAgent || navigator.vendor || window.opera || '').toLowerCase();
+  const isMobileUa = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua);
+  if (isMobileUa) return true;
+
+  if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+    if (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Valida se uma string é uma URL de servidor válida para o Motion Tennis.
  * Retorna { valid: boolean, error?: string, normalizedUrl?: string }
  */

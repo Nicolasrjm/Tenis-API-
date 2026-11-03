@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { testServerConnection, getSavedServerUrl } from '../services/serverConfig';
 import { cloudAuthService } from '../services/cloudAuthService';
+import { isWebDemoMode } from '../services/appEnvironment';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function MobileLayout() {
@@ -49,6 +50,16 @@ export default function MobileLayout() {
   }, []);
 
   const checkConnection = async () => {
+    // Em modo Web Demo na Vercel sem servidor local explicitamente salvo, não faz polling indevido
+    if (isWebDemoMode() && !getSavedServerUrl()) {
+      setConnectionState({
+        online: false,
+        latency: null,
+        serverName: null
+      });
+      return;
+    }
+
     setIsChecking(true);
     const res = await testServerConnection();
     setIsChecking(false);

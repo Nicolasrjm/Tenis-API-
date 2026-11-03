@@ -18,7 +18,12 @@ import {
   LogIn,
   Sliders,
   Radio,
-  Lock
+  Lock,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  History,
+  ArrowLeft
 } from 'lucide-react';
 import CourtTarget, { FIXED_SECTORS } from '../components/CourtTarget';
 import ShoppingExperience from '../components/ShoppingExperience';
@@ -131,6 +136,8 @@ function PersonalPlay() {
   const [savingWall, setSavingWall] = useState(false);
   const [wallFeedback, setWallFeedback] = useState(null);
   const [showIotPanel, setShowIotPanel] = useState(false);
+  const [showWallAccordion, setShowWallAccordion] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -730,561 +737,581 @@ function PersonalPlay() {
   const currentInfo = GAME_INFO[mode] || GAME_INFO.free;
 
   return (
-    <div ref={arenaContainerRef} className={`space-y-4 max-w-6xl mx-auto ${isFullscreen ? 'p-4 bg-[#050D07] min-h-screen flex flex-col justify-between' : ''}`}>
+    <div ref={arenaContainerRef} className="space-y-4 max-w-6xl mx-auto">
 
-      {/* BANNER DE VISITANTE (PARTE B - ITEM 10) */}
-      {isGuest && !isFullscreen && (
+      {/* ========================================================================= */}
+      {/* ETAPA 2 — MODO FOCO (TELA CHEIA IMERSIVA DE JOGO QUANDO EM ANDAMENTO)     */}
+      {/* ========================================================================= */}
+      {(matchStatus === 'PREPARING' || matchStatus === 'PLAYING') && (
         <div
-          data-testid="guest-play-banner"
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-cyan-950/30 border border-cyan-400/40 text-xs font-mono"
+          data-testid="focus-game-viewport"
+          className="fixed inset-0 z-50 bg-[#050D07] flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none"
         >
-          <div className="flex items-center space-x-2 text-cyan-300 font-bold">
-            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>JOGANDO COMO VISITANTE • Placar e resultado temporários (sem histórico ou XP permanente)</span>
-          </div>
-          <button
-            onClick={handleExitGuestToLogin}
-            className="text-cyan-300 hover:text-[#39FF88] underline underline-offset-2 font-bold self-start sm:self-center"
-          >
-            Sair do Modo Visitante e Entrar com Minha Conta
-          </button>
-        </div>
-      )}
-
-      {/* CABEÇALHO & SELEÇÃO DOS 3 MODOS */}
-      {!isFullscreen && (
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#09150E] border border-[#16C96B]/30 shadow-lg">
-          <div className="flex items-center space-x-2 w-full md:w-auto">
-            <button
-              data-testid="mode-btn-free"
-              onClick={() => handleModeChange('free')}
-              className={`flex-1 md:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                mode === 'free'
-                  ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                  : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
-              }`}
-            >
-              <Play className="w-4 h-4" />
-              <span>1. Treino Livre</span>
-            </button>
-
-            <button
-              data-testid="mode-btn-single"
-              onClick={() => handleModeChange('single')}
-              className={`flex-1 md:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                mode === 'single'
-                  ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                  : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
-              }`}
-            >
-              <Zap className="w-4 h-4" />
-              <span>2. Liga um por vez</span>
-            </button>
-
-            <button
-              data-testid="mode-btn-clear_all"
-              onClick={() => handleModeChange('clear_all')}
-              className={`flex-1 md:flex-initial px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                mode === 'clear_all'
-                  ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                  : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>3. Apagar todos</span>
-            </button>
-          </div>
-
-          <div className="flex items-center flex-wrap gap-2 text-xs font-mono">
-            <span className="text-[#8C9891]">Parede:</span>
-            <span
-              data-testid="active-wall-badge"
-              className="bg-[#16291C] text-[#39FF88] px-3 py-1 rounded-lg border border-[#16C96B]/30 font-bold"
-            >
-              {wallConfig.label || `${wallConfig.width}m × ${wallConfig.height}m`} • {wallConfig.width}m × {wallConfig.height}m
-            </span>
-            {!isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
-              <button
-                data-testid="btn-toggle-iot-panel"
-                onClick={() => setShowIotPanel((v) => !v)}
-                className={`px-3 py-1 rounded-lg border font-bold flex items-center gap-1.5 transition-all ${
-                  showIotPanel
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                    : 'bg-[#08130C] border-[#1B3624] text-cyan-400 hover:border-cyan-400/50'
-                }`}
-              >
-                <Radio size={13} />
-                <span>{showIotPanel ? 'Ocultar Diagnóstico IoT' : 'Diagnóstico IoT'}</span>
-              </button>
-            )}
-            {!isGuest && user?.role === 'admin' && (
-              <Link
-                to="/admin/equipments"
-                className="text-amber-400 hover:text-amber-300 flex items-center gap-1 underline underline-offset-2 ml-1"
-                title="Acessar Configuração da Parede no Painel Admin"
-              >
-                <Settings size={14} />
-                <span>Configurar</span>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* CONFIGURAÇÃO DO TAMANHO DA PAREDE PARA O NICOLAS (SEÇÃO 2 — PRÉ-JOGO) */}
-      {!isFullscreen && !isGuest && wallConfig.canConfigureWall && (
-        <div
-          data-testid="nicolas-wall-selector-panel"
-          className="p-4 rounded-2xl bg-[#0C1A11] border border-[#16C96B]/40 shadow-lg space-y-3"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-[#39FF88]" />
-              <span className="text-xs font-black uppercase tracking-wider text-[#F5F7F5]">
-                Configuração do Tamanho Físico da Parede (Conta: Nicolas)
+          {/* HUD SUPERIOR COMPACTO */}
+          <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#09150E]/90 border border-[#16C96B]/30 shadow-xl backdrop-blur-md">
+            {/* Esquerda: Modo e Status */}
+            <div className="flex items-center space-x-2.5">
+              <span className="px-3 py-1 rounded-xl bg-[#102216] border border-[#39FF88]/40 text-xs font-mono font-bold text-[#39FF88] shadow-sm">
+                {currentInfo.title}
               </span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#07110B] border border-[#16291C] text-[11px] font-mono">
+                <span className={`w-2 h-2 rounded-full ${matchStatus === 'PLAYING' ? 'bg-[#39FF88] animate-ping' : 'bg-amber-400 animate-ping'}`} />
+                <span data-testid="match-status-label" className={`font-bold ${matchStatus === 'PLAYING' ? 'text-[#39FF88]' : 'text-amber-400'}`}>
+                  {matchStatus === 'PLAYING' ? 'EM ANDAMENTO' : `PREPARANDO (${prepRemainingSeconds}s)`}
+                </span>
+              </div>
             </div>
-            {(matchStatus === 'PREPARING' || matchStatus === 'PLAYING') ? (
-              <span
-                data-testid="wall-locked-badge"
-                className="inline-flex items-center gap-1.5 text-[11px] font-mono text-amber-300 bg-amber-950/40 border border-amber-400/40 px-2.5 py-1 rounded-lg"
-              >
-                <Lock size={12} />
-                <span>Bloqueado durante a partida em andamento</span>
-              </span>
-            ) : (
-              <span className="text-[11px] font-mono text-[#8C9891]">
-                Selecione a dimensão antes de clicar em JOGAR • Sensores: S1 (0, H), S2 (L, H), S3 (0, 0)
-              </span>
-            )}
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {NICOLAS_WALL_OPTIONS.map((opt) => {
-              const optW = opt.widthM || opt.width;
-              const optH = opt.heightM || opt.height;
-              const isSelected =
-                wallConfig.preset === opt.key ||
-                (Number(wallConfig.width) === optW && Number(wallConfig.height) === optH);
-              const isLocked = matchStatus === 'PREPARING' || matchStatus === 'PLAYING' || savingWall;
-
-              return (
-                <button
-                  key={opt.key}
-                  data-testid={`wall-option-${opt.key}`}
-                  onClick={() => handleSelectNicolasWallPreset(opt.key)}
-                  disabled={isLocked}
-                  className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-[#16291C] border-[#39FF88] shadow-[0_0_18px_rgba(57,255,136,0.22)]'
-                      : 'bg-[#07110B] border-[#1B3624] hover:border-[#39FF88]/50'
-                  } ${isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+            {/* Centro: Cronômetro, Pontos, Golpes, Precisão */}
+            <div className="flex items-center gap-4 sm:gap-6 font-mono">
+              <div className="text-center">
+                <div className="text-[10px] text-[#8C9891] uppercase">Tempo</div>
+                <div
+                  data-testid="personal-timer-display"
+                  className={`text-xl sm:text-2xl font-black ${
+                    remainingSeconds <= 30 && matchStatus === 'PLAYING' ? 'text-rose-400 animate-pulse' : 'text-[#39FF88]'
+                  }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-black uppercase text-[#F5F7F5]">{opt.label}</span>
-                    {isSelected && (
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#39FF88] text-[#07110B]">
-                        ATIVA
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1.5 flex items-baseline justify-between font-mono">
-                    <span className="text-base font-black text-[#39FF88]">
-                      {optW}m × {optH}m
-                    </span>
-                    <span className="text-[10px] text-[#8C9891]">
-                      S1(0,{optH}) • S2({optW},{optH}) • S3(0,0)
-                    </span>
-                  </div>
+                  {formatTime(remainingSeconds)}
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-[10px] text-[#8C9891] uppercase">Pontos</div>
+                <div data-testid="personal-score-value" className="text-xl sm:text-2xl font-black text-[#F5F7F5]">
+                  {score}
+                </div>
+              </div>
+
+              <div className="text-center hidden sm:block">
+                <div className="text-[10px] text-[#8C9891] uppercase">Golpes</div>
+                <div data-testid="personal-shots-count" className="text-xl sm:text-2xl font-black text-[#F5F7F5]">
+                  {shotsCount}
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-[10px] text-[#8C9891] uppercase">
+                  {mode === 'clear_all' ? 'Acesos' : 'Precisão'}
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-[#39FF88]">
+                  {mode === 'clear_all' ? `${activeSectorsLeft}/6` : `${accuracyRate}%`}
+                </div>
+              </div>
+            </div>
+
+            {/* Direita: Som, Tela Cheia e Botão SAIR com Confirmação */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleSound}
+                title={soundOn ? 'Desativar som' : 'Ativar som'}
+                className="p-2 rounded-xl bg-[#08130C] border border-[#16291C] text-[#8C9891] hover:text-[#39FF88] transition-all"
+              >
+                {soundOn ? <Volume2 size={16} className="text-[#39FF88]" /> : <VolumeX size={16} />}
+              </button>
+
+              <button
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Sair da Tela Cheia' : 'Modo Tela Cheia (Projetor)'}
+                className="p-2 rounded-xl bg-[#08130C] border border-[#16291C] text-[#8C9891] hover:text-[#39FF88] transition-all hidden sm:flex"
+              >
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+              </button>
+
+              {matchStatus === 'PREPARING' ? (
+                <button
+                  data-testid="btn-cancel-prepare"
+                  onClick={handleEndOrCancelMatch}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-mono font-black text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+                >
+                  <Square size={13} className="fill-current" />
+                  <span>Cancelar</span>
                 </button>
-              );
-            })}
+              ) : (
+                <button
+                  data-testid="btn-end-match"
+                  onClick={() => setShowExitModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/50 text-rose-300 font-mono font-black text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+                >
+                  <Square size={13} className="fill-current" />
+                  <span>SAIR</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {wallFeedback && (
-            <div
-              data-testid="wall-config-feedback"
-              className={`text-xs font-mono px-3 py-2 rounded-xl border flex items-center gap-2 ${
-                wallFeedback.ok
-                  ? 'bg-[#39FF88]/10 border-[#39FF88]/30 text-[#39FF88]'
-                  : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
-              }`}
-            >
-              {wallFeedback.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              <span>{wallFeedback.text}</span>
-            </div>
-          )}
-        </div>
-      )}
+          {/* ÁREA CENTRAL MAXIMIZADA DA PAREDE (6 SETORES) */}
+          <div className="flex-1 w-full max-w-7xl mx-auto relative flex items-center justify-center my-auto min-h-0">
+            <CourtTarget
+              gameMode={mode}
+              activeSectorId={activeSectorId}
+              activeTargetId={activeSectorId}
+              sectorStates={sectorStates}
+              targetStates={sectorStates}
+              lastHitSectorId={lastHitSectorId}
+              lastHitTargetId={lastHitSectorId}
+              lastImpactCoords={lastImpactCoords}
+              onSectorHit={handleWallSectorHit}
+              onTargetHit={handleWallSectorHit}
+              interactive={matchStatus === 'PLAYING' && !showCountdownOverlay && remainingSeconds > 0 && !gameWon}
+              wallPreset={wallConfig.preset}
+              sensorOffsetsCm={wallConfig.sensorOffsetsCm}
+              isFullscreen={true}
+            />
 
-      {/* PAINEL DE DIAGNÓSTICO IoT (SEÇÃO 7 — RESTRITO A USUÁRIOS AUTORIZADOS) */}
-      {!isFullscreen && !isGuest && showIotPanel && (wallConfig.canConfigureWall || user?.role === 'admin') && (
-        <IotDiagnosticPanel wallConfig={wallConfig} onClose={() => setShowIotPanel(false)} />
-      )}
-
-      {/* PAINEL DE INFORMAÇÕES DO JOGO SELECIONADO + CRONÔMETRO EM DESTAQUE + BOTÃO JOGAR */}
-      <div className="p-4 rounded-2xl bg-[#09150E] border-2 border-[#39FF88]/40 shadow-[0_0_25px_rgba(57,255,136,0.12)] space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2.5 rounded-xl border ${remainingSeconds <= 30 && matchStatus === 'PLAYING' ? 'bg-rose-950/50 border-rose-500/50 text-rose-400 animate-pulse' : 'bg-[#102216] border-[#39FF88]/40 text-[#39FF88]'}`}>
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-[10px] font-mono text-[#39FF88] uppercase tracking-widest font-bold">
-                {currentInfo.title} • {currentInfo.subtitle}
-              </div>
+            {/* CONTAGEM REGRESSIVA CENTRAL 5, 4, 3, 2, 1, JÁ! */}
+            {showCountdownOverlay && (
               <div
-                data-testid="personal-timer-display"
-                className={`text-2xl sm:text-4xl font-black font-mono tracking-wider ${
-                  remainingSeconds <= 30 && matchStatus === 'PLAYING'
-                    ? 'text-rose-400 animate-pulse'
-                    : matchStatus === 'FINISHED'
-                      ? 'text-amber-400'
-                      : 'text-[#39FF88]'
-                }`}
+                data-testid="countdown-overlay"
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl bg-[#050D07]/90 backdrop-blur-md border-2 border-[#39FF88]/60 select-none pointer-events-auto shadow-[0_0_60px_rgba(57,255,136,0.25)]"
               >
-                TEMPO RESTANTE: {formatTime(remainingSeconds)}
+                <div className="text-xs sm:text-sm font-mono uppercase tracking-[0.3em] text-[#8C9891] mb-2 font-bold">
+                  {showGoBanner ? 'PARTIDA INICIADA' : 'PREPARE-SE PARA JOGAR'}
+                </div>
+                <div
+                  data-testid="countdown-number"
+                  className="text-[7rem] sm:text-[11rem] leading-none font-black font-mono text-[#39FF88] drop-shadow-[0_0_55px_rgba(57,255,136,0.85)] animate-pulse"
+                >
+                  {countdownText}
+                </div>
+                <div className="mt-4 text-xs font-mono text-[#F5F7F5]/80">
+                  {showGoBanner ? 'Acerte os alvos na parede!' : 'Impactos bloqueados durante a preparação'}
+                </div>
               </div>
-              <div className="text-xs text-[#8C9891] mt-0.5">
-                {currentInfo.description}
-              </div>
+            )}
+          </div>
+
+          {/* BARRA INFERIOR DE FEEDBACK */}
+          <div className="w-full max-w-7xl mx-auto flex items-center justify-between px-4 py-2 rounded-xl bg-[#08140D]/80 border border-[#16291C] font-mono text-xs">
+            <div className="flex items-center space-x-2 text-[#F5F7F5] truncate">
+              <span className="w-2 h-2 rounded-full bg-[#39FF88]" />
+              <span>{lastFeedbackText}</span>
+            </div>
+            <div className="text-[11px] text-[#8C9891] shrink-0">
+              Parede {wallConfig.width}m × {wallConfig.height}m
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
-            {matchStatus === 'IDLE' && (
-              <button
-                data-testid="btn-play-start"
-                onClick={() => handleStartMatch(false)}
-                disabled={startingMatch}
-                className="py-3 px-7 rounded-xl bg-[#39FF88] hover:bg-[#2fe677] text-[#07110B] font-black text-sm uppercase tracking-wider transition-all flex items-center space-x-2 shadow-[0_0_25px_rgba(57,255,136,0.5)] disabled:opacity-60"
-              >
-                <Play size={18} />
-                <span>{startingMatch ? 'PREPARANDO...' : 'JOGAR'}</span>
-              </button>
-            )}
-
-            {matchStatus === 'PREPARING' && (
-              <button
-                data-testid="btn-cancel-prepare"
-                onClick={handleEndOrCancelMatch}
-                className="py-2.5 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider transition-all flex items-center space-x-2"
-              >
-                <Square size={15} />
-                <span>Cancelar Contagem</span>
-              </button>
-            )}
-
-            {matchStatus === 'PLAYING' && (
-              <button
-                data-testid="btn-end-match"
-                onClick={handleEndOrCancelMatch}
-                className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center space-x-2 shadow-lg"
-              >
-                <Square size={15} />
-                <span>Encerrar Partida</span>
-              </button>
-            )}
-
-            {matchStatus === 'FINISHED' && (
-              <button
-                data-testid="btn-play-again-header"
-                onClick={() => handleStartMatch(true)}
-                disabled={startingMatch}
-                className="py-3 px-6 rounded-xl bg-[#39FF88] hover:bg-[#2fe677] text-[#07110B] font-black text-xs uppercase tracking-wider transition-all flex items-center space-x-2 shadow-[0_0_20px_rgba(57,255,136,0.4)] disabled:opacity-60"
-              >
-                <RotateCcw size={15} />
-                <span>JOGAR NOVAMENTE</span>
-              </button>
-            )}
-
-            <button
-              onClick={toggleSound}
-              title={soundOn ? 'Desativar som' : 'Ativar som'}
-              className="p-2.5 rounded-xl bg-[#08130C] border border-[#16291C] text-[#8C9891] hover:text-[#F5F7F5] transition-all"
-            >
-              {soundOn ? <Volume2 size={18} className="text-[#39FF88]" /> : <VolumeX size={18} />}
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              title={isFullscreen ? 'Sair da Tela Cheia' : 'Modo Tela Cheia (Projetor)'}
-              className="p-2.5 rounded-xl bg-[#16291C] border border-[#16C96B]/40 text-[#39FF88] hover:bg-[#16C96B]/20 transition-all"
-            >
-              {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Barra de progresso do cronômetro de 5 minutos */}
-        <div className="w-full h-2 rounded-full bg-[#07110B] border border-[#1B3624] overflow-hidden">
-          <div
-            className={`h-full transition-all duration-300 ${
-              remainingSeconds <= 30 && matchStatus === 'PLAYING' ? 'bg-rose-500' : 'bg-[#39FF88]'
-            }`}
-            style={{ width: `${Math.max(0, 100 - timerProgressPct)}%` }}
-          />
-        </div>
-      </div>
-
-      {/* BARRA DE TELEMETRIA E PLACAR */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div className="p-3 rounded-xl bg-[#08130C] border border-[#16291C] flex items-center space-x-3">
-          <Clock className={`w-5 h-5 ${remainingSeconds <= 30 && matchStatus === 'PLAYING' ? 'text-rose-400 animate-pulse' : 'text-[#39FF88]'}`} />
-          <div>
-            <div className="text-[10px] text-[#8C9891] uppercase font-mono">Cronômetro (05:00)</div>
-            <div className={`text-lg font-black font-mono ${remainingSeconds <= 30 && matchStatus === 'PLAYING' ? 'text-rose-400 animate-pulse' : 'text-[#F5F7F5]'}`}>
-              {formatTime(remainingSeconds)}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-3 rounded-xl bg-[#08130C] border border-[#16291C] flex items-center space-x-3">
-          <Zap className="w-5 h-5 text-amber-400" />
-          <div>
-            <div className="text-[10px] text-[#8C9891] uppercase font-mono">Golpes</div>
-            <div data-testid="personal-shots-count" className="text-lg font-black font-mono text-[#F5F7F5]">{shotsCount}</div>
-          </div>
-        </div>
-
-        <div className="p-3 rounded-xl bg-[#08130C] border border-[#16291C] flex items-center space-x-3">
-          <Trophy className="w-5 h-5 text-[#39FF88]" />
-          <div>
-            <div className="text-[10px] text-[#8C9891] uppercase font-mono">
-              {mode === 'single' ? 'Pontos' : 'Score'}
-            </div>
-            <div data-testid="personal-score-value" className="text-lg font-black font-mono text-[#39FF88]">{score}</div>
-          </div>
-        </div>
-
-        <div className="p-3 rounded-xl bg-[#08130C] border border-[#16291C] flex items-center space-x-3">
-          {mode === 'clear_all' ? (
-            <>
-              <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-              <div>
-                <div className="text-[10px] text-[#8C9891] uppercase font-mono">Acesos</div>
-                <div className="text-lg font-black font-mono text-cyan-400">{activeSectorsLeft} / 6</div>
+          {/* MODAL DE CONFIRMAÇÃO DE SAÍDA */}
+          {showExitModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+              <div className="max-w-sm w-full p-6 rounded-3xl bg-[#0C1A11] border-2 border-rose-500/50 shadow-2xl text-center space-y-4">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-black text-[#F5F7F5] uppercase tracking-wide">
+                    Encerrar Partida?
+                  </h3>
+                  <p className="text-xs text-[#8C9891] leading-relaxed">
+                    Deseja realmente sair da partida em andamento? O resultado atual será gravado e exibido no resumo.
+                  </p>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    onClick={() => setShowExitModal(false)}
+                    className="flex-1 py-3 rounded-xl bg-[#07110B] border border-[#1B3624] text-xs font-mono font-bold text-[#F5F7F5] hover:border-[#39FF88]/50 transition-all"
+                  >
+                    Continuar Jogando
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExitModal(false);
+                      handleEndOrCancelMatch();
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-mono font-black uppercase text-white shadow-lg transition-all"
+                  >
+                    Encerrar Partida
+                  </button>
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-5 h-5 text-[#39FF88]" />
-              <div>
-                <div className="text-[10px] text-[#8C9891] uppercase font-mono">Precisão</div>
-                <div className="text-lg font-black font-mono text-[#F5F7F5]">{accuracyRate}%</div>
-              </div>
-            </>
+            </div>
           )}
-        </div>
-      </div>
-
-      {/* AVISO DE SINCRONIZAÇÃO SE HOUVER */}
-      {syncWarning && (
-        <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-xs font-mono">
-          <AlertCircle size={15} />
-          <span>{syncWarning}</span>
         </div>
       )}
 
-      {/* FEEDBACK STATUS DA JOGADA */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-2.5 rounded-xl bg-[#08140D] border border-[#16C96B]/30 font-mono text-xs">
-        <div className="flex items-center space-x-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${matchStatus === 'PLAYING' ? 'bg-[#39FF88] animate-ping' : matchStatus === 'PREPARING' ? 'bg-amber-400 animate-ping' : 'bg-[#8C9891]'}`} />
-          <span className="text-[#F5F7F5] font-bold">{lastFeedbackText}</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0C1A11] border border-[#16291C] text-[11px]">
-            {isGuest ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                <span className="text-cyan-300 font-bold">
-                  {syncState.message || 'Sessão Temporária de Visitante'}
-                </span>
-              </>
-            ) : syncState.status === 'persisted' ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#39FF88]" />
-                <span className="text-[#39FF88] font-bold">
-                  {syncState.message || `Impacto salvo no SQLite${syncState.hitId ? ` (#${syncState.hitId})` : ''}`}
-                </span>
-              </>
-            ) : syncState.status === 'received' ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-cyan-400 font-bold">Impacto recebido pelo backend</span>
-              </>
-            ) : syncState.status === 'simulated' ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-amber-400">Impacto simulado localmente</span>
-              </>
-            ) : syncState.status === 'error' ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
-                <span className="text-rose-400 font-bold">Falha de sincronização</span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#8C9891]" />
-                <span className="text-[#8C9891]">SQLite Conectado</span>
-              </>
-            )}
-          </div>
-
-          <div className="text-[11px] font-bold" data-testid="match-status-label">
-            {matchStatus === 'PLAYING' ? (
-              <span className="text-[#39FF88]">EM ANDAMENTO</span>
-            ) : matchStatus === 'PREPARING' ? (
-              <span className="text-amber-400">PREPARANDO ({prepRemainingSeconds}s)</span>
-            ) : matchStatus === 'FINISHED' ? (
-              <span className="text-amber-400">FINALIZADA</span>
-            ) : (
-              <span className="text-[#8C9891]">AGUARDANDO JOGAR</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* PAINEL DE RESULTADO / ENCERRAMENTO */}
+      {/* ========================================================================= */}
+      {/* ETAPA 3 — TELA DE RESULTADO (SUMMARY APÓS TÉRMINO DA PARTIDA)             */}
+      {/* ========================================================================= */}
       {(matchStatus === 'FINISHED' || gameWon) && (
-        <div data-testid="personal-summary-panel" className="p-6 rounded-2xl bg-[#0C1A11] border border-[#16C96B]/40 text-center space-y-4 shadow-xl max-w-2xl mx-auto">
-          <div className="space-y-1">
-            <span className="text-[11px] font-mono tracking-widest text-[#39FF88] uppercase font-bold">
-              {gameWon ? 'DESAFIO CONCLUÍDO' : remainingSeconds <= 0 ? 'TEMPO ESGOTADO (05:00)' : 'PARTIDA FINALIZADA'}
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-[#F5F7F5] tracking-tight">
+        <div
+          data-testid="personal-summary-panel"
+          className="p-6 sm:p-8 rounded-3xl bg-[#0C1A11] border-2 border-[#16C96B]/50 shadow-2xl max-w-2xl mx-auto space-y-6 text-center my-6"
+        >
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#39FF88]/15 border border-[#39FF88]/40 text-[#39FF88] text-[11px] font-mono font-bold uppercase tracking-widest">
+              <Trophy className="w-3.5 h-3.5" />
+              <span>{gameWon ? 'DESAFIO CONCLUÍDO' : remainingSeconds <= 0 ? 'TEMPO ESGOTADO' : 'PARTIDA CONCLUÍDA'}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#F5F7F5] tracking-tight">
               {gameWon
-                ? 'DESAFIO CONCLUÍDO'
+                ? 'Desafio Concluído com Sucesso!'
                 : remainingSeconds <= 0
-                ? 'Tempo limite de 5 minutos encerrado'
-                : isGuest
-                ? 'Resultado Temporário da Partida (Visitante)'
-                : 'Resumo oficial da partida'}
+                ? 'Tempo Limite Encerrado (05:00)'
+                : 'Resumo Oficial da Partida'}
             </h2>
-            {isGuest && (
-              <p className="text-xs font-mono text-cyan-300">
-                Modo Visitante: este resultado é temporário e não altera históricos nem estatísticas de jogadores cadastrados.
-              </p>
-            )}
+            <p className="text-xs text-[#8C9891]">
+              {currentInfo.title} • Duração total: {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
+            </p>
           </div>
 
+          {/* Métricas Principais */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
-            <div className="p-3.5 rounded-xl bg-[#08130C] border border-[#16291C]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Tempo</div>
-              <div className="text-lg font-black font-mono text-[#39FF88] mt-0.5">
-                {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-[#08130C] border border-[#16291C]">
+            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
               <div className="text-[10px] font-mono uppercase text-[#8C9891]">Pontuação</div>
-              <div className="text-lg font-black font-mono text-[#F5F7F5] mt-0.5">
+              <div data-testid="personal-score-value" className="text-2xl font-black font-mono text-[#39FF88] mt-1">
                 {score}
               </div>
+              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">pontos oficiais</div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#08130C] border border-[#16291C]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Golpes</div>
-              <div className="text-lg font-black font-mono text-[#F5F7F5] mt-0.5">
+            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
+              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Golpes / Acertos</div>
+              <div data-testid="personal-shots-count" className="text-2xl font-black font-mono text-[#F5F7F5] mt-1">
                 {shotsCount}
               </div>
+              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">{hitsCount} acertos ({accuracyRate}%)</div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#08130C] border border-[#16291C]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Reativações</div>
-              <div className="text-lg font-black font-mono text-amber-400 mt-0.5">
-                {reactivations}
+            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
+              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Tempo de Jogo</div>
+              <div className="text-2xl font-black font-mono text-[#F5F7F5] mt-1">
+                {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
+              </div>
+              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">de 05:00 planejados</div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
+              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Estimativa XP</div>
+              <div className="text-2xl font-black font-mono text-cyan-400 mt-1">
+                +{isGuest ? 0 : Math.max(0, Math.round(score / 2))} XP
+              </div>
+              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">
+                {isGuest ? 'visitante' : 'carreira atleta'}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {/* Status Discreto e Fidedigno de Sincronização */}
+          <div className="p-3.5 rounded-2xl bg-[#07110B] border border-[#1B3624] text-xs font-mono flex items-center justify-center gap-2">
             {isGuest ? (
-              <button
-                onClick={handleExitGuestToLogin}
-                className="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-[#08130C] hover:bg-[#102216] border border-cyan-400/40 text-cyan-300 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
-              >
-                <LogIn size={16} />
-                <span>ENTRAR COM CONTA</span>
-              </button>
+              <>
+                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span className="text-cyan-300">
+                  Sessão temporária de visitante: pontuação não gravada no perfil nem sincronizada na nuvem.
+                </span>
+              </>
             ) : (
-              <Link
-                to="/app/dashboard"
-                className="flex-1 sm:flex-initial px-8 py-2.5 rounded-xl bg-[#08130C] hover:bg-[#102216] border border-[#16291C] text-[#F5F7F5] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
-              >
-                <span>FINALIZAR</span>
-              </Link>
+              <>
+                <CheckCircle2 className="w-4 h-4 text-[#39FF88] shrink-0" />
+                <span className="text-[#8C9891]">
+                  Partida gravada no <b className="text-[#F5F7F5]">SQLite local</b> • Sincronização cloud <b className="text-[#39FF88]">enfileirada na outbox</b>
+                </span>
+              </>
             )}
+          </div>
+
+          {/* Ações */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               data-testid="btn-play-again"
               onClick={() => handleStartMatch(true)}
               disabled={startingMatch}
-              className="flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-[#39FF88] hover:bg-[#2fe677] text-[#07110B] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(57,255,136,0.3)] disabled:opacity-60"
+              className="px-6 py-3.5 rounded-xl btn-neon font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-neon transition-all"
             >
               <RotateCcw size={16} />
               <span>JOGAR NOVAMENTE</span>
+            </button>
+
+            {!isGuest && (
+              <Link
+                to="/app/history"
+                className="px-5 py-3.5 rounded-xl bg-[#07110B] hover:bg-[#102216] border border-[#1B3624] hover:border-[#39FF88]/50 text-[#F5F7F5] font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              >
+                <History size={16} />
+                <span>HISTÓRICO</span>
+              </Link>
+            )}
+
+            <button
+              data-testid="btn-back-lobby"
+              onClick={() => {
+                prepareIdleGame(mode, plannedSeconds);
+                setMatchStatus('IDLE');
+              }}
+              className="px-5 py-3.5 rounded-xl bg-[#07110B] hover:bg-[#102216] border border-[#1B3624] text-[#8C9891] hover:text-[#F5F7F5] font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+            >
+              <span>VOLTAR AO LOBBY</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* ÁREA DA PAREDE DOS JOGOS (6 SETORES RETANGULARES GRANDES + SOBREPOSIÇÃO GIGANTE DE CONTAGEM 5,4,3,2,1,JÁ!) */}
-      <div className="w-full flex justify-center py-2 relative">
-        <div className="w-full relative flex justify-center">
-          <CourtTarget
-            gameMode={mode}
-            activeSectorId={activeSectorId}
-            activeTargetId={activeSectorId}
-            sectorStates={sectorStates}
-            targetStates={sectorStates}
-            lastHitSectorId={lastHitSectorId}
-            lastHitTargetId={lastHitSectorId}
-            lastImpactCoords={lastImpactCoords}
-            onSectorHit={handleWallSectorHit}
-            onTargetHit={handleWallSectorHit}
-            interactive={matchStatus === 'PLAYING' && !showCountdownOverlay && remainingSeconds > 0 && !gameWon}
-            wallPreset={wallConfig.preset}
-            sensorOffsetsCm={wallConfig.sensorOffsetsCm}
-            isFullscreen={isFullscreen}
-          />
-
-          {/* SOBREPOSIÇÃO GIGANTE CENTRALIZADA DE CONTAGEM REGRESSIVA (PARTE A - ITEM 2) */}
-          {showCountdownOverlay && (
+      {/* ========================================================================= */}
+      {/* ETAPA 1 — TELA JOGAR CLEAN (LOBBY PRÉ-JOGO QUANDO matchStatus === 'IDLE')  */}
+      {/* ========================================================================= */}
+      {matchStatus === 'IDLE' && (
+        <div className="space-y-4">
+          {/* BANNER DE VISITANTE */}
+          {isGuest && (
             <div
-              data-testid="countdown-overlay"
-              className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-2xl bg-[#050D07]/85 backdrop-blur-sm border-2 border-[#39FF88]/50 select-none pointer-events-auto"
+              data-testid="guest-play-banner"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-cyan-950/30 border border-cyan-400/40 text-xs font-mono"
             >
-              <div className="text-xs sm:text-sm font-mono uppercase tracking-[0.3em] text-[#8C9891] mb-2">
-                {showGoBanner ? 'PARTIDA INICIADA' : 'PREPARE-SE PARA JOGAR'}
+              <div className="flex items-center space-x-2 text-cyan-300 font-bold">
+                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>MODO VISITANTE ATIVO • Resultados temporários na sessão atual</span>
               </div>
-              <div
-                data-testid="countdown-number"
-                className="text-[6.5rem] sm:text-[10rem] leading-none font-black font-mono text-[#39FF88] drop-shadow-[0_0_45px_rgba(57,255,136,0.75)] transition-transform duration-150 scale-100"
+              <button
+                onClick={handleExitGuestToLogin}
+                className="text-cyan-300 hover:text-[#39FF88] underline underline-offset-2 font-bold self-start sm:self-center"
               >
-                {countdownText}
-              </div>
-              <div className="mt-4 text-xs font-mono text-[#F5F7F5]/80">
-                {showGoBanner ? 'Acerte os alvos na parede!' : 'Impactos bloqueados durante a preparação'}
-              </div>
+                Sair do Modo Visitante e Entrar com Minha Conta
+              </button>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* RESUMO DE ACERTOS POR SETOR */}
-      {!isFullscreen && (
-        <div className="p-4 rounded-xl bg-[#08130C] border border-[#16291C]">
-          <div className="text-[11px] font-mono text-[#8C9891] uppercase tracking-wider mb-2">
-            Distribuição de Impactos por Setor:
+          {/* SELEÇÃO LIMPA DE MODOS */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[#09150E] border border-[#16C96B]/30 shadow-lg">
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <button
+                data-testid="mode-btn-free"
+                onClick={() => handleModeChange('free')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
+                  mode === 'free'
+                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
+                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                }`}
+              >
+                <Play className="w-4 h-4" />
+                <span>1. Treino Livre</span>
+              </button>
+
+              <button
+                data-testid="mode-btn-single"
+                onClick={() => handleModeChange('single')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
+                  mode === 'single'
+                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
+                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                <span>2. Liga um por vez</span>
+              </button>
+
+              <button
+                data-testid="mode-btn-clear_all"
+                onClick={() => handleModeChange('clear_all')}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
+                  mode === 'clear_all'
+                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
+                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>3. Apagar todos</span>
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-2 text-xs font-mono">
+              <span className="text-[#8C9891]">Parede:</span>
+              <span
+                data-testid="active-wall-badge"
+                className="bg-[#16291C] text-[#39FF88] px-3 py-1 rounded-lg border border-[#16C96B]/30 font-bold"
+              >
+                {wallConfig.label || `${wallConfig.width}m × ${wallConfig.height}m`}
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-6 gap-2 text-center font-mono">
-            {[1, 2, 3, 4, 5, 6].map((sId) => (
-              <div key={sId} className="p-2 rounded-lg bg-[#060D08] border border-[#16291C]">
-                <div className="text-[10px] text-[#8C9891]">SETOR {sId}</div>
-                <div className="text-sm font-bold text-[#39FF88] mt-0.5">{sectorHits[sId] || 0}</div>
+
+          {/* HERO PLAY CARD: RESUMO CURTO + BOTÃO JOGAR EM GRANDE DESTAQUE */}
+          <div className="p-6 rounded-3xl bg-[#09150E] border-2 border-[#39FF88]/40 shadow-[0_0_30px_rgba(57,255,136,0.12)] space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-mono text-[#39FF88] uppercase tracking-widest font-bold">
+                  {currentInfo.title} • {currentInfo.subtitle}
+                </div>
+                <div
+                  data-testid="personal-timer-display"
+                  className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-[#39FF88]"
+                >
+                  TEMPO: {formatTime(remainingSeconds)}
+                </div>
+                <p className="text-xs text-[#8C9891] max-w-xl leading-relaxed">
+                  {currentInfo.description}
+                </p>
               </div>
-            ))}
+
+              {/* AÇÃO PRINCIPAL: BOTÃO JOGAR */}
+              <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-end">
+                <button
+                  data-testid="btn-play-start"
+                  onClick={() => handleStartMatch(false)}
+                  disabled={startingMatch}
+                  className="flex-1 sm:flex-initial py-4 px-10 rounded-2xl bg-[#39FF88] hover:bg-[#2fe677] text-[#07110B] font-black text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-3 shadow-[0_0_35px_rgba(57,255,136,0.6)] disabled:opacity-60 transform active:scale-95"
+                >
+                  <Play size={20} className="fill-current" />
+                  <span>{startingMatch ? 'PREPARANDO...' : 'JOGAR'}</span>
+                </button>
+
+                <button
+                  onClick={toggleSound}
+                  title={soundOn ? 'Desativar som' : 'Ativar som'}
+                  className="p-3.5 rounded-2xl bg-[#08130C] border border-[#16291C] text-[#8C9891] hover:text-[#39FF88] transition-all"
+                >
+                  {soundOn ? <Volume2 size={20} className="text-[#39FF88]" /> : <VolumeX size={20} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* PAINEL RECOLHÍVEL: DIMENSÕES DA PAREDE E DIAGNÓSTICO IoT */}
+          {!isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
+            <div className="rounded-2xl bg-[#08130C] border border-[#16291C] overflow-hidden transition-all">
+              <button
+                type="button"
+                onClick={() => setShowWallAccordion((v) => !v)}
+                className="w-full p-4 flex items-center justify-between text-left text-xs font-mono font-bold text-[#8C9891] hover:text-[#F5F7F5] transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <Sliders className="w-4 h-4 text-[#39FF88]" />
+                  <span>Configurações da Parede & Diagnóstico IoT</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#16291C] text-[#39FF88] font-bold">
+                    {wallConfig.width}m × {wallConfig.height}m
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1 text-[#39FF88]">
+                  <span className="text-[11px]">{showWallAccordion ? 'Recolher' : 'Expandir'}</span>
+                  {showWallAccordion ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </div>
+              </button>
+
+              {showWallAccordion && (
+                <div className="p-4 pt-0 space-y-4 border-t border-[#16291C]/60">
+                  <div
+                    data-testid="nicolas-wall-selector-panel"
+                    className="p-4 rounded-xl bg-[#0C1A11] border border-[#16C96B]/30 space-y-3 mt-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-[#F5F7F5]">
+                        Tamanho Físico da Parede (Conta: Nicolas)
+                      </span>
+                      <span className="text-[11px] font-mono text-[#8C9891]">
+                        Selecione a dimensão antes de clicar em JOGAR
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {NICOLAS_WALL_OPTIONS.map((opt) => {
+                        const optW = opt.widthM || opt.width;
+                        const optH = opt.heightM || opt.height;
+                        const isSelected =
+                          wallConfig.preset === opt.key ||
+                          (Number(wallConfig.width) === optW && Number(wallConfig.height) === optH);
+
+                        return (
+                          <button
+                            key={opt.key}
+                            data-testid={`wall-option-${opt.key}`}
+                            onClick={() => handleSelectNicolasWallPreset(opt.key)}
+                            disabled={savingWall}
+                            className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-[#16291C] border-[#39FF88] shadow-[0_0_18px_rgba(57,255,136,0.22)]'
+                                : 'bg-[#07110B] border-[#1B3624] hover:border-[#39FF88]/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full">
+                              <span className="text-xs font-black uppercase text-[#F5F7F5]">{opt.label}</span>
+                              {isSelected && (
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#39FF88] text-[#07110B]">
+                                  ATIVA
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex items-baseline justify-between font-mono">
+                              <span className="text-base font-black text-[#39FF88]">
+                                {optW}m × {optH}m
+                              </span>
+                              <span className="text-[10px] text-[#8C9891]">
+                                S1(0,{optH}) • S2({optW},{optH}) • S3(0,0)
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {wallFeedback && (
+                      <div
+                        data-testid="wall-config-feedback"
+                        className={`text-xs font-mono px-3 py-2 rounded-xl border flex items-center gap-2 ${
+                          wallFeedback.ok
+                            ? 'bg-[#39FF88]/10 border-[#39FF88]/30 text-[#39FF88]'
+                            : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                        }`}
+                      >
+                        {wallFeedback.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                        <span>{wallFeedback.text}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botão Diagnóstico IoT */}
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      data-testid="btn-toggle-iot-panel"
+                      onClick={() => setShowIotPanel((v) => !v)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                        showIotPanel
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
+                          : 'bg-[#08130C] border-[#1B3624] text-cyan-400 hover:border-cyan-400/50'
+                      }`}
+                    >
+                      <Radio size={14} />
+                      <span>{showIotPanel ? 'Ocultar Diagnóstico IoT' : 'Abrir Diagnóstico IoT'}</span>
+                    </button>
+
+                    {user?.role === 'admin' && (
+                      <Link
+                        to="/admin/equipments"
+                        className="text-xs font-mono text-amber-400 hover:text-amber-300 flex items-center gap-1 underline underline-offset-2"
+                      >
+                        <Settings size={14} />
+                        <span>Configurações Avançadas de Equipamento</span>
+                      </Link>
+                    )}
+                  </div>
+
+                  {showIotPanel && (
+                    <IotDiagnosticPanel wallConfig={wallConfig} onClose={() => setShowIotPanel(false)} />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PRÉ-VISUALIZAÇÃO DA PAREDE EM MODO PRÉ-JOGO */}
+          <div className="w-full flex justify-center py-2 relative">
+            <div className="w-full relative flex justify-center">
+              <CourtTarget
+                gameMode={mode}
+                activeSectorId={activeSectorId}
+                activeTargetId={activeSectorId}
+                sectorStates={sectorStates}
+                targetStates={sectorStates}
+                lastHitSectorId={lastHitSectorId}
+                lastHitTargetId={lastHitSectorId}
+                lastImpactCoords={lastImpactCoords}
+                onSectorHit={handleWallSectorHit}
+                onTargetHit={handleWallSectorHit}
+                interactive={false}
+                wallPreset={wallConfig.preset}
+                sensorOffsetsCm={wallConfig.sensorOffsetsCm}
+                isFullscreen={false}
+              />
+            </div>
           </div>
         </div>
       )}

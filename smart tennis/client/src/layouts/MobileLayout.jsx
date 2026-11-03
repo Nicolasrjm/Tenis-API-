@@ -4,16 +4,17 @@ import {
   Home,
   Clock,
   TrendingUp,
-  GraduationCap,
   User,
   Wifi,
   WifiOff,
   AlertTriangle,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Cloud
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { testServerConnection, getSavedServerUrl } from '../services/serverConfig';
+import { cloudAuthService } from '../services/cloudAuthService';
 
 export default function MobileLayout() {
   const { user, isGuest } = useAuth();
@@ -26,6 +27,12 @@ export default function MobileLayout() {
     serverName: 'Motion Tennis Server'
   });
   const [isChecking, setIsChecking] = useState(false);
+  const [cloudActive, setCloudActive] = useState(false);
+
+  useEffect(() => {
+    const session = cloudAuthService.getStoredCloudSession();
+    setCloudActive(Boolean(session?.access_token || user?.isCloudOnly || user?.cloud_user_id || user?.cloudUserId));
+  }, [user]);
 
   useEffect(() => {
     checkConnection();
@@ -63,7 +70,6 @@ export default function MobileLayout() {
     { to: '/mobile/dashboard', label: 'Início', icon: Home, testId: 'nav-mobile-home' },
     { to: '/mobile/history', label: 'Histórico', icon: Clock, testId: 'nav-mobile-history' },
     { to: '/mobile/evolution', label: 'Evolução', icon: TrendingUp, testId: 'nav-mobile-evolution' },
-    { to: '/mobile/academy', label: 'Academy', icon: GraduationCap, testId: 'nav-mobile-academy' },
     { to: '/mobile/profile', label: 'Perfil', icon: User, testId: 'nav-mobile-profile' },
   ];
 
@@ -97,20 +103,28 @@ export default function MobileLayout() {
             className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border transition ${
               connectionState.online
                 ? 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88] hover:bg-[#132B1B]'
-                : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
+                : cloudActive
+                  ? 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88] hover:bg-[#132B1B]'
+                  : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
             }`}
-            title="Toque para gerenciar conexão do servidor"
+            title={connectionState.online ? 'Conectado à quadra' : cloudActive ? 'Acessando via Supabase Cloud' : 'Toque para gerenciar conexão do servidor'}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              connectionState.online
-                ? 'bg-[#39FF88] shadow-[0_0_6px_#39FF88] animate-pulse'
-                : 'bg-rose-500'
-            }`} />
-            <span>
-              {connectionState.online 
-                ? (connectionState.latency ? `${connectionState.latency}ms` : 'Online') 
-                : 'Offline'}
-            </span>
+            {connectionState.online ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#39FF88] shadow-[0_0_6px_#39FF88] animate-pulse" />
+                <span>{connectionState.latency ? `${connectionState.latency}ms` : 'Quadra'}</span>
+              </>
+            ) : cloudActive ? (
+              <>
+                <Cloud className="w-3 h-3 text-[#39FF88]" />
+                <span>Nuvem</span>
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span>Offline</span>
+              </>
+            )}
           </button>
 
           {/* User mini badge */}
@@ -133,12 +147,12 @@ export default function MobileLayout() {
         </div>
       </header>
 
-      {/* Offline Alert Banner */}
-      {!connectionState.online && location.pathname !== '/mobile/connect' && (
+      {/* Offline Alert Banner (shown only when neither notebook nor cloud is accessible) */}
+      {!connectionState.online && !cloudActive && location.pathname !== '/mobile/connect' && (
         <div className="bg-rose-950/90 border-b border-rose-500/30 px-4 py-2 flex items-center justify-between text-xs text-rose-200">
           <div className="flex items-center space-x-2 truncate mr-2">
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="truncate">Sem conexão com o notebook. Dados locais em cache.</span>
+            <span className="truncate">Sem conexão com o notebook ou nuvem.</span>
           </div>
           <button
             onClick={() => navigate('/mobile/connect')}
@@ -154,12 +168,12 @@ export default function MobileLayout() {
         <Outlet />
       </main>
 
-      {/* Fixed Bottom Navigation Bar (5 Items) */}
+      {/* Fixed Bottom Navigation Bar (4 Items: Início, Histórico, Evolução, Perfil) */}
       <nav 
         data-testid="mobile-bottom-navigation"
         className="fixed bottom-0 inset-x-0 z-40 bg-[#07110B]/98 backdrop-blur-md border-t border-[#142A1B] px-1 py-1.5 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
       >
-        <div className="max-w-md mx-auto grid grid-cols-5 gap-1">
+        <div className="max-w-md mx-auto grid grid-cols-4 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (

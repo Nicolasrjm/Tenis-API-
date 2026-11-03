@@ -173,8 +173,15 @@ export const api = {
   getCloudConfig: () => fetchJson('/auth/cloud/config'),
   getCloudStatus: () => fetchJson('/auth/cloud/status'),
   linkCloudAccount: (data) => fetchJson('/auth/cloud/link', { method: 'POST', body: JSON.stringify(data) }),
-  unlinkCloudAccount: () => fetchJson('/auth/cloud/unlink', { method: 'POST' }),
-  loginWithSupabaseToken: (accessToken) => fetchJson('/auth/cloud/login-with-token', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) }),
+  unlinkCloudAccount: (data) => fetchJson('/auth/cloud/unlink', { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+  loginWithSupabaseToken: (accessToken, options = {}) => fetchJson('/auth/cloud/login-with-token', {
+    method: 'POST',
+    body: JSON.stringify({
+      access_token: accessToken,
+      create_if_missing: options.create_if_missing !== undefined ? options.create_if_missing : true,
+      name: options.name || undefined
+    })
+  }),
 
   // Player
   getPlayer: () => fetchJson('/player'),

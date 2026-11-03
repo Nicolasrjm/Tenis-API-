@@ -6,17 +6,20 @@ import {
   Flame,
   PlayCircle,
   TrendingUp,
-  GraduationCap,
   ArrowRight,
   Clock,
   Radio,
   Zap,
   RefreshCw,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Cloud,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import { cloudDataService } from '../../services/cloudDataService';
+import { getStoredCloudSession } from '../../services/cloudAuthService';
 import MobileVisitorGuard from '../../components/mobile/MobileVisitorGuard';
 
 export default function MobileDashboardPage() {
@@ -24,10 +27,12 @@ export default function MobileDashboardPage() {
   const navigate = useNavigate();
 
   const [player, setPlayer] = useState(null);
+  const [latestSession, setLatestSession] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
+  const [bestScore, setBestScore] = useState(0);
+  const [isCloudActive, setIsCloudActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isCached, setIsCached] = useState(false);
 
   useEffect(() => {
     if (isGuest) {
@@ -40,25 +45,71 @@ export default function MobileDashboardPage() {
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    try {
-      const [playerData, sessionsData] = await Promise.all([
-        api.getPlayer().catch(() => null),
-        api.getSessions(5).catch(() => [])
-      ]);
 
-      if (playerData) {
-        setPlayer(playerData);
-      } else if (user) {
-        setPlayer(user);
+    const cloudSession = getStoredCloudSession();
+    let loadedFromCloud = false;
+
+    // 1. Prioridade: Consulta direta à nuvem Supabase (Multidispositivo independente do notebook)
+    if (cloudSession?.accessToken) {
+      try {
+        const overview = await cloudDataService.getCloudAthleteOverview({
+          accessToken: cloudSession.accessToken
+        });
+
+        if (overview?.profile) {
+          setPlayer({
+            name: overview.profile.display_name || user?.name || 'Atleta',
+            avatar: overview.profile.avatar || user?.avatar || '🎾',
+            level: overview.profile.level || 1,
+            xp: overview.profile.xp || 0,
+            xp_next: overview.profile.xp_next || 250,
+            title: overview.profile.title || 'Iniciante',
+            precision: overview.profile.overall_accuracy !== undefined ? Number(overview.profile.overall_accuracy) : 0,
+            total_shots: overview.profile.total_shots || 0,
+            total_hits: overview.profile.total_hits || 0,
+            total_matches: overview.profile.total_matches || (overview.recentSessions?.length || 0),
+            best_streak: overview.profile.best_streak || 0,
+            last_synced_at: overview.profile.last_synced_at
+          });
+          setLatestSession(overview.latestSession);
+          setRecentSessions(overview.recentSessions || []);
+          setBestScore(overview.bestScore || 0);
+          setIsCloudActive(true);
+          loadedFromCloud = true;
+        }
+      } catch (cloudErr) {
+        console.warn('[MOBILE DASHBOARD] Nuvem inacessível, tentando fallback local:', cloudErr);
       }
-
-      setRecentSessions(Array.isArray(sessionsData) ? sessionsData : []);
-    } catch (err) {
-      console.warn('Erro ao carregar dashboard mobile:', err);
-      setError(err.message || 'Falha ao sincronizar dados com o notebook.');
-    } finally {
-      setLoading(false);
     }
+
+    // 2. Fallback: Consulta ao servidor local do notebook (quando na quadra/mesmo Wi-Fi)
+    if (!loadedFromCloud) {
+      try {
+        const [playerData, sessionsData] = await Promise.all([
+          api.getPlayer().catch(() => null),
+          api.getSessions(5).catch(() => [])
+        ]);
+
+        if (playerData) {
+          setPlayer(playerData);
+          setBestScore(playerData.best_score || 0);
+        } else if (user) {
+          setPlayer(user);
+        }
+
+        const sess = Array.isArray(sessionsData) ? sessionsData : [];
+        setRecentSessions(sess);
+        if (sess.length > 0) {
+          setLatestSession(sess[0]);
+        }
+        setIsCloudActive(false);
+      } catch (err) {
+        console.warn('Erro ao carregar dashboard local:', err);
+        setError('Não foi possível sincronizar os dados do atleta no momento.');
+      }
+    }
+
+    setLoading(false);
   };
 
   const getGreeting = () => {
@@ -66,6 +117,28 @@ export default function MobileDashboardPage() {
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const formatDuration = (sec) => {
+    if (!sec && sec !== 0) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   if (isGuest) {
@@ -76,7 +149,7 @@ export default function MobileDashboardPage() {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] space-y-3">
         <RefreshCw className="w-8 h-8 text-[#39FF88] animate-spin" />
-        <span className="text-xs text-[#8C9891] font-mono">Carregando métricas do jogador...</span>
+        <span className="text-xs text-[#8C9891] font-mono">Consultando métricas do atleta na nuvem...</span>
       </div>
     );
   }
@@ -99,7 +172,7 @@ export default function MobileDashboardPage() {
     );
   }
 
-  // Calculate XP progress
+  // Cálculo de progresso de XP
   const currentXp = player?.xp || 0;
   const nextXp = player?.xp_next || 250;
   const xpPct = Math.min(100, Math.max(0, Math.round((currentXp / nextXp) * 100)));
@@ -108,22 +181,38 @@ export default function MobileDashboardPage() {
   return (
     <div className="p-4 sm:p-5 space-y-5 animate-fadeIn">
       
-      {/* 1. Header Greeting & Equipment Info */}
+      {/* 1. Header: Saudação, Nome do Atleta e Status da Nuvem */}
       <div className="flex items-start justify-between">
         <div>
           <span className="text-[11px] font-mono uppercase text-[#8C9891] tracking-wider block">
             {getGreeting()},
           </span>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center space-x-2">
-            <span>{player?.name || user?.name || 'Jogador'}</span>
+            <span>{player?.name || user?.name || 'Atleta'}</span>
             <span className="text-xl">{player?.avatar || '🎾'}</span>
           </h1>
         </div>
 
-        {/* Equipment Pill */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#0D1E13] border border-[#163020] text-[10px] font-mono text-[#8C9891]">
-          <Radio className="w-3 h-3 text-[#39FF88] animate-pulse" />
-          <span>MT #001</span>
+        {/* Cloud Status Pill */}
+        <div
+          data-testid="dashboard-cloud-pill"
+          className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold border transition ${
+            isCloudActive
+              ? 'bg-cyan-950/50 border-cyan-400/40 text-cyan-300'
+              : 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88]'
+          }`}
+        >
+          {isCloudActive ? (
+            <>
+              <Cloud className="w-3.5 h-3.5 text-cyan-400" />
+              <span>NUVEM ATIVA</span>
+            </>
+          ) : (
+            <>
+              <Radio className="w-3.5 h-3.5 text-[#39FF88] animate-pulse" />
+              <span>QUADRA LOCAL</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -152,7 +241,7 @@ export default function MobileDashboardPage() {
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Barra de Progresso */}
         <div className="space-y-1.5">
           <div className="w-full bg-[#070F0A] h-2.5 rounded-full overflow-hidden border border-[#142A1B] p-0.5">
             <div
@@ -168,158 +257,124 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      {/* 3. Core Metrics Grid (Real data from DB) */}
+      {/* 3. Última Partida Sincronizada */}
+      {latestSession ? (
+        <div
+          data-testid="dashboard-latest-session"
+          onClick={() => navigate('/mobile/history')}
+          className="p-4 rounded-3xl bg-[#09150E] hover:bg-[#0E1F15] border border-[#163020] hover:border-[#39FF88]/40 transition cursor-pointer space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase text-[#39FF88] font-bold tracking-wider flex items-center space-x-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#39FF88]" />
+              <span>Última Partida Sincronizada</span>
+            </span>
+            <span className="text-[10px] font-mono text-[#8C9891]">
+              {formatDate(latestSession.started_at || latestSession.created_at)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              <span className="text-sm font-bold text-white block capitalize">
+                {latestSession.mode === 'free' ? 'Treino Livre' : latestSession.mode === 'single' ? 'Alvo Único' : latestSession.mode === 'clear_all' ? 'Limpar Todos' : (latestSession.mode || 'Partida')}
+              </span>
+              <span className="text-[11px] font-mono text-[#8C9891]">
+                Duração: {formatDuration(latestSession.duration_seconds)} • Parede: {latestSession.wall_preset || '3x2'}
+              </span>
+            </div>
+
+            <div className="text-right">
+              <span className="text-xl font-black font-mono text-[#39FF88] block">
+                {latestSession.total_score || 0}
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">
+                {Number(latestSession.accuracy || 0).toFixed(0)}% precisão
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 rounded-3xl bg-[#09150E] border border-[#163020] text-center space-y-2">
+          <Clock className="w-6 h-6 text-[#8C9891] mx-auto opacity-50" />
+          <p className="text-xs text-[#8C9891]">Nenhuma partida sincronizada na nuvem ainda.</p>
+        </div>
+      )}
+
+      {/* 4. Grid de Métricas Principais */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Total Partidas */}
+        {/* Total de Partidas */}
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Partidas</span>
             <Trophy className="w-4 h-4 text-[#39FF88]" />
           </div>
           <div className="text-xl font-black text-white font-mono">
-            {player?.trainings_completed || recentSessions.length || 0}
+            {player?.total_matches || recentSessions.length || 0}
           </div>
-          <span className="text-[10px] text-[#6E8175] block">registradas no sistema</span>
+          <span className="text-[10px] text-[#6E8175] block">sincronizadas</span>
         </div>
 
-        {/* Precisão Real */}
+        {/* Precisão Geral */}
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Precisão</span>
             <Target className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-xl font-black text-white font-mono">
-            {player?.precision !== undefined && player?.precision !== null ? `${player.precision}%` : 'N/A'}
+            {player?.precision !== undefined ? `${player.precision}%` : 'N/A'}
           </div>
-          <span className="text-[10px] text-[#6E8175] block">média dos impactos</span>
+          <span className="text-[10px] text-[#6E8175] block">média da carreira</span>
         </div>
 
         {/* Melhor Pontuação */}
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Recorde</span>
-            <Zap className="w-4 h-4 text-amber-400" />
+            <Flame className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-xl font-black text-white font-mono">
-            {player?.best_score || 0} pts
+            {bestScore || player?.best_score || 0}
           </div>
-          <span className="text-[10px] text-[#6E8175] block">melhor resultado</span>
+          <span className="text-[10px] text-[#6E8175] block">melhor pontuação</span>
         </div>
 
-        {/* Sequência de Treinos */}
+        {/* Total de Impactos */}
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
-            <span className="text-[10px] font-mono uppercase">Sequência</span>
-            <Flame className="w-4 h-4 text-orange-400" />
+            <span className="text-[10px] font-mono uppercase">Impactos</span>
+            <Zap className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-xl font-black text-white font-mono">
-            {player?.streak_days || 1} dias
+            {player?.total_shots || 0}
           </div>
-          <span className="text-[10px] text-[#6E8175] block">ritmo consecutivo</span>
+          <span className="text-[10px] text-[#6E8175] block">{player?.total_hits || 0} acertos</span>
         </div>
       </div>
 
-      {/* 4. Quick Actions / Call to Action */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* 5. Ações Rápidas de Navegação */}
+      <div className="grid grid-cols-2 gap-3 pt-1">
+        <button
+          onClick={() => navigate('/mobile/history')}
+          className="p-3.5 rounded-2xl bg-[#0E2015] hover:bg-[#142C1E] border border-[#1F452C] text-left transition space-y-1"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white">Ver Histórico</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[#39FF88]" />
+          </div>
+          <span className="text-[10px] text-[#8C9891] block">Partidas e telemetria</span>
+        </button>
+
         <button
           onClick={() => navigate('/mobile/evolution')}
-          data-testid="btn-dash-evolution"
-          className="p-3.5 rounded-2xl bg-[#0E1E14] hover:bg-[#142B1D] border border-[#1C3E28] flex items-center justify-between text-left transition group"
+          className="p-3.5 rounded-2xl bg-[#0E2015] hover:bg-[#142C1E] border border-[#1F452C] text-left transition space-y-1"
         >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#14301D] text-[#39FF88] flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-white block">Evolução</span>
-              <span className="text-[10px] text-[#8C9891]">Gráficos</span>
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white">Evolução</span>
+            <TrendingUp className="w-3.5 h-3.5 text-[#39FF88]" />
           </div>
-          <ArrowRight className="w-4 h-4 text-[#8C9891] group-hover:text-[#39FF88] transition" />
+          <span className="text-[10px] text-[#8C9891] block">6 atributos e conquistas</span>
         </button>
-
-        <button
-          onClick={() => navigate('/mobile/academy')}
-          data-testid="btn-dash-academy"
-          className="p-3.5 rounded-2xl bg-[#0E1E14] hover:bg-[#142B1D] border border-[#1C3E28] flex items-center justify-between text-left transition group"
-        >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#14301D] text-[#39FF88] flex items-center justify-center">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-white block">Academy</span>
-              <span className="text-[10px] text-[#39FF88] font-mono">100% Grátis</span>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-[#8C9891] group-hover:text-[#39FF88] transition" />
-        </button>
-      </div>
-
-      {/* 5. Recent Matches Section */}
-      <div className="space-y-3 pt-1">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-[#39FF88]" />
-            <span>Últimas Partidas</span>
-          </h2>
-          <button
-            onClick={() => navigate('/mobile/history')}
-            data-testid="btn-see-all-history"
-            className="text-xs text-[#39FF88] hover:underline font-mono"
-          >
-            Ver todas →
-          </button>
-        </div>
-
-        {recentSessions.length === 0 ? (
-          <div className="p-6 rounded-2xl bg-[#0A140E] border border-[#142A1B] text-center space-y-2">
-            <Trophy className="w-8 h-8 text-[#8C9891] mx-auto opacity-40" />
-            <p className="text-xs text-white font-bold">Nenhuma partida registrada ainda</p>
-            <p className="text-[11px] text-[#8C9891]">
-              Inicie uma partida no notebook para registrar seus primeiros impactos.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {recentSessions.slice(0, 3).map((sess) => (
-              <div
-                key={sess.id}
-                onClick={() => navigate('/mobile/history')}
-                className="p-3.5 rounded-2xl bg-[#0A140E] hover:bg-[#0F1E15] border border-[#163020] flex items-center justify-between cursor-pointer transition"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold text-white">
-                      {sess.mode || 'Treino Livre'}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#122A1A] text-[#39FF88] border border-[#39FF88]/30">
-                      {sess.wall_preset || '3x2'}
-                    </span>
-                  </div>
-                  <div className="text-[10px] font-mono text-[#8C9891] flex items-center space-x-2">
-                    <span>{sess.created_at ? new Date(sess.created_at).toLocaleDateString('pt-BR') : 'Hoje'}</span>
-                    <span>•</span>
-                    <span>{sess.hits_count || 0} acertos</span>
-                    {sess.accuracy ? (
-                      <>
-                        <span>•</span>
-                        <span className="text-emerald-400 font-bold">{sess.accuracy}%</span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-base font-black font-mono text-[#39FF88]">
-                    {sess.total_score || 0}
-                  </span>
-                  <span className="text-[10px] text-[#8C9891] block">pts</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
     </div>

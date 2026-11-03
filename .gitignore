@@ -76,3 +76,4 @@ key.properties
 *.aab
 *.log
 **/local.properties
+/backups/

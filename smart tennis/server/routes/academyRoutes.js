@@ -288,10 +288,27 @@ router.get('/', optionalAcademyAuth, async (req, res) => {
     if (userId) {
       const player = await get('SELECT id FROM players WHERE user_id = ?', [userId]);
       if (player) {
-        attributes = await all(
-          'SELECT attribute_key as key, name, icon, level, xp, xp_next, description FROM player_attributes WHERE player_id = ?',
+        const rows = await all(
+          'SELECT key, name, level, xp, xp_next, objective, strong_points, improvement_points, coach_tip FROM attributes WHERE player_id = ?',
           [player.id]
         );
+        const iconMap = {
+          precision: '🎯',
+          consistency: '🔄',
+          speed: '⚡',
+          control: '🎮',
+          reflex: '⚡',
+          strategy: '🧠'
+        };
+        attributes = (rows || []).map((r) => ({
+          key: r.key,
+          name: r.name,
+          icon: iconMap[r.key] || '🎾',
+          level: r.level,
+          xp: r.xp,
+          xp_next: r.xp_next,
+          description: r.objective || r.coach_tip || ''
+        }));
       }
     }
 
@@ -346,10 +363,29 @@ router.get('/:skill', optionalAcademyAuth, async (req, res) => {
     if (userId) {
       const player = await get('SELECT id FROM players WHERE user_id = ?', [userId]);
       if (player) {
-        attribute = await get(
-          'SELECT attribute_key as key, name, icon, level, xp, xp_next, description FROM player_attributes WHERE player_id = ? AND attribute_key = ?',
+        const row = await get(
+          'SELECT key, name, level, xp, xp_next, objective, strong_points, improvement_points, coach_tip FROM attributes WHERE player_id = ? AND key = ?',
           [player.id, skill]
         );
+        if (row) {
+          const iconMap = {
+            precision: '🎯',
+            consistency: '🔄',
+            speed: '⚡',
+            control: '🎮',
+            reflex: '⚡',
+            strategy: '🧠'
+          };
+          attribute = {
+            key: row.key,
+            name: row.name,
+            icon: iconMap[row.key] || '🎾',
+            level: row.level,
+            xp: row.xp,
+            xp_next: row.xp_next,
+            description: row.objective || row.coach_tip || `Módulo técnico de ${row.name}.`
+          };
+        }
       }
     }
 
@@ -365,7 +401,7 @@ router.get('/:skill', optionalAcademyAuth, async (req, res) => {
       };
     }
 
-    relatedTrainings = await all('SELECT * FROM trainings WHERE category = ?', [skill]);
+    relatedTrainings = await all('SELECT * FROM trainings WHERE attribute_key = ?', [skill]);
 
     // Para visitantes/jogadores comuns, `lessons` retorna apenas aulas publicadas desse módulo;
     // os slots planejados "Em breve" ficam em `plannedSlots`.

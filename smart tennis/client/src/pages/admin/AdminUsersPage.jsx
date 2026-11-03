@@ -165,7 +165,14 @@ export default function AdminUsersPage() {
                     <span className="text-lg">{u.avatar || '🎾'}</span>
                     <div>
                       <span className="font-bold text-[#F5F7F5] block">{u.name}</span>
-                      <span className="text-[#8C9891] text-[11px]">@{u.username}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[#8C9891] text-[11px]">@{u.username}</span>
+                        {u.cloud_email && (
+                          <span className="text-[10px] text-cyan-300 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-400/30 font-mono">
+                            ☁ {u.cloud_email}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </td>

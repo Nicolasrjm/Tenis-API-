@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Save, 
@@ -12,14 +12,37 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
+import CloudLinkCard from '../components/CloudLinkCard';
 
-export default function ProfilePage({ player, onPlayerUpdate }) {
-  const [name, setName] = useState(player?.name || 'Nicolas');
-  const [avatar, setAvatar] = useState(player?.avatar || '🎾');
+export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
+  const [playerData, setPlayerData] = useState(propPlayer || null);
+  const [name, setName] = useState(propPlayer?.name || 'Nicolas');
+  const [avatar, setAvatar] = useState(propPlayer?.avatar || '🎾');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(!propPlayer?.level);
   const [message, setMessage] = useState(null);
 
   const availableAvatars = ['🎾', '⚡', '🏆', '🎯', '🚀', '🔥', '👑', '🥇'];
+
+  useEffect(() => {
+    loadFullProfile();
+  }, []);
+
+  const loadFullProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getPlayer();
+      if (data) {
+        setPlayerData(data);
+        if (data.name) setName(data.name);
+        if (data.avatar) setAvatar(data.avatar);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar dados do atleta:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -27,6 +50,7 @@ export default function ProfilePage({ player, onPlayerUpdate }) {
     setMessage(null);
     try {
       const updated = await api.updatePlayer({ name, avatar });
+      setPlayerData((prev) => ({ ...prev, ...updated }));
       if (onPlayerUpdate) onPlayerUpdate(updated);
       setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
     } catch (err) {
@@ -40,6 +64,7 @@ export default function ProfilePage({ player, onPlayerUpdate }) {
     if (window.confirm('Deseja restaurar os dados originais de demonstração de Nicolas (LV 12, 24 treinos, etc)?')) {
       try {
         const res = await api.resetDemoData();
+        setPlayerData(res.player);
         if (onPlayerUpdate) onPlayerUpdate(res.player);
         setName(res.player.name);
         setAvatar(res.player.avatar);
@@ -54,6 +79,7 @@ export default function ProfilePage({ player, onPlayerUpdate }) {
     if (window.confirm('Tem certeza de que deseja limpar todos os registros e iniciar um novo jogador do nível 1?')) {
       try {
         const res = await api.clearData();
+        setPlayerData(res.player);
         if (onPlayerUpdate) onPlayerUpdate(res.player);
         setName(res.player.name);
         setAvatar(res.player.avatar);
@@ -132,19 +158,27 @@ export default function ProfilePage({ player, onPlayerUpdate }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
               <span className="text-[10px] font-mono text-[#8C9891]">NÍVEL ATUAL</span>
-              <div className="text-lg font-black text-[#39FF88]">LV. {player?.level}</div>
+              <div className="text-lg font-black text-[#39FF88]">
+                {loading ? '...' : `LV. ${playerData?.level ?? 1}`}
+              </div>
             </div>
             <div className="p-3.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
               <span className="text-[10px] font-mono text-[#8C9891]">EXPERIÊNCIA</span>
-              <div className="text-lg font-black text-[#F5F7F5]">{player?.xp} XP</div>
+              <div className="text-lg font-black text-[#F5F7F5]">
+                {loading ? '...' : `${playerData?.xp ?? 0} XP`}
+              </div>
             </div>
             <div className="p-3.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
               <span className="text-[10px] font-mono text-[#8C9891]">TREINOS</span>
-              <div className="text-lg font-black text-[#F5F7F5]">{player?.trainings_completed}</div>
+              <div className="text-lg font-black text-[#F5F7F5]">
+                {loading ? '...' : (playerData?.trainings_completed ?? 0)}
+              </div>
             </div>
             <div className="p-3.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
               <span className="text-[10px] font-mono text-[#8C9891]">MELHOR PONTUAÇÃO</span>
-              <div className="text-lg font-black text-amber-400">{player?.best_score} pts</div>
+              <div className="text-lg font-black text-amber-400">
+                {loading ? '...' : `${playerData?.best_score ?? 0} pts`}
+              </div>
             </div>
           </div>
 
@@ -159,6 +193,9 @@ export default function ProfilePage({ player, onPlayerUpdate }) {
           </button>
         </form>
       </div>
+
+      {/* Cloud & Supabase Identity Section */}
+      <CloudLinkCard />
 
       {/* Data Management Section (Requirement 26) */}
       <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-4">

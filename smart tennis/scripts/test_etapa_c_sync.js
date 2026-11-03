@@ -117,6 +117,10 @@ async function runTests() {
     const athleteUser = await get("SELECT * FROM users WHERE username = 'nicolas'");
     const ATHLETE_CLOUD_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
+    // Prepara usuário no banco temporário de teste
+    await run('DELETE FROM user_cloud_identities WHERE user_id = ?', [athleteUser.id]);
+    await run('UPDATE users SET supabase_user_id = NULL WHERE id = ?', [athleteUser.id]);
+
     // Vincula Nicolas à identidade Supabase
     await linkLocalUserToCloud({
       userId: athleteUser.id,
@@ -447,7 +451,6 @@ async function runTests() {
       wallPreset: '3x2'
     });
     const activeSec = matchSingle.activeSector || 1;
-    const wrongSec = activeSec === 1 ? 2 : 1;
 
     // Acerto no alvo correto (deixa resolver coordenadas geométricas do setor ativo)
     await personalMatchService.registerPersonalImpact({
@@ -460,7 +463,13 @@ async function runTests() {
       isSimulation: false
     });
 
-    // Acerto no alvo errado (deixa resolver coordenadas geométricas do setor errado)
+    // Acerto no alvo errado (garante setor diferente do novo alvo ativo após o impacto 1)
+    const currentMatchAfterHit1 = await personalMatchService.getCurrentMatch({
+      actor: { type: 'user', userId: athleteUser.id },
+      userId: athleteUser.id
+    });
+    const wrongSec = currentMatchAfterHit1.activeSector === 1 ? 2 : 1;
+
     await personalMatchService.registerPersonalImpact({
       actor: { type: 'user', userId: athleteUser.id },
       userId: athleteUser.id,

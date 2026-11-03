@@ -10,11 +10,12 @@ let db = null;
 
 function getDatabase() {
   if (!db) {
-    db = new sqlite3.Database(DB_PATH, (err) => {
+    const currentPath = process.env.SMART_TENNIS_DB_PATH || path.join(__dirname, 'smart_tennis.db');
+    db = new sqlite3.Database(currentPath, (err) => {
       if (err) {
         console.error('[DB] Erro ao conectar ao SQLite:', err.message);
       } else {
-        console.log('[DB] Conectado ao banco SQLite local:', DB_PATH);
+        console.log('[DB] Conectado ao banco SQLite local:', currentPath);
       }
     });
   }
@@ -57,11 +58,25 @@ function exec(sql) {
   });
 }
 
+function closeDb() {
+  return new Promise((resolve) => {
+    if (db) {
+      db.close(() => {
+        db = null;
+        resolve();
+      });
+    } else {
+      resolve();
+    }
+  });
+}
+
 module.exports = {
   getDatabase,
   run,
   get,
   all,
   exec,
+  closeDb,
   DB_PATH
 };

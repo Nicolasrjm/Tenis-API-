@@ -16,12 +16,49 @@
  */
 
 const crypto = require('crypto');
-const { get, run, all } = require('../database/db');
+const { get, run, all, exec } = require('../database/db');
 const {
   getSupabaseConfig,
   isSupabaseConfigured,
   isValidUuid
 } = require('../config/supabaseConfig');
+
+let tablesEnsured = false;
+
+/**
+ * Garante que a tabela user_cloud_identities e suas colunas estejam criadas de forma idempotente.
+ */
+async function ensureCloudIdentityTables() {
+  if (tablesEnsured) return;
+  try {
+    await exec(`
+      CREATE TABLE IF NOT EXISTS user_cloud_identities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL DEFAULT 'supabase',
+        cloud_user_id TEXT NOT NULL,
+        email TEXT,
+        metadata_json TEXT,
+        linked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, provider),
+        UNIQUE(provider, cloud_user_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_user_cloud_identities_cloud ON user_cloud_identities(provider, cloud_user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_cloud_identities_user ON user_cloud_identities(user_id);
+    `);
+
+    try {
+      await run('ALTER TABLE users ADD COLUMN supabase_user_id TEXT');
+    } catch (_) {
+      // Coluna já existente
+    }
+
+    tablesEnsured = true;
+  } catch (err) {
+    console.error('[CLOUD IDENTITY] Aviso ao verificar tabelas:', err.message);
+  }
+}
 
 /**
  * Decodifica com segurança uma parte Base64URL de um JWT sem lançar exceções.
@@ -170,9 +207,10 @@ async function verifySupabaseToken(token, options = {}) {
  */
 async function getLinkedUserByCloudId(cloudUserId, provider = 'supabase') {
   if (!cloudUserId || !isValidUuid(cloudUserId)) return null;
+  await ensureCloudIdentityTables();
 
   const row = await get(
-    `SELECT u.id, u.username, u.name, u.role, u.avatar, u.status, u.created_at,
+    `SELECT u.id, u.username, u.name, u.role, u.avatar, u.status, u.created_at, u.supabase_user_id,
             uci.cloud_user_id, uci.email as cloud_email, uci.linked_at, uci.last_seen_at
      FROM users u
      JOIN user_cloud_identities uci ON uci.user_id = u.id
@@ -189,6 +227,7 @@ async function getLinkedUserByCloudId(cloudUserId, provider = 'supabase') {
  */
 async function getCloudIdentityForUser(userId, provider = 'supabase') {
   if (!userId) return null;
+  await ensureCloudIdentityTables();
 
   const row = await get(
     `SELECT cloud_user_id, email, provider, linked_at, last_seen_at, metadata_json
@@ -212,6 +251,7 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
   if (!cloudUserId || !isValidUuid(cloudUserId)) {
     throw new Error('ID de usuário cloud (UUID) inválido.');
   }
+  await ensureCloudIdentityTables();
 
   // 1. Verifica se o usuário local existe no SQLite
   const localUser = await get('SELECT id, username FROM users WHERE id = ?', [userId]);
@@ -312,10 +352,84 @@ async function unlinkLocalUserFromCloud(userId, provider = 'supabase') {
   return { success: true, message: 'Vínculo com Supabase Auth removido com sucesso.' };
 }
 
+/**
+ * Provisiona um atleta local próprio e isolado no SQLite para uma conta Supabase Auth legítima.
+ * Garante que cada atleta cloud receba seu próprio registro e NUNCA sobrescreva ou se misture com Nicolas.
+ */
+async function provisionLocalPlayerForCloud({ cloudUserId, email = null, name = null, metadata = null, password = null }) {
+  if (!cloudUserId || !isValidUuid(cloudUserId)) {
+    throw new Error('ID de usuário cloud (UUID) inválido para provisionamento.');
+  }
+  await ensureCloudIdentityTables();
+
+  // Se já existir vínculo anterior para este cloudUserId, retorna-o diretamente
+  const existing = await getLinkedUserByCloudId(cloudUserId);
+  if (existing) {
+    return existing;
+  }
+
+  // 1. Gera um username único no SQLite
+  const rawBase = (name || (email ? email.split('@')[0] : 'atleta')).trim();
+  const cleanBase = rawBase.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'atleta';
+  let candidateUsername = cleanBase;
+  while (await get('SELECT id FROM users WHERE LOWER(username) = ?', [candidateUsername])) {
+    const suffix = crypto.randomBytes(2).toString('hex');
+    candidateUsername = `${cleanBase}_${suffix}`;
+  }
+
+  const displayName = name && name.trim() ? name.trim() : (cleanBase.charAt(0).toUpperCase() + cleanBase.slice(1));
+
+  // 2. Cria hash PBKDF2 local seguro (se senha informada, armazena para viabilizar login offline)
+  const salt = crypto.randomBytes(16).toString('hex');
+  const rawPass = password && typeof password === 'string' && password.length >= 6
+    ? password
+    : crypto.randomBytes(32).toString('hex');
+  const passwordHash = crypto.pbkdf2Sync(rawPass, salt, 10000, 64, 'sha512').toString('hex');
+
+  const userInsert = await run(
+    `INSERT INTO users (username, name, password_hash, salt, role, avatar, status, supabase_user_id)
+     VALUES (?, ?, ?, ?, 'player', '🎾', 'active', ?)`,
+    [candidateUsername, displayName, passwordHash, salt, cloudUserId]
+  );
+  const newUserId = userInsert.lastID;
+
+  // 3. Cria o perfil esportivo em players (nível 1, 0 XP, Iniciante)
+  await run(
+    `INSERT INTO players (user_id, name, avatar, level, title, xp, xp_next, precision, streak_days, created_at)
+     VALUES (?, ?, '🎾', 1, 'Iniciante', 0, 250, 0, 1, CURRENT_TIMESTAMP)`,
+    [newUserId, displayName]
+  );
+
+  // 4. Cria os 6 atributos esportivos normalizados
+  try {
+    const { ensurePlayerAttributes } = require('./gameEngine');
+    if (typeof ensurePlayerAttributes === 'function') {
+      await ensurePlayerAttributes(newUserId);
+    }
+  } catch (_) {}
+
+  // 5. Associa ao equipamento padrão da quadra
+  try {
+    await run(`INSERT OR IGNORE INTO equipment_users (equipment_id, user_id) VALUES (1, ?)`, [newUserId]);
+  } catch (_) {}
+
+  // 6. Vincula 1:1 na tabela user_cloud_identities
+  await linkLocalUserToCloud({
+    userId: newUserId,
+    cloudUserId,
+    email,
+    metadata: metadata || { autoProvisioned: true, provisionedAt: new Date().toISOString() }
+  });
+
+  return getLinkedUserByCloudId(cloudUserId);
+}
+
 module.exports = {
+  ensureCloudIdentityTables,
   verifySupabaseToken,
   getLinkedUserByCloudId,
   getCloudIdentityForUser,
   linkLocalUserToCloud,
-  unlinkLocalUserFromCloud
+  unlinkLocalUserFromCloud,
+  provisionLocalPlayerForCloud
 };

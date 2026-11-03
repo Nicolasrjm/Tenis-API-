@@ -12,14 +12,21 @@ router.use(requireAuth, requireAdmin);
 // GET /api/admin/users
 router.get('/users', async (req, res) => {
   try {
+    try {
+      const { ensureCloudIdentityTables } = require('../services/cloudIdentityService');
+      await ensureCloudIdentityTables();
+    } catch (_) {}
+
     const users = await all(`
-      SELECT u.id, u.username, u.name, u.role, u.avatar, u.status, u.created_at,
+      SELECT u.id, u.username, u.name, u.role, u.avatar, u.status, u.created_at, u.supabase_user_id,
              e.id as equipment_id, e.name as equipment_name,
-             p.level, p.xp, p.precision, p.trainings_completed, p.total_shots
+             p.level, p.xp, p.precision, p.trainings_completed, p.total_shots,
+             uci.email as cloud_email, uci.cloud_user_id
       FROM users u
       LEFT JOIN equipment_users eu ON eu.user_id = u.id
       LEFT JOIN equipments e ON e.id = eu.equipment_id
       LEFT JOIN players p ON p.user_id = u.id
+      LEFT JOIN user_cloud_identities uci ON uci.user_id = u.id
       ORDER BY u.id ASC
     `);
     res.json(users);

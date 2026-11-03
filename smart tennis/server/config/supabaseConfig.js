@@ -97,27 +97,28 @@ function decodeJwtPayload(jwtStr) {
  * Valida chaves públicas do Supabase (anon keys).
  * Aceita:
  * 1. Formato JWT tradicional (3 partes) com payload não-administrativo (role != 'service_role').
- * 2. Novas chaves publicáveis modernas (sbp_... ou pk_...).
- * Rejeita categoricamente chaves secretas (sbs_..., sk_..., ou JWTs de service_role).
+ * 2. Chaves publicáveis modernas do Supabase (oficiais sb_publishable_..., sbp_... ou pk_...).
+ * Rejeita categoricamente chaves secretas (sb_secret_..., sbs_..., sk_..., ou JWTs de service_role).
  */
 function isValidAnonKey(key) {
   if (!key || typeof key !== 'string') return false;
   const trimmed = key.trim();
 
   // Rejeita categoricamente chaves secretas/administrativas conhecidas
-  if (trimmed.startsWith('sbs_') || trimmed.startsWith('sk_')) {
+  if (trimmed.startsWith('sb_secret_') || trimmed.startsWith('sbs_') || trimmed.startsWith('sk_')) {
     return false;
   }
 
-  // Chaves publicáveis modernas do Supabase
-  if (/^(sbp|pk)_[A-Za-z0-9_-]{16,}$/.test(trimmed)) {
+  // Chaves publicáveis do Supabase (oficiais sb_publishable_..., sbp_..., pk_...)
+  if (/^(sb_publishable|sbp|pk)_[A-Za-z0-9_-]{10,}$/.test(trimmed)) {
     return true;
   }
 
   // Chave pública clássica no formato JWT de 3 partes
   if (JWT_REGEX.test(trimmed)) {
     const payload = decodeJwtPayload(trimmed);
-    if (payload && (payload.role === 'service_role' || payload.role === 'secret')) {
+    if (!payload) return false;
+    if (payload.role === 'service_role' || payload.role === 'secret') {
       return false; // Rejeita se possuir role administrativa
     }
     return true;

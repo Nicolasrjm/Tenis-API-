@@ -5,11 +5,13 @@ const { verifyPassword, generateToken, requireAuth } = require('../services/auth
 const guestSessionService = require('../services/guestSessionService');
 const { getPublicClientConfig } = require('../config/supabaseConfig');
 const {
+  ensureCloudIdentityTables,
   verifySupabaseToken,
   getLinkedUserByCloudId,
   getCloudIdentityForUser,
   linkLocalUserToCloud,
-  unlinkLocalUserFromCloud
+  unlinkLocalUserFromCloud,
+  provisionLocalPlayerForCloud
 } = require('../services/cloudIdentityService');
 
 // POST /api/auth/login
@@ -35,8 +37,15 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    const cleanUsername = username.trim().toLowerCase();
-    const user = await get('SELECT * FROM users WHERE LOWER(username) = ?', [cleanUsername]);
+    await ensureCloudIdentityTables();
+    const cleanIdentifier = username.trim().toLowerCase();
+    const user = await get(`
+      SELECT u.* 
+      FROM users u
+      LEFT JOIN user_cloud_identities uci ON uci.user_id = u.id
+      WHERE LOWER(u.username) = ? OR LOWER(uci.email) = ?
+      LIMIT 1
+    `, [cleanIdentifier, cleanIdentifier]);
 
     if (!user) {
       return res.status(401).json({ error: 'Usuário ou senha incorretos.' });
@@ -296,7 +305,24 @@ router.post('/cloud/login-with-token', async (req, res) => {
       return res.status(401).json({ error: verifyRes.error || 'Token Supabase inválido.', code: verifyRes.code });
     }
 
-    const linkedUser = await getLinkedUserByCloudId(verifyRes.cloudUserId);
+    let linkedUser = await getLinkedUserByCloudId(verifyRes.cloudUserId);
+    if (!linkedUser && (req.body?.create_if_missing || req.body?.auto_provision)) {
+      linkedUser = await provisionLocalPlayerForCloud({
+        cloudUserId: verifyRes.cloudUserId,
+        email: verifyRes.email,
+        name: req.body?.name || verifyRes.payload?.user_metadata?.name || verifyRes.payload?.user_metadata?.full_name,
+        password: req.body?.password
+      });
+    } else if (linkedUser && req.body?.password && typeof req.body.password === 'string' && req.body.password.length >= 6) {
+      // Atualiza o hash local PBKDF2 para que o atleta possa fazer login offline no equipamento
+      const crypto = require('crypto');
+      const salt = crypto.randomBytes(16).toString('hex');
+      const passwordHash = crypto.pbkdf2Sync(req.body.password, salt, 10000, 64, 'sha512').toString('hex');
+      try {
+        await run('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [passwordHash, salt, linkedUser.id]);
+      } catch (_) {}
+    }
+
     if (!linkedUser) {
       return res.status(403).json({
         success: false,

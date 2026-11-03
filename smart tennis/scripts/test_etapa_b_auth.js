@@ -159,11 +159,22 @@ async function runTests() {
     );
 
     // Validação de formato de chaves anon modernas e bloqueio de administrativas
+    const officialPublishableKey = 'sb_publishable_test1234567890abcdefghijklmn_court';
+    assert(isValidAnonKey(officialPublishableKey), 'isValidAnonKey aceita chave pública oficial com prefixo sb_publishable_');
+
+    // Teste de regressão: isSupabaseConfigured() com chave sb_publishable_
+    process.env.SUPABASE_ANON_KEY = officialPublishableKey;
+    assert(isSupabaseConfigured(), 'isSupabaseConfigured() retorna TRUE com chave no formato sb_publishable_');
+    process.env.SUPABASE_ANON_KEY = dummyAnonKey; // restaura chave dummy anon JWT
+
     const modernPublishableKey = 'sbp_test1234567890abcdefghijklmn_court';
     assert(isValidAnonKey(modernPublishableKey), 'isValidAnonKey aceita chave pública moderna com prefixo sbp_');
 
     const pkKey = 'pk_test1234567890abcdefghijklmn_court';
     assert(isValidAnonKey(pkKey), 'isValidAnonKey aceita chave pública moderna com prefixo pk_');
+
+    const secretSbSecretKey = 'sb_secret_test1234567890abcdefghijklmn_court';
+    assert(!isValidAnonKey(secretSbSecretKey), 'isValidAnonKey rejeita chave secreta com prefixo sb_secret_');
 
     const secretSbsKey = 'sbs_test1234567890abcdefghijklmn_court';
     assert(!isValidAnonKey(secretSbsKey), 'isValidAnonKey rejeita chave secreta com prefixo sbs_');

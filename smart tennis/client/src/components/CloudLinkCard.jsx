@@ -79,7 +79,7 @@ export default function CloudLinkCard({ onStatusChange }) {
       // Atualiza o status
       await loadCloudData();
     } catch (err) {
-      setErrorMsg(err.message || 'Falha ao vincular a conta online.');
+      setErrorMsg(err.message || 'Falha ao vincular conta online com o servidor Supabase.');
     } finally {
       setSubmitting(false);
     }
@@ -90,22 +90,22 @@ export default function CloudLinkCard({ onStatusChange }) {
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
-      const res = await unlinkOnlineAccount();
-      setSuccessMsg(res?.message || 'Conta online desvinculada com sucesso.');
+      const result = await unlinkOnlineAccount();
+      setSuccessMsg(result.message || 'Conta online desvinculada.');
       setShowUnlinkConfirm(false);
       await loadCloudData();
     } catch (err) {
-      setErrorMsg(err.message || 'Falha ao desvincular a conta.');
+      setErrorMsg(err.message || 'Falha ao desvincular conta online.');
     } finally {
       setUnlinking(false);
     }
   };
 
-  const formatDate = (isoStr) => {
-    if (!isoStr) return '';
+  const formatDate = (isoString) => {
+    if (!isoString) return 'Data não informada';
     try {
-      const d = new Date(isoStr);
-      return d.toLocaleDateString('pt-BR', {
+      const d = new Date(isoString);
+      return d.toLocaleString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -113,7 +113,7 @@ export default function CloudLinkCard({ onStatusChange }) {
         minute: '2-digit'
       });
     } catch {
-      return isoStr;
+      return isoString;
     }
   };
 
@@ -122,7 +122,7 @@ export default function CloudLinkCard({ onStatusChange }) {
   return (
     <div
       data-testid="cloud-link-card"
-      className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-5 transition-all shadow-xl"
+      className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-5 transition-all shadow-sm"
     >
       {/* Top Header */}
       <div className="flex items-start justify-between gap-3">
@@ -130,19 +130,19 @@ export default function CloudLinkCard({ onStatusChange }) {
           <div
             className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all ${
               isLinked
-                ? 'bg-[#102216] border-[#39FF88]/40 text-[#39FF88] shadow-neon-sm'
-                : 'bg-[#141F17] border-amber-500/30 text-amber-400'
+                ? 'bg-[#E8EDF1] dark:bg-[#18242E] border-[#B8F044] text-[#142B3D] dark:text-[#B8F044]'
+                : 'bg-[#E8EDF1] dark:bg-[#18242E] border-amber-500/40 text-amber-500'
             }`}
           >
             {isLinked ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-[#F5F7F5] tracking-wide">
+              <h3 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9] tracking-wide">
                 Conta Online & Sincronização Cloud
               </h3>
             </div>
-            <p className="text-xs text-[#8C9891] mt-0.5">
+            <p className="text-xs text-[#475569] dark:text-[#A8BAC8] mt-0.5">
               Associação de identidade com o Supabase Auth para envio automático de partidas.
             </p>
           </div>
@@ -154,34 +154,34 @@ export default function CloudLinkCard({ onStatusChange }) {
           onClick={loadCloudData}
           disabled={loading || submitting}
           data-testid="btn-refresh-cloud-status"
-          className="p-2 rounded-xl bg-[#07110B] border border-[#1B3624] hover:border-[#39FF88]/40 text-[#8C9891] hover:text-[#39FF88] transition-colors disabled:opacity-50"
+          className="p-2 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] transition-colors disabled:opacity-50"
           title="Atualizar status da conexão online"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#39FF88]' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#B8F044]' : ''}`} />
         </button>
       </div>
 
       {/* Status Badge & Summary */}
-      <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-2.5">
           <span
             data-testid="cloud-link-status-badge"
             className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border ${
               isLinked
-                ? 'bg-[#102216] text-[#39FF88] border-[#39FF88]/40'
+                ? 'bg-[#B8F044]/20 text-[#142B3D] dark:text-[#B8F044] border-[#B8F044]/50'
                 : config?.configured
-                ? 'bg-amber-950/40 text-amber-300 border-amber-500/40'
-                : 'bg-zinc-900 text-zinc-400 border-zinc-700'
+                ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40'
+                : 'bg-slate-200 dark:bg-zinc-900 text-slate-700 dark:text-zinc-400 border-slate-300 dark:border-zinc-700'
             }`}
           >
             {isLinked ? (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#39FF88]" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#B8F044]" />
                 <span>CONTA ONLINE VINCULADA</span>
               </>
             ) : config?.configured ? (
               <>
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                 <span>OFFLINE (SEM VÍNCULO ONLINE)</span>
               </>
             ) : (
@@ -190,7 +190,7 @@ export default function CloudLinkCard({ onStatusChange }) {
           </span>
         </div>
 
-        <div className="text-[11px] font-mono text-[#8C9891]">
+        <div className="text-[11px] font-mono text-[#475569] dark:text-[#A8BAC8]">
           {isLinked && status?.identity?.linkedAt && (
             <span>Vinculado em: {formatDate(status.identity.linkedAt)}</span>
           )}
@@ -204,9 +204,9 @@ export default function CloudLinkCard({ onStatusChange }) {
       {errorMsg && (
         <div
           data-testid="cloud-link-error-msg"
-          className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-start space-x-2.5"
+          className="p-3.5 rounded-xl bg-rose-100 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300 text-xs font-mono flex items-start space-x-2.5"
         >
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -214,58 +214,58 @@ export default function CloudLinkCard({ onStatusChange }) {
       {successMsg && (
         <div
           data-testid="cloud-link-success-msg"
-          className="p-3.5 rounded-xl bg-[#102216] border border-[#39FF88]/50 text-[#39FF88] text-xs font-mono flex items-start space-x-2.5"
+          className="p-3.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-600 text-emerald-800 dark:text-emerald-200 text-xs font-mono flex items-start space-x-2.5"
         >
-          <CheckCircle2 className="w-4 h-4 text-[#39FF88] shrink-0 mt-0.5" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Linked Identity Card */}
       {isLinked && (
-        <div className="p-4 rounded-2xl bg-[#0D1F14] border border-[#39FF88]/30 space-y-3">
+        <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#39FF88] font-bold flex items-center gap-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#2563EB] dark:text-[#B8F044] font-bold flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4" /> Identidade Cloud Autenticada
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div className="p-2.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
-              <span className="text-[10px] font-mono text-[#8C9891] block">E-MAIL VINCULADO</span>
-              <span className="font-bold text-[#F5F7F5] truncate block">
+            <div className="p-2.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653]">
+              <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8] block">E-MAIL VINCULADO</span>
+              <span className="font-bold text-[#142B3D] dark:text-[#F1F5F9] truncate block">
                 {status.identity.email || '(sem e-mail no token)'}
               </span>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
-              <span className="text-[10px] font-mono text-[#8C9891] block">UUID SUPABASE AUTH</span>
-              <span className="font-mono text-[11px] text-[#39FF88] truncate block" title={status.identity.cloudUserId}>
+            <div className="p-2.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653]">
+              <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8] block">UUID SUPABASE AUTH</span>
+              <span className="font-mono text-[11px] text-[#2563EB] dark:text-[#B8F044] truncate block" title={status.identity.cloudUserId}>
                 {status.identity.cloudUserId}
               </span>
             </div>
           </div>
 
-          <p className="text-[11px] text-[#8C9891] leading-relaxed">
+          <p className="text-[11px] text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
             Suas partidas finalizadas neste equipamento agora são enfileiradas e sincronizadas
             automaticamente com o banco de dados do Supabase.
           </p>
 
           {/* Unlink Action */}
-          <div className="pt-2 border-t border-[#1B3624]/60 flex items-center justify-between">
+          <div className="pt-2 border-t border-[#B8C6D0] dark:border-[#344653] flex items-center justify-between">
             {!showUnlinkConfirm ? (
               <button
                 type="button"
                 onClick={() => setShowUnlinkConfirm(true)}
                 data-testid="btn-unlink-cloud"
-                className="text-xs font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1.5 transition-colors py-1 px-2 rounded-lg hover:bg-rose-950/30"
+                className="text-xs font-mono text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1.5 transition-colors py-1 px-2"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 <span>Desvincular conta online</span>
               </button>
             ) : (
               <div className="flex items-center gap-2 w-full justify-between">
-                <span className="text-xs text-rose-300 font-mono">Confirmar desvinculação?</span>
+                <span className="text-xs text-rose-600 dark:text-rose-300 font-mono">Confirmar desvinculação?</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -278,7 +278,7 @@ export default function CloudLinkCard({ onStatusChange }) {
                   <button
                     type="button"
                     onClick={() => setShowUnlinkConfirm(false)}
-                    className="px-3 py-1 rounded-lg bg-[#07110B] border border-[#1B3624] text-xs font-mono text-[#8C9891] hover:text-[#F5F7F5]"
+                    className="px-3 py-1 rounded-lg bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]"
                   >
                     Cancelar
                   </button>
@@ -294,40 +294,40 @@ export default function CloudLinkCard({ onStatusChange }) {
         <div className="space-y-4">
           {!showForm ? (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-              <p className="text-xs text-[#8C9891]">
+              <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">
                 Conecte seu atleta a uma conta Supabase Auth existente para liberar a sincronização online.
               </p>
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
                 data-testid="btn-open-cloud-link"
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl btn-neon font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-neon transition-all shrink-0"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl btn-sport-lime font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-sm transition-all shrink-0"
               >
                 <Link2 className="w-4 h-4" />
                 <span>Vincular Conta Online</span>
               </button>
             </div>
           ) : (
-            <form onSubmit={handleLinkSubmit} className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] space-y-4 animate-fadeIn">
-              <div className="flex items-center justify-between border-b border-[#1B3624] pb-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#39FF88] font-bold flex items-center gap-1.5">
+            <form onSubmit={handleLinkSubmit} className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] space-y-4 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-[#B8C6D0] dark:border-[#344653] pb-2">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#2563EB] dark:text-[#B8F044] font-bold flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5" /> Autenticar Conta Online
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="text-xs font-mono text-[#8C9891] hover:text-[#F5F7F5]"
+                  className="text-xs font-mono text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]"
                 >
                   Fechar
                 </button>
               </div>
 
-              <p className="text-[11px] text-[#8C9891]">
+              <p className="text-[11px] text-[#475569] dark:text-[#A8BAC8]">
                 Informe o e-mail e a senha cadastrados no Supabase Auth. Suas credenciais são enviadas diretamente ao servidor de autenticação seguro.
               </p>
 
               <div>
-                <label className="block text-[11px] font-mono text-[#8C9891] mb-1.5 uppercase">
+                <label className="block text-[11px] font-mono text-[#475569] dark:text-[#A8BAC8] mb-1.5 uppercase">
                   E-mail da Conta Online
                 </label>
                 <div className="relative">
@@ -338,14 +338,14 @@ export default function CloudLinkCard({ onStatusChange }) {
                     placeholder="ex: nicolas@exemplo.com"
                     data-testid="input-cloud-email"
                     required
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-[#F5F7F5] text-xs font-mono focus:border-[#39FF88] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] text-[#142B3D] dark:text-[#F1F5F9] text-xs font-mono focus:border-[#B8F044] focus:outline-none transition-colors"
                   />
-                  <Mail className="w-3.5 h-3.5 text-[#8C9891] absolute left-3 top-3" />
+                  <Mail className="w-3.5 h-3.5 text-[#475569] dark:text-[#A8BAC8] absolute left-3 top-3" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-[#8C9891] mb-1.5 uppercase">
+                <label className="block text-[11px] font-mono text-[#475569] dark:text-[#A8BAC8] mb-1.5 uppercase">
                   Senha da Conta Online
                 </label>
                 <div className="relative">
@@ -356,9 +356,9 @@ export default function CloudLinkCard({ onStatusChange }) {
                     placeholder="••••••••"
                     data-testid="input-cloud-password"
                     required
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-[#F5F7F5] text-xs font-mono focus:border-[#39FF88] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] text-[#142B3D] dark:text-[#F1F5F9] text-xs font-mono focus:border-[#B8F044] focus:outline-none transition-colors"
                   />
-                  <Lock className="w-3.5 h-3.5 text-[#8C9891] absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-[#475569] dark:text-[#A8BAC8] absolute left-3 top-3" />
                 </div>
               </div>
 
@@ -367,7 +367,7 @@ export default function CloudLinkCard({ onStatusChange }) {
                   type="submit"
                   disabled={submitting}
                   data-testid="btn-submit-cloud-link"
-                  className="flex-1 py-3 rounded-xl btn-neon font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-neon transition-all disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl btn-sport-lime font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-sm transition-all disabled:opacity-50"
                 >
                   <Link2 className="w-4 h-4" />
                   <span>{submitting ? 'AUTENTICANDO & VINCULANDO...' : 'VINCULAR MINHA CONTA ONLINE'}</span>
@@ -376,7 +376,7 @@ export default function CloudLinkCard({ onStatusChange }) {
                   type="button"
                   onClick={() => setShowForm(false)}
                   disabled={submitting}
-                  className="px-4 py-3 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-xs font-mono text-[#8C9891] hover:text-[#F5F7F5] transition-colors"
+                  className="px-4 py-3 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] transition-colors"
                 >
                   Cancelar
                 </button>

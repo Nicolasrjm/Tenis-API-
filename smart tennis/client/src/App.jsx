@@ -114,10 +114,10 @@ export default function App() {
           <Route path="profile" element={<MobileProfilePage />} />
         </Route>
 
-        {/* ── Public Motion Tennis Academy (100% Gratuito, Sem Login) ── */}
-        <Route path="/academy" element={<AcademyPage />} />
-        <Route path="/academy/aula/:id" element={<AcademyLessonPage />} />
-        <Route path="/academy/:skill" element={<SkillAcademyPage />} />
+        {/* ── Redirecionamento da Academy para os 2 pontos oficiais de acesso do atleta (Notebook / Celular) ── */}
+        <Route path="/academy" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
+        <Route path="/academy/aula/:id" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
+        <Route path="/academy/:skill" element={<Navigate to={isNativeMobile() ? '/mobile/academy' : '/app/academy'} replace />} />
 
         {/* ── Player & Guest Area ── */}
         <Route

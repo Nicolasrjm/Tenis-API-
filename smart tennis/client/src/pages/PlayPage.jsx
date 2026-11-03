@@ -34,6 +34,7 @@ import { playBallHit, playBullseye, playMiss, isSoundEnabled, setSoundEnabled } 
 import { wsClient } from '../services/websocket';
 import { useAuth } from '../context/AuthContext';
 import { isNativeMobile } from '../services/serverConfig';
+import { isWebDemoMode } from '../services/appEnvironment';
 
 const GAME_INFO = {
   free: {
@@ -54,24 +55,26 @@ const GAME_INFO = {
 };
 
 export default function PlayPage(props) {
-  const [mode, setMode] = useState(null);
+  const isDemo = isWebDemoMode();
+  const [mode, setMode] = useState(isDemo ? 'personal' : null);
 
   useEffect(() => {
+    if (isDemo) return;
     let alive = true;
     api.getInstallation()
       .then((cfg) => { if (alive) setMode(cfg?.mode === 'shopping' ? 'shopping' : 'personal'); })
       .catch(() => { if (alive) setMode('personal'); });
     return () => { alive = false; };
-  }, []);
+  }, [isDemo]);
 
-  if (isNativeMobile()) return <PersonalPlay {...props} />;
+  if (isNativeMobile() && !isDemo) return <PersonalPlay {...props} isWebDemo={false} />;
   if (mode === null) {
     return <div className="p-12 text-center text-xs font-mono text-[#39FF88] animate-pulse">Carregando...</div>;
   }
-  return mode === 'shopping' ? <ShoppingExperience /> : <PersonalPlay {...props} />;
+  return mode === 'shopping' ? <ShoppingExperience /> : <PersonalPlay {...props} isWebDemo={isDemo} />;
 }
 
-function PersonalPlay() {
+function PersonalPlay({ isWebDemo = false }) {
   const { user, isGuest, exitGuest } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -204,6 +207,7 @@ function PersonalPlay() {
 
   // 1. Carrega a configuração da parede na inicialização
   useEffect(() => {
+    if (isWebDemo) return;
     let isMounted = true;
     api.getWallConfig()
       .then((cfg) => {
@@ -310,6 +314,10 @@ function PersonalPlay() {
   //    - Se NÃO houver partida em andamento para este modo, permanece em IDLE com o cronômetro parado em 05:00
   //      aguardando o jogador clicar no botão JOGAR!
   useEffect(() => {
+    if (isWebDemo) {
+      prepareIdleGame(mode, 300);
+      return;
+    }
     let alive = true;
     (async () => {
       try {
@@ -349,7 +357,7 @@ function PersonalPlay() {
   }, []);
 
   useEffect(() => {
-    if (matchStatus !== 'PREPARING' && matchStatus !== 'PLAYING') return undefined;
+    if (isWebDemo || (matchStatus !== 'PREPARING' && matchStatus !== 'PLAYING')) return undefined;
     const poll = setInterval(() => {
       api.personalMatch.getCurrent(mode)
         .then((data) => {
@@ -497,6 +505,30 @@ function PersonalPlay() {
     if (startingMatch) return;
     if (!forceNew && (matchStatus === 'PREPARING' || matchStatus === 'PLAYING')) return;
 
+    if (isWebDemo) {
+      const now = Date.now();
+      const demoMatch = {
+        id: 'demo_' + now,
+        mode,
+        state: 'PREPARING',
+        startedAt: now + 5000,
+        endsAt: now + 305000,
+        plannedSeconds: 300,
+        score: 0,
+        shots: 0,
+        hits: 0,
+        reactivations: 0,
+        activeSector: mode === 'single' ? Math.floor(Math.random() * 6) + 1 : 1,
+        sectorStates: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true },
+        durationSeconds: 0
+      };
+      setLastHitSectorId(null);
+      setLastImpactCoords(null);
+      applyBackendMatchState(demoMatch);
+      setLastFeedbackText('Prepare-se! A partida começará após a contagem de 5 segundos.');
+      return;
+    }
+
     setStartingMatch(true);
     setSyncWarning(null);
     try {
@@ -521,6 +553,18 @@ function PersonalPlay() {
   // Cancelar durante PREPARING ou encerrar manualmente durante PLAYING
   const handleEndOrCancelMatch = async () => {
     const wasPreparing = matchStatus === 'PREPARING';
+
+    if (isWebDemo) {
+      if (wasPreparing) {
+        prepareIdleGame(mode, plannedSeconds);
+        setLastFeedbackText('Contagem cancelada. Nenhuma sessão foi registrada.');
+      } else {
+        setMatchStatus('FINISHED');
+        setLastFeedbackText('Partida demonstrativa encerrada.');
+      }
+      return;
+    }
+
     try {
       const res = await api.personalMatch.finish({ match_id: matchIdRef.current });
       if (wasPreparing || res?.match?.state === 'CANCELLED') {
@@ -613,8 +657,71 @@ function PersonalPlay() {
     setSyncState({
       status: 'simulated',
       hitId: null,
-      message: 'Impacto simulado localmente'
+      message: isWebDemo ? 'Impacto demonstrativo em memória' : 'Impacto simulado localmente'
     });
+
+    if (isWebDemo) {
+      setShotsCount((prev) => prev + 1);
+
+      if (isNeutral) {
+        setLastHitSectorId(null);
+        setLastFeedbackText('Espaçamento entre alvos atingido! Área neutra — 0 pontos.');
+        playMiss();
+        return;
+      }
+
+      const hitSector = Number(sectorId);
+      setLastHitSectorId(hitSector);
+
+      if (mode === 'free') {
+        setHitsCount((prev) => prev + 1);
+        setScore((prev) => prev + 85);
+        setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
+        playBallHit(88);
+        setLastFeedbackText(`Setor ${hitSector} atingido! +85 pts`);
+      } else if (mode === 'single') {
+        if (hitSector === activeSectorId) {
+          setHitsCount((prev) => prev + 1);
+          setScore((prev) => prev + 1);
+          setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
+          const others = [1, 2, 3, 4, 5, 6].filter((s) => s !== hitSector);
+          const nextSector = others[Math.floor(Math.random() * others.length)];
+          setActiveSectorId(nextSector);
+          playBullseye();
+          setLastFeedbackText(`Ponto! Setor ${hitSector} acertado. Próximo alvo: Setor ${nextSector}`);
+        } else {
+          playMiss();
+          setLastFeedbackText(`Erro! O setor aceso é o Setor ${activeSectorId}.`);
+        }
+      } else if (mode === 'clear_all') {
+        const isLit = sectorStates[hitSector] !== false;
+        if (isLit) {
+          const nextStates = { ...sectorStates, [hitSector]: false };
+          setSectorStates(nextStates);
+          setHitsCount((prev) => prev + 1);
+          setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
+
+          const allOff = [1, 2, 3, 4, 5, 6].every((s) => nextStates[s] === false);
+          if (allOff) {
+            setGameWon(true);
+            setMatchStatus('FINISHED');
+            setScore((prev) => prev + 100 + 500);
+            playBullseye();
+            setLastFeedbackText('DESAFIO CONCLUÍDO! Todos os 6 setores foram apagados (+500 pts bônus)!');
+          } else {
+            setScore((prev) => prev + 100);
+            playBallHit(90);
+            setLastFeedbackText(`Excelente! Setor ${hitSector} APAGADO.`);
+          }
+        } else {
+          setSectorStates((prev) => ({ ...prev, [hitSector]: true }));
+          setReactivations((prev) => prev + 1);
+          playMiss();
+          setLastFeedbackText(`Atenção: Setor ${hitSector} foi REACENDIDO!`);
+        }
+      }
+      return;
+    }
 
     try {
       const res = await api.sendHardwareHit({
@@ -881,17 +988,6 @@ function PersonalPlay() {
             )}
           </div>
 
-          {/* BARRA INFERIOR DE FEEDBACK */}
-          <div className="w-full max-w-7xl mx-auto flex items-center justify-between px-4 py-2 rounded-xl bg-[#08140D]/80 border border-[#16291C] font-mono text-xs">
-            <div className="flex items-center space-x-2 text-[#F5F7F5] truncate">
-              <span className="w-2 h-2 rounded-full bg-[#39FF88]" />
-              <span>{lastFeedbackText}</span>
-            </div>
-            <div className="text-[11px] text-[#8C9891] shrink-0">
-              Parede {wallConfig.width}m × {wallConfig.height}m
-            </div>
-          </div>
-
           {/* MODAL DE CONFIRMAÇÃO DE SAÍDA */}
           {showExitModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
@@ -936,76 +1032,83 @@ function PersonalPlay() {
       {(matchStatus === 'FINISHED' || gameWon) && (
         <div
           data-testid="personal-summary-panel"
-          className="p-6 sm:p-8 rounded-3xl bg-[#0C1A11] border-2 border-[#16C96B]/50 shadow-2xl max-w-2xl mx-auto space-y-6 text-center my-6"
+          className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-xl max-w-2xl mx-auto space-y-6 text-center my-6"
         >
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#39FF88]/15 border border-[#39FF88]/40 text-[#39FF88] text-[11px] font-mono font-bold uppercase tracking-widest">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B8F044]/20 border border-[#B8F044]/50 text-[#142B3D] dark:text-[#B8F044] text-[11px] font-mono font-bold uppercase tracking-widest">
               <Trophy className="w-3.5 h-3.5" />
               <span>{gameWon ? 'DESAFIO CONCLUÍDO' : remainingSeconds <= 0 ? 'TEMPO ESGOTADO' : 'PARTIDA CONCLUÍDA'}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#F5F7F5] tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#142B3D] dark:text-[#F1F5F9] tracking-tight">
               {gameWon
                 ? 'Desafio Concluído com Sucesso!'
                 : remainingSeconds <= 0
                 ? 'Tempo Limite Encerrado (05:00)'
                 : 'Resumo Oficial da Partida'}
             </h2>
-            <p className="text-xs text-[#8C9891]">
+            <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">
               {currentInfo.title} • Duração total: {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
             </p>
           </div>
 
           {/* Métricas Principais */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
-            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Pontuação</div>
-              <div data-testid="personal-score-value" className="text-2xl font-black font-mono text-[#39FF88] mt-1">
+            <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+              <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Pontuação</div>
+              <div data-testid="personal-score-value" className="text-2xl font-black font-mono text-[#2563EB] dark:text-[#B8F044] mt-1">
                 {score}
               </div>
-              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">pontos oficiais</div>
+              <div className="text-[10px] text-[#475569] dark:text-[#A8BAC8] mt-0.5 font-mono">pontos oficiais</div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Golpes / Acertos</div>
-              <div data-testid="personal-shots-count" className="text-2xl font-black font-mono text-[#F5F7F5] mt-1">
+            <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+              <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Golpes / Acertos</div>
+              <div data-testid="personal-shots-count" className="text-2xl font-black font-mono text-[#142B3D] dark:text-[#F1F5F9] mt-1">
                 {shotsCount}
               </div>
-              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">{hitsCount} acertos ({accuracyRate}%)</div>
+              <div className="text-[10px] text-[#475569] dark:text-[#A8BAC8] mt-0.5 font-mono">{hitsCount} acertos ({accuracyRate}%)</div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Tempo de Jogo</div>
-              <div className="text-2xl font-black font-mono text-[#F5F7F5] mt-1">
+            <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+              <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Tempo de Jogo</div>
+              <div className="text-2xl font-black font-mono text-[#142B3D] dark:text-[#F1F5F9] mt-1">
                 {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
               </div>
-              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">de 05:00 planejados</div>
+              <div className="text-[10px] text-[#475569] dark:text-[#A8BAC8] mt-0.5 font-mono">de 05:00 planejados</div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-              <div className="text-[10px] font-mono uppercase text-[#8C9891]">Estimativa XP</div>
-              <div className="text-2xl font-black font-mono text-cyan-400 mt-1">
+            <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+              <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Estimativa XP</div>
+              <div className="text-2xl font-black font-mono text-[#2563EB] dark:text-[#60A5FA] mt-1">
                 +{isGuest ? 0 : Math.max(0, Math.round(score / 2))} XP
               </div>
-              <div className="text-[10px] text-[#8C9891] mt-0.5 font-mono">
+              <div className="text-[10px] text-[#475569] dark:text-[#A8BAC8] mt-0.5 font-mono">
                 {isGuest ? 'visitante' : 'carreira atleta'}
               </div>
             </div>
           </div>
 
           {/* Status Discreto e Fidedigno de Sincronização */}
-          <div className="p-3.5 rounded-2xl bg-[#07110B] border border-[#1B3624] text-xs font-mono flex items-center justify-center gap-2">
-            {isGuest ? (
+          <div className="p-3.5 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono flex items-center justify-center gap-2">
+            {isWebDemo ? (
               <>
-                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="text-cyan-300">
-                  Sessão temporária de visitante: pontuação não gravada no perfil nem sincronizada na nuvem.
+                <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                <span className="text-amber-600 dark:text-amber-400 font-bold">
+                  Partida demonstrativa em memória: resultados recreativos não são salvos.
+                </span>
+              </>
+            ) : isGuest ? (
+              <>
+                <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
+                <span className="text-[#2563EB] dark:text-[#60A5FA]">
+                  Sessão temporária de visitante: pontuação não gravada na nuvem.
                 </span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4 text-[#39FF88] shrink-0" />
-                <span className="text-[#8C9891]">
-                  Partida gravada no <b className="text-[#F5F7F5]">SQLite local</b> • Sincronização cloud <b className="text-[#39FF88]">enfileirada na outbox</b>
+                <CheckCircle2 className="w-4 h-4 text-[#2563EB] dark:text-[#B8F044] shrink-0" />
+                <span className="text-[#475569] dark:text-[#A8BAC8]">
+                  Partida salva com sucesso • <b className="text-[#2563EB] dark:text-[#B8F044]">Sincronizando com a nuvem</b>
                 </span>
               </>
             )}
@@ -1017,7 +1120,7 @@ function PersonalPlay() {
               data-testid="btn-play-again"
               onClick={() => handleStartMatch(true)}
               disabled={startingMatch}
-              className="px-6 py-3.5 rounded-xl btn-neon font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-neon transition-all"
+              className="px-6 py-3.5 rounded-xl btn-sport-lime font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all"
             >
               <RotateCcw size={16} />
               <span>JOGAR NOVAMENTE</span>
@@ -1026,7 +1129,7 @@ function PersonalPlay() {
             {!isGuest && (
               <Link
                 to="/app/history"
-                className="px-5 py-3.5 rounded-xl bg-[#07110B] hover:bg-[#102216] border border-[#1B3624] hover:border-[#39FF88]/50 text-[#F5F7F5] font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                className="px-5 py-3.5 rounded-xl btn-sport-outline text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xs"
               >
                 <History size={16} />
                 <span>HISTÓRICO</span>
@@ -1039,7 +1142,7 @@ function PersonalPlay() {
                 prepareIdleGame(mode, plannedSeconds);
                 setMatchStatus('IDLE');
               }}
-              className="px-5 py-3.5 rounded-xl bg-[#07110B] hover:bg-[#102216] border border-[#1B3624] text-[#8C9891] hover:text-[#F5F7F5] font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              className="px-5 py-3.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
             >
               <span>VOLTAR AO LOBBY</span>
             </button>
@@ -1052,19 +1155,35 @@ function PersonalPlay() {
       {/* ========================================================================= */}
       {matchStatus === 'IDLE' && (
         <div className="space-y-4">
+          {/* BANNER DE DEMONSTRAÇÃO WEB */}
+          {isWebDemo && (
+            <div
+              data-testid="web-demo-discreet-badge"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-700 dark:text-amber-400 font-bold"
+            >
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Partida demonstrativa — resultados não são salvos</span>
+              </div>
+              <span className="text-[11px] font-normal text-amber-600/80 dark:text-amber-400/80">
+                Simulação recreativa no navegador com o mouse
+              </span>
+            </div>
+          )}
+
           {/* BANNER DE VISITANTE */}
           {isGuest && (
             <div
               data-testid="guest-play-banner"
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-cyan-950/30 border border-cyan-400/40 text-xs font-mono"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-blue-100 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-500/40 text-xs font-mono"
             >
-              <div className="flex items-center space-x-2 text-cyan-300 font-bold">
-                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <div className="flex items-center space-x-2 text-[#2563EB] dark:text-[#60A5FA] font-bold">
+                <Sparkles className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA] shrink-0" />
                 <span>MODO VISITANTE ATIVO • Resultados temporários na sessão atual</span>
               </div>
               <button
                 onClick={handleExitGuestToLogin}
-                className="text-cyan-300 hover:text-[#39FF88] underline underline-offset-2 font-bold self-start sm:self-center"
+                className="text-[#2563EB] dark:text-[#60A5FA] hover:underline font-bold self-start sm:self-center"
               >
                 Sair do Modo Visitante e Entrar com Minha Conta
               </button>
@@ -1072,15 +1191,15 @@ function PersonalPlay() {
           )}
 
           {/* SELEÇÃO LIMPA DE MODOS */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[#09150E] border border-[#16C96B]/30 shadow-lg">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <button
                 data-testid="mode-btn-free"
                 onClick={() => handleModeChange('free')}
                 className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
                   mode === 'free'
-                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
+                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
                 }`}
               >
                 <Play className="w-4 h-4" />
@@ -1092,8 +1211,8 @@ function PersonalPlay() {
                 onClick={() => handleModeChange('single')}
                 className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
                   mode === 'single'
-                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
+                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
                 }`}
               >
                 <Zap className="w-4 h-4" />
@@ -1105,8 +1224,8 @@ function PersonalPlay() {
                 onClick={() => handleModeChange('clear_all')}
                 className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
                   mode === 'clear_all'
-                    ? 'bg-[#39FF88] text-[#07110B] shadow-[0_0_20px_rgba(57,255,136,0.5)] font-black'
-                    : 'bg-[#07110B] text-[#8C9891] border border-[#16291C] hover:text-[#F5F7F5]'
+                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
+                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
@@ -1115,10 +1234,10 @@ function PersonalPlay() {
             </div>
 
             <div className="flex items-center space-x-2 text-xs font-mono">
-              <span className="text-[#8C9891]">Parede:</span>
+              <span className="text-[#475569] dark:text-[#A8BAC8]">Parede:</span>
               <span
                 data-testid="active-wall-badge"
-                className="bg-[#16291C] text-[#39FF88] px-3 py-1 rounded-lg border border-[#16C96B]/30 font-bold"
+                className="bg-[#E8EDF1] dark:bg-[#18242E] text-[#142B3D] dark:text-[#B8F044] px-3 py-1 rounded-lg border border-[#B8C6D0] dark:border-[#344653] font-bold"
               >
                 {wallConfig.label || `${wallConfig.width}m × ${wallConfig.height}m`}
               </span>
@@ -1126,19 +1245,19 @@ function PersonalPlay() {
           </div>
 
           {/* HERO PLAY CARD: RESUMO CURTO + BOTÃO JOGAR EM GRANDE DESTAQUE */}
-          <div className="p-6 rounded-3xl bg-[#09150E] border-2 border-[#39FF88]/40 shadow-[0_0_30px_rgba(57,255,136,0.12)] space-y-4">
+          <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div className="space-y-1.5">
-                <div className="text-[11px] font-mono text-[#39FF88] uppercase tracking-widest font-bold">
+                <div className="text-[11px] font-mono text-[#2563EB] dark:text-[#B8F044] uppercase tracking-widest font-bold">
                   {currentInfo.title} • {currentInfo.subtitle}
                 </div>
                 <div
                   data-testid="personal-timer-display"
-                  className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-[#39FF88]"
+                  className="text-2xl sm:text-3xl font-black font-mono tracking-wider text-[#142B3D] dark:text-[#F1F5F9]"
                 >
                   TEMPO: {formatTime(remainingSeconds)}
                 </div>
-                <p className="text-xs text-[#8C9891] max-w-xl leading-relaxed">
+                <p className="text-xs text-[#475569] dark:text-[#A8BAC8] max-w-xl leading-relaxed">
                   {currentInfo.description}
                 </p>
               </div>
@@ -1149,7 +1268,7 @@ function PersonalPlay() {
                   data-testid="btn-play-start"
                   onClick={() => handleStartMatch(false)}
                   disabled={startingMatch}
-                  className="flex-1 sm:flex-initial py-4 px-10 rounded-2xl bg-[#39FF88] hover:bg-[#2fe677] text-[#07110B] font-black text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-3 shadow-[0_0_35px_rgba(57,255,136,0.6)] disabled:opacity-60 transform active:scale-95"
+                  className="flex-1 sm:flex-initial py-4 px-10 rounded-2xl btn-sport-lime font-black text-base uppercase tracking-wider transition-all flex items-center justify-center space-x-3 shadow-md disabled:opacity-60 transform active:scale-95"
                 >
                   <Play size={20} className="fill-current" />
                   <span>{startingMatch ? 'PREPARANDO...' : 'JOGAR'}</span>
@@ -1158,46 +1277,46 @@ function PersonalPlay() {
                 <button
                   onClick={toggleSound}
                   title={soundOn ? 'Desativar som' : 'Ativar som'}
-                  className="p-3.5 rounded-2xl bg-[#08130C] border border-[#16291C] text-[#8C9891] hover:text-[#39FF88] transition-all"
+                  className="p-3.5 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] transition-all"
                 >
-                  {soundOn ? <Volume2 size={20} className="text-[#39FF88]" /> : <VolumeX size={20} />}
+                  {soundOn ? <Volume2 size={20} className="text-[#2563EB] dark:text-[#B8F044]" /> : <VolumeX size={20} />}
                 </button>
               </div>
             </div>
           </div>
 
           {/* PAINEL RECOLHÍVEL: DIMENSÕES DA PAREDE E DIAGNÓSTICO IoT */}
-          {!isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
-            <div className="rounded-2xl bg-[#08130C] border border-[#16291C] overflow-hidden transition-all">
+          {!isWebDemo && !isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
+            <div className="rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden transition-all shadow-sm">
               <button
                 type="button"
                 onClick={() => setShowWallAccordion((v) => !v)}
-                className="w-full p-4 flex items-center justify-between text-left text-xs font-mono font-bold text-[#8C9891] hover:text-[#F5F7F5] transition-colors"
+                className="w-full p-4 flex items-center justify-between text-left text-xs font-mono font-bold text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] transition-colors"
               >
                 <div className="flex items-center space-x-2">
-                  <Sliders className="w-4 h-4 text-[#39FF88]" />
-                  <span>Configurações da Parede & Diagnóstico IoT</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#16291C] text-[#39FF88] font-bold">
+                  <Sliders className="w-4 h-4 text-[#2563EB] dark:text-[#B8F044]" />
+                  <span className="text-[#142B3D] dark:text-[#F1F5F9]">Configurações da Parede & Diagnóstico IoT</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#E8EDF1] dark:bg-[#18242E] text-[#2563EB] dark:text-[#B8F044] font-bold border border-[#B8C6D0] dark:border-[#344653]">
                     {wallConfig.width}m × {wallConfig.height}m
                   </span>
                 </div>
-                <div className="flex items-center space-x-1 text-[#39FF88]">
+                <div className="flex items-center space-x-1 text-[#2563EB] dark:text-[#B8F044]">
                   <span className="text-[11px]">{showWallAccordion ? 'Recolher' : 'Expandir'}</span>
                   {showWallAccordion ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
               </button>
 
               {showWallAccordion && (
-                <div className="p-4 pt-0 space-y-4 border-t border-[#16291C]/60">
+                <div className="p-4 pt-0 space-y-4 border-t border-[#B8C6D0] dark:border-[#344653]">
                   <div
                     data-testid="nicolas-wall-selector-panel"
-                    className="p-4 rounded-xl bg-[#0C1A11] border border-[#16C96B]/30 space-y-3 mt-3"
+                    className="p-4 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] space-y-3 mt-3"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-[#F5F7F5]">
+                      <span className="text-xs font-black uppercase tracking-wider text-[#142B3D] dark:text-[#F1F5F9]">
                         Tamanho Físico da Parede (Conta: Nicolas)
                       </span>
-                      <span className="text-[11px] font-mono text-[#8C9891]">
+                      <span className="text-[11px] font-mono text-[#475569] dark:text-[#A8BAC8]">
                         Selecione a dimensão antes de clicar em JOGAR
                       </span>
                     </div>
@@ -1218,23 +1337,23 @@ function PersonalPlay() {
                             disabled={savingWall}
                             className={`p-3 rounded-xl border-2 text-left transition-all flex flex-col justify-between ${
                               isSelected
-                                ? 'bg-[#16291C] border-[#39FF88] shadow-[0_0_18px_rgba(57,255,136,0.22)]'
-                                : 'bg-[#07110B] border-[#1B3624] hover:border-[#39FF88]/50'
+                                ? 'bg-[#F4F6F8] dark:bg-[#22313D] border-[#B8F044] shadow-sm'
+                                : 'bg-[#E8EDF1] dark:bg-[#18242E] border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044]'
                             }`}
                           >
                             <div className="flex items-center justify-between w-full">
-                              <span className="text-xs font-black uppercase text-[#F5F7F5]">{opt.label}</span>
+                              <span className="text-xs font-black uppercase text-[#142B3D] dark:text-[#F1F5F9]">{opt.label}</span>
                               {isSelected && (
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#39FF88] text-[#07110B]">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#B8F044] text-[#101820]">
                                   ATIVA
                                 </span>
                               )}
                             </div>
                             <div className="mt-1.5 flex items-baseline justify-between font-mono">
-                              <span className="text-base font-black text-[#39FF88]">
+                              <span className="text-base font-black text-[#2563EB] dark:text-[#B8F044]">
                                 {optW}m × {optH}m
                               </span>
-                              <span className="text-[10px] text-[#8C9891]">
+                              <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">
                                 S1(0,{optH}) • S2({optW},{optH}) • S3(0,0)
                               </span>
                             </div>
@@ -1248,8 +1367,8 @@ function PersonalPlay() {
                         data-testid="wall-config-feedback"
                         className={`text-xs font-mono px-3 py-2 rounded-xl border flex items-center gap-2 ${
                           wallFeedback.ok
-                            ? 'bg-[#39FF88]/10 border-[#39FF88]/30 text-[#39FF88]'
-                            : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-600 text-emerald-800 dark:text-emerald-200'
+                            : 'bg-rose-100 dark:bg-rose-950/40 border-rose-300 dark:border-rose-600 text-rose-800 dark:text-rose-200'
                         }`}
                       >
                         {wallFeedback.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}

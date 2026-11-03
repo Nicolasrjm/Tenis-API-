@@ -1,5 +1,18 @@
 import { getApiBaseUrl, getSavedServerUrl, isNativeMobile } from './serverConfig';
 import { getPlayerOfflineData } from './db';
+import { isWebDemoMode } from './appEnvironment';
+import { cloudDataService } from './cloudDataService';
+
+function getActiveCloudToken() {
+  try {
+    const raw = localStorage.getItem('mt_cloud_session');
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    return session?.accessToken || null;
+  } catch (e) {
+    return null;
+  }
+}
 
 export function getAuthToken() {
   return localStorage.getItem('smart_tennis_token');
@@ -184,14 +197,51 @@ export const api = {
   }),
 
   // Player
-  getPlayer: () => fetchJson('/player'),
+  getPlayer: async () => {
+    const token = getActiveCloudToken();
+    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const overview = await cloudDataService.getCloudAthleteOverview({ accessToken: token });
+          if (overview?.profile) {
+            return {
+              id: overview.profile.user_id,
+              name: overview.profile.display_name || 'Atleta',
+              avatar: overview.profile.avatar || '🎾',
+              level: overview.profile.level || 1,
+              xp: overview.profile.xp || 0,
+              xp_next: overview.profile.xp_next || 250,
+              title: overview.profile.title || 'Iniciante',
+              precision: Number(overview.profile.overall_accuracy) || 0,
+              total_matches: overview.totalSessionsCount || 0,
+              total_shots: overview.profile.total_shots || 0,
+              total_hits: overview.profile.total_hits || 0,
+              best_score: overview.bestScore || 0,
+              isCloudOnly: true
+            };
+          }
+        } catch (_) {}
+      }
+      return null;
+    }
+    return fetchJson('/player');
+  },
   updatePlayer: (data) => fetchJson('/player', { method: 'PUT', body: JSON.stringify(data) }),
   resetDemoData: () => fetchJson('/player/reset', { method: 'POST' }),
   clearData: () => fetchJson('/player/clear', { method: 'POST' }),
 
   // Sensors & Hits
   getSensors: () => fetchJson('/sensors'),
-  sendHardwareHit: (data) => fetchJson('/hardware/hit', { method: 'POST', body: JSON.stringify(data) }),
+  sendHardwareHit: (data) => {
+    if (isWebDemoMode()) {
+      return Promise.resolve({
+        received_by_backend: false,
+        is_simulation: true,
+        message: 'Impacto em memória (Web Demo)'
+      });
+    }
+    return fetchJson('/hardware/hit', { method: 'POST', body: JSON.stringify(data) });
+  },
   simulateSensorHit: (data) => fetchJson('/hardware/simulate', { method: 'POST', body: JSON.stringify(data) }),
   getHardwareStatus: () => fetchJson('/hardware/status'),
   setHardwareMode: (mode) => fetchJson('/hardware/mode', { method: 'POST', body: JSON.stringify({ mode }) }),
@@ -202,15 +252,81 @@ export const api = {
   getHitmap: () => fetchJson('/shots/hitmap'),
 
   // Skills & Tree
-  getAttributes: () => fetchJson('/skills/attributes'),
+  getAttributes: async () => {
+    const token = getActiveCloudToken();
+    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const attrs = await cloudDataService.getCloudAttributes({ accessToken: token });
+          if (Array.isArray(attrs) && attrs.length > 0) return attrs;
+        } catch (_) {}
+      }
+      return [
+        { key: 'precision', name: 'Precisão', level: 1, xp: 0, xp_next: 100, max_level: 20 },
+        { key: 'consistency', name: 'Consistência', level: 1, xp: 0, xp_next: 100, max_level: 20 },
+        { key: 'speed', name: 'Velocidade', level: 1, xp: 0, xp_next: 100, max_level: 20 },
+        { key: 'control', name: 'Controle', level: 1, xp: 0, xp_next: 100, max_level: 20 },
+        { key: 'reflex', name: 'Reflexo', level: 1, xp: 0, xp_next: 100, max_level: 20 },
+        { key: 'strategy', name: 'Estratégia', level: 1, xp: 0, xp_next: 100, max_level: 20 }
+      ];
+    }
+    return fetchJson('/skills/attributes');
+  },
   getAttributeDetail: (key) => fetchJson(`/skills/attribute/${key}`),
-  getSkillTree: () => fetchJson('/skills/tree'),
+  getSkillTree: async () => {
+    const token = getActiveCloudToken();
+    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+      return [
+        { id: 'tree_1', name: 'Fundamentos de Quadra', category: 'Fundamentos', status: 'completed', description: 'Empunhadura e postura básica.' },
+        { id: 'tree_2', name: 'Controle de Ritmo', category: 'Consistência', status: 'available', description: 'Cadência e precisão em 50 golpes seguidos.' },
+        { id: 'tree_3', name: 'Domínio de Alvos Angulados', category: 'Precisão', status: 'locked', description: 'Alvos 1, 3, 4 e 6 com precisão superior a 80%.' },
+        { id: 'tree_4', name: 'Maestria Competitiva', category: 'Estratégia', status: 'locked', description: 'Desempenho de alta intensidade em todos os setores.' }
+      ];
+    }
+    return fetchJson('/skills/tree');
+  },
   unlockSkillNode: (id) => fetchJson(`/skills/tree/${id}/unlock`, { method: 'POST' }),
 
   // Academy (100% Gratuito para Visitantes, Jogadores e Admins)
-  getAcademyOverview: () => fetchJson('/academy'),
+  getAcademyOverview: async () => {
+    if (isWebDemoMode() || !getSavedServerUrl()) {
+      try {
+        return await fetchJson('/academy');
+      } catch (e) {
+        return {
+          skills: [
+            { key: 'precision', name: 'Precisão & Direção', description: 'Domínio do ponto de impacto na parede.' },
+            { key: 'consistency', name: 'Consistência & Ritmo', description: 'Sustentação de trocas de bola.' },
+            { key: 'speed', name: 'Velocidade & Potência', description: 'Aceleração de cabeça de raquete.' },
+            { key: 'control', name: 'Controle & Sensibilidade', description: 'Toque curto e amortecimento.' },
+            { key: 'reflex', name: 'Reflexo & Agilidade', description: 'Tempo de reação e recuperação.' },
+            { key: 'strategy', name: 'Estratégia & Tática', description: 'Construção de pontos e zonas de segurança.' }
+          ],
+          isOfflineFallback: true
+        };
+      }
+    }
+    return fetchJson('/academy');
+  },
   getAcademySkillContent: (skill) => fetchJson(`/academy/${skill}`),
-  getAcademyCatalog: (params = {}) => {
+  getAcademyCatalog: async (params = {}) => {
+    if (isWebDemoMode() || !getSavedServerUrl()) {
+      try {
+        const cleanParams = Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+        );
+        const q = new URLSearchParams(cleanParams).toString();
+        return await fetchJson(`/academy/catalog${q ? '?' + q : ''}`);
+      } catch (e) {
+        return {
+          lessons: [],
+          totalCount: 0,
+          publishedCount: 0,
+          isWebDemo: true,
+          notice: 'O catálogo de videoaulas está disponível no equipamento conectado à quadra.'
+        };
+      }
+    }
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
     );
@@ -238,11 +354,46 @@ export const api = {
   completeTraining: (id, data) => fetchJson(`/trainings/${id}/complete`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Achievements
-  getAchievements: () => fetchJson('/achievements'),
+  getAchievements: async () => {
+    const token = getActiveCloudToken();
+    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const achs = await cloudDataService.getCloudAchievements({ accessToken: token });
+          return achs || [];
+        } catch (_) {}
+      }
+      return [];
+    }
+    return fetchJson('/achievements');
+  },
 
   // Sessions
-  getSessions: (limit = 30) => {
+  getSessions: async (limit = 30) => {
     const resolvedLimit = typeof limit === 'object' && limit !== null ? (limit.limit || 30) : limit;
+    const token = getActiveCloudToken();
+    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const res = await cloudDataService.getCloudSessions({ accessToken: token, limit: resolvedLimit });
+          return (res.sessions || []).map((s) => ({
+            id: s.id,
+            date: s.started_at,
+            started_at: s.started_at,
+            ended_at: s.ended_at,
+            mode: s.mode,
+            score: s.total_score,
+            total_score: s.total_score,
+            accuracy: Number(s.accuracy) || 0,
+            shots_count: s.shots_count || 0,
+            hits_count: s.hits_count || 0,
+            duration: s.duration_seconds || 0,
+            xp_granted: s.xp_granted || 0
+          }));
+        } catch (_) {}
+      }
+      return [];
+    }
     return fetchJson(`/sessions?limit=${resolvedLimit}`);
   },
   createSession: (data) => fetchJson('/sessions', { method: 'POST', body: JSON.stringify(data) }),
@@ -270,10 +421,28 @@ export const api = {
 
   // Partidas do Modo Pessoal (5s preparação + 5 minutos controlados pelo backend)
   personalMatch: {
-    getCurrent: (mode = null) => fetchJson(`/personal-match/current${mode ? `?mode=${encodeURIComponent(mode)}` : ''}`),
-    start: (data) => fetchJson('/personal-match/start', { method: 'POST', body: JSON.stringify(data) }),
-    finish: (data = {}) => fetchJson('/personal-match/finish', { method: 'POST', body: JSON.stringify(data) }),
-    sendImpact: (data) => fetchJson('/personal-match/impact', { method: 'POST', body: JSON.stringify(data) })
+    getCurrent: (mode = null) => {
+      if (isWebDemoMode()) return Promise.resolve(null);
+      return fetchJson(`/personal-match/current${mode ? `?mode=${encodeURIComponent(mode)}` : ''}`);
+    },
+    start: (data) => {
+      if (isWebDemoMode()) {
+        return Promise.reject(new Error('Partidas oficiais com sensores físicos não podem ser iniciadas no modo demonstração web.'));
+      }
+      return fetchJson('/personal-match/start', { method: 'POST', body: JSON.stringify(data) });
+    },
+    finish: (data = {}) => {
+      if (isWebDemoMode()) {
+        return Promise.resolve({ success: true, message: 'Encerrado em memória (Web Demo)' });
+      }
+      return fetchJson('/personal-match/finish', { method: 'POST', body: JSON.stringify(data) });
+    },
+    sendImpact: (data) => {
+      if (isWebDemoMode()) {
+        return Promise.reject(new Error('Impactos de hardware não são gravados no modo demonstração web.'));
+      }
+      return fetchJson('/personal-match/impact', { method: 'POST', body: JSON.stringify(data) });
+    }
   },
 
   // Admin APIs

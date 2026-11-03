@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConnectMobileModal from '../components/ConnectMobileModal';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function PlayerLayout() {
   const { user, isGuest, logout, exitGuest, isAdmin } = useAuth();
@@ -72,7 +73,8 @@ export default function PlayerLayout() {
 
   const isDesempenhoActive = 
     location.pathname.startsWith('/app/statistics') || 
-    location.pathname.startsWith('/app/evolution');
+    location.pathname.startsWith('/app/evolution') ||
+    location.pathname.startsWith('/app/achievements');
 
   // Visitantes veem apenas Jogar e Academy gratuita
   const navItems = isGuest
@@ -90,27 +92,28 @@ export default function PlayerLayout() {
       ];
 
   return (
-    <div className="min-h-screen bg-[#07110B] text-[#F5F7F5] flex flex-col">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-50 bg-[#07110B]/95 backdrop-blur border-b border-[#1B3624]">
+    <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col font-sans transition-colors duration-200">
+      {/* Top Navbar — Sport Premium Navy / Dark */}
+      <header className="sticky top-0 z-50 bg-[#142B3D]/95 dark:bg-[#0D1B2A]/95 backdrop-blur border-b border-[#1C3A52] dark:border-[#344653] text-white shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
+            
+            {/* Logo Sport Premium */}
             <Link to={isGuest ? '/app/play' : '/app/dashboard'} className="flex items-center space-x-2.5 group shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-[#0C1A11] border border-[#39FF88]/40 flex items-center justify-center shadow-neon-sm">
-                <svg className="w-5 h-5 text-[#39FF88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="w-8 h-8 rounded-xl bg-[#0D1C28] border border-[#B8F044]/50 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
+                <svg className="w-5 h-5 text-[#B8F044]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <circle cx="12" cy="12" r="9" />
-                  <path d="M12 3v18" strokeDasharray="2 2" strokeOpacity="0.6" />
-                  <path d="M3 12h18" strokeDasharray="2 2" strokeOpacity="0.6" />
-                  <circle cx="12" cy="12" r="3" fill="#39FF88" />
+                  <path d="M12 3v18" strokeDasharray="2 2" strokeOpacity="0.7" />
+                  <path d="M3 12h18" strokeDasharray="2 2" strokeOpacity="0.7" />
+                  <circle cx="12" cy="12" r="2.5" fill="#B8F044" />
                 </svg>
               </div>
               <div className="flex flex-col">
                 <span className="text-base sm:text-lg font-black tracking-wider leading-none">
-                  <span>MOTION </span>
-                  <span className="text-[#39FF88] text-glow-neon">TENNIS</span>
+                  <span className="text-white">MOTION </span>
+                  <span className="text-[#B8F044]">TENNIS</span>
                 </span>
-                <span className="text-[9px] text-[#8C9891] tracking-widest uppercase font-mono">
+                <span className="text-[9px] text-[#94A3B8] tracking-widest uppercase font-semibold">
                   {isGuest ? 'Modo Visitante' : 'Área do Jogador'}
                 </span>
               </div>
@@ -123,10 +126,10 @@ export default function PlayerLayout() {
                 <NavLink
                   to="/app/dashboard"
                   className={({ isActive }) =>
-                    `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                    `flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                       isActive
-                        ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                        : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                        ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/40 shadow-xs'
+                        : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/50'
                     }`
                   }
                 >
@@ -139,10 +142,10 @@ export default function PlayerLayout() {
               <NavLink
                 to="/app/play"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                  `flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black tracking-wide transition-all ${
                     isActive
-                      ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                      : 'bg-[#39FF88]/10 text-[#39FF88] hover:bg-[#39FF88]/20'
+                      ? 'bg-[#B8F044] text-[#142B3D] shadow-sm'
+                      : 'bg-[#B8F044]/20 text-[#B8F044] hover:bg-[#B8F044] hover:text-[#142B3D] border border-[#B8F044]/40'
                   }`
                 }
               >
@@ -160,19 +163,19 @@ export default function PlayerLayout() {
                     aria-expanded={desempenhoOpen}
                     aria-controls="dropdown-desempenho"
                     onClick={() => setDesempenhoOpen((prev) => !prev)}
-                    className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#39FF88]/50 ${
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all outline-none ${
                       isDesempenhoActive
-                        ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
+                        ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/40 shadow-xs'
                         : desempenhoOpen
-                        ? 'bg-[#0C1A11] text-[#F5F7F5] border border-[#16C96B]/30'
-                        : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                        ? 'bg-[#1C3A52] text-white border border-[#1C3A52]'
+                        : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/50'
                     }`}
                   >
-                    <TrendingUp className="w-3.5 h-3.5 text-[#39FF88]" />
+                    <TrendingUp className="w-3.5 h-3.5 text-[#B8F044]" />
                     <span>Desempenho</span>
                     <ChevronDown
                       className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                        desempenhoOpen ? 'rotate-180 text-[#39FF88]' : 'text-[#8C9891]'
+                        desempenhoOpen ? 'rotate-180 text-[#B8F044]' : 'text-slate-400'
                       }`}
                     />
                   </button>
@@ -183,7 +186,7 @@ export default function PlayerLayout() {
                       id="dropdown-desempenho"
                       role="menu"
                       data-testid="dropdown-desempenho"
-                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-[#09150E] border border-[#16C96B]/40 shadow-2xl p-1.5 z-50 flex flex-col space-y-1 backdrop-blur-md animate-fadeIn"
+                      className="absolute top-full left-0 mt-2 w-56 rounded-2xl bg-[#142B3D] border border-[#1C3A52] shadow-2xl p-1.5 z-50 flex flex-col space-y-1 backdrop-blur-md animate-fadeIn"
                     >
                       <NavLink
                         to="/app/statistics"
@@ -193,15 +196,15 @@ export default function PlayerLayout() {
                         className={({ isActive }) =>
                           `flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition-all ${
                             isActive
-                              ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm font-bold'
-                              : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                              ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/30 font-bold'
+                              : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/60'
                           }`
                         }
                       >
-                        <BarChart2 className="w-4 h-4 text-[#39FF88] mt-0.5 shrink-0" />
+                        <BarChart2 className="w-4 h-4 text-[#B8F044] mt-0.5 shrink-0" />
                         <div className="flex flex-col text-left">
-                          <span className="font-bold text-[#F5F7F5]">Estatísticas</span>
-                          <span className="text-[10px] text-[#8C9891] font-normal font-mono">
+                          <span className="font-bold text-white">Estatísticas</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
                             Métricas de golpes e precisão
                           </span>
                         </div>
@@ -215,16 +218,38 @@ export default function PlayerLayout() {
                         className={({ isActive }) =>
                           `flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition-all ${
                             isActive
-                              ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm font-bold'
-                              : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                              ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/30 font-bold'
+                              : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/60'
                           }`
                         }
                       >
-                        <GitFork className="w-4 h-4 text-[#39FF88] mt-0.5 shrink-0" />
+                        <GitFork className="w-4 h-4 text-[#B8F044] mt-0.5 shrink-0" />
                         <div className="flex flex-col text-left">
-                          <span className="font-bold text-[#F5F7F5]">Evolução</span>
-                          <span className="text-[10px] text-[#8C9891] font-normal font-mono">
+                          <span className="font-bold text-white">Evolução</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
                             Árvore de habilidades e atributos
+                          </span>
+                        </div>
+                      </NavLink>
+
+                      <NavLink
+                        to="/app/achievements"
+                        role="menuitem"
+                        data-testid="link-nav-achievements"
+                        onClick={() => setDesempenhoOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition-all ${
+                            isActive
+                              ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/30 font-bold'
+                              : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/60'
+                          }`
+                        }
+                      >
+                        <Trophy className="w-4 h-4 text-[#B8F044] mt-0.5 shrink-0" />
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-white">Conquistas</span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Medalhas e marcos desbloqueados
                           </span>
                         </div>
                       </NavLink>
@@ -237,10 +262,10 @@ export default function PlayerLayout() {
               <NavLink
                 to="/app/academy"
                 className={({ isActive }) =>
-                  `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                  `flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                     isActive
-                      ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                      : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                      ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/40 shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/50'
                   }`
                 }
               >
@@ -253,10 +278,10 @@ export default function PlayerLayout() {
                 <NavLink
                   to="/app/history"
                   className={({ isActive }) =>
-                    `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                    `flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                       isActive
-                        ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                        : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                        ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/40 shadow-xs'
+                        : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/50'
                     }`
                   }
                 >
@@ -265,32 +290,15 @@ export default function PlayerLayout() {
                 </NavLink>
               )}
 
-              {/* Conquistas */}
-              {!isGuest && (
-                <NavLink
-                  to="/app/achievements"
-                  className={({ isActive }) =>
-                    `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
-                      isActive
-                        ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                        : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
-                    }`
-                  }
-                >
-                  <Trophy className="w-3.5 h-3.5" />
-                  <span>Conquistas</span>
-                </NavLink>
-              )}
-
               {/* Perfil */}
               {!isGuest && (
                 <NavLink
                   to="/app/profile"
                   className={({ isActive }) =>
-                    `flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
+                    `flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide transition-all ${
                       isActive
-                        ? 'bg-[#102216] text-[#39FF88] border border-[#39FF88]/40 shadow-neon-sm'
-                        : 'text-[#8C9891] hover:text-[#F5F7F5] hover:bg-[#0C1A11]'
+                        ? 'bg-[#1C3A52] text-[#B8F044] border border-[#B8F044]/40 shadow-xs'
+                        : 'text-slate-300 hover:text-white hover:bg-[#1C3A52]/50'
                     }`
                   }
                 >
@@ -300,37 +308,33 @@ export default function PlayerLayout() {
               )}
             </nav>
 
-            {/* Right side: Conectar Celular + Equipamento + Perfil/Logout */}
+            {/* Right side: Perfil/Logout & Contextual Actions */}
             <div className="hidden sm:flex items-center space-x-2 lg:space-x-2.5 shrink-0">
+              <ThemeToggle />
+
               <button
                 onClick={() => setShowConnectModal(true)}
                 data-testid="btn-connect-mobile-modal"
-                className="px-2.5 py-1.5 rounded-xl bg-[#0C1A11] border border-[#39FF88]/40 hover:bg-[#122418] text-[#39FF88] text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm"
-                title="Conectar aplicativo celular via QR Code"
+                className="p-1.5 rounded-xl bg-[#0D1C28] border border-[#1C3A52] hover:border-[#B8F044]/50 text-slate-300 hover:text-[#B8F044] transition-all"
+                title="Conectar Celular via QR Code"
               >
-                <QrCode className="w-3.5 h-3.5" />
-                <span className="hidden xl:inline">Conectar Celular</span>
+                <QrCode className="w-4 h-4" />
               </button>
-
-              <div className="hidden 2xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#0C1A11] border border-[#1B3624] text-[10px] font-mono text-[#8C9891]">
-                <Radio className="w-3 h-3 text-[#39FF88] animate-pulse" />
-                <span>{user?.equipment?.name || 'MOTION TENNIS #001'}</span>
-              </div>
 
               {isGuest ? (
                 <>
                   <div
                     data-testid="guest-mode-badge"
-                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/50 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-bold"
+                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-blue-900/40 border border-blue-400 text-blue-200 text-xs font-bold"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-blue-300 shrink-0" />
                     <span className="hidden sm:inline">VISITANTE</span>
                   </div>
 
                   <button
                     onClick={handleLogout}
                     data-testid="btn-exit-guest"
-                    className="px-3 py-1.5 rounded-xl bg-[#102216] border border-[#39FF88]/40 text-[#39FF88] hover:bg-[#163020] text-xs font-bold flex items-center space-x-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-xl btn-sport-lime text-xs font-extrabold flex items-center space-x-1.5 transition-all shadow-xs"
                     title="Encerrar sessão visitante e entrar com uma conta"
                   >
                     <LogIn className="w-3.5 h-3.5" />
@@ -342,7 +346,7 @@ export default function PlayerLayout() {
                   {isAdmin && (
                     <Link
                       to="/admin/overview"
-                      className="px-2.5 py-1 rounded-lg bg-amber-400/10 border border-amber-400/40 text-amber-400 hover:bg-amber-400/20 text-xs font-mono font-bold flex items-center space-x-1 transition-all"
+                      className="px-2.5 py-1 rounded-lg bg-orange-500/20 border border-orange-400/50 text-[#FF7548] hover:bg-orange-500/30 text-xs font-bold flex items-center space-x-1 transition-all"
                       title="Acessar Painel de Controle Administrativo"
                     >
                       <ShieldAlert className="w-3.5 h-3.5" />
@@ -352,18 +356,18 @@ export default function PlayerLayout() {
 
                   <Link
                     to="/app/profile"
-                    className="flex items-center space-x-2 px-2.5 py-1 rounded-xl bg-[#0C1A11] border border-[#1B3624] hover:border-[#39FF88]/50 transition-all"
+                    className="flex items-center space-x-2 px-2.5 py-1 rounded-xl bg-[#0D1C28] border border-[#1C3A52] hover:border-[#B8F044]/50 transition-all"
                     title="Acessar Meu Perfil"
                   >
-                    <div className="w-6 h-6 rounded-full bg-[#102216] border border-[#39FF88]/60 flex items-center justify-center text-xs shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#142B3D] border border-[#B8F044]/60 flex items-center justify-center text-xs shrink-0">
                       {user?.avatar || '🎾'}
                     </div>
-                    <span className="text-xs font-bold text-[#F5F7F5] max-w-[80px] sm:max-w-[100px] truncate">{user?.name}</span>
+                    <span className="text-xs font-bold text-white max-w-[80px] sm:max-w-[100px] truncate">{user?.name}</span>
                   </Link>
 
                   <button
                     onClick={handleLogout}
-                    className="p-2 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-[#8C9891] hover:text-rose-400 hover:border-rose-500/40 transition-all"
+                    className="p-2 rounded-xl bg-[#0D1C28] border border-[#1C3A52] text-slate-400 hover:text-rose-400 hover:border-rose-400 transition-all"
                     title="Sair da Conta"
                   >
                     <LogOut className="w-4 h-4" />
@@ -374,9 +378,10 @@ export default function PlayerLayout() {
 
             {/* Mobile menu trigger */}
             <div className="flex lg:hidden items-center space-x-2">
+              <ThemeToggle />
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="p-2 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-[#8C9891] hover:text-[#F5F7F5]"
+                className="p-2 rounded-xl bg-[#0D1C28] border border-[#1C3A52] text-slate-300 hover:text-white"
                 aria-label="Abrir menu de navegação"
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -387,7 +392,7 @@ export default function PlayerLayout() {
 
         {/* Mobile menu drawer */}
         {mobileOpen && (
-          <div className="lg:hidden border-b border-[#1B3624] bg-[#07110B] p-4 space-y-2 animate-fadeIn">
+          <div className="lg:hidden border-b border-[#1C3A52] bg-[#142B3D] p-4 space-y-2 animate-fadeIn">
             {/* Dashboard */}
             {!isGuest && (
               <NavLink
@@ -395,7 +400,7 @@ export default function PlayerLayout() {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                    isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891]'
+                    isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                   }`
                 }
               >
@@ -409,8 +414,8 @@ export default function PlayerLayout() {
               to="/app/play"
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                  isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#39FF88]'
+                `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-black ${
+                  isActive ? 'bg-[#B8F044] text-[#142B3D]' : 'bg-[#B8F044]/20 text-[#B8F044]'
                 }`
               }
             >
@@ -421,17 +426,17 @@ export default function PlayerLayout() {
             {/* Desempenho no Menu Mobile (com Estatísticas e Evolução) */}
             {!isGuest && (
               <div className="space-y-1 pt-1 pb-1">
-                <div className="px-3 py-1 text-[11px] font-mono text-[#8C9891] uppercase tracking-wider flex items-center space-x-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-[#39FF88]" />
+                <div className="px-3 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#B8F044]" />
                   <span>Desempenho</span>
                 </div>
-                <div className="pl-3 space-y-1 border-l-2 border-[#16C96B]/30 ml-3">
+                <div className="pl-3 space-y-1 border-l-2 border-[#1C3A52] ml-3">
                   <NavLink
                     to="/app/statistics"
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold ${
-                        isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891] hover:text-[#F5F7F5]'
+                        isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                       }`
                     }
                   >
@@ -443,7 +448,7 @@ export default function PlayerLayout() {
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold ${
-                        isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891] hover:text-[#F5F7F5]'
+                        isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                       }`
                     }
                   >
@@ -460,7 +465,7 @@ export default function PlayerLayout() {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                  isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891]'
+                  isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                 }`
               }
             >
@@ -475,7 +480,7 @@ export default function PlayerLayout() {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                    isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891]'
+                    isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                   }`
                 }
               >
@@ -491,7 +496,7 @@ export default function PlayerLayout() {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                    isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891]'
+                    isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                   }`
                 }
               >
@@ -507,7 +512,7 @@ export default function PlayerLayout() {
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-bold ${
-                    isActive ? 'bg-[#102216] text-[#39FF88]' : 'text-[#8C9891]'
+                    isActive ? 'bg-[#1C3A52] text-[#B8F044]' : 'text-slate-300 hover:text-white'
                   }`
                 }
               >
@@ -516,8 +521,8 @@ export default function PlayerLayout() {
               </NavLink>
             )}
 
-            <div className="pt-3 border-t border-[#1B3624] flex items-center justify-between">
-              <span className="text-xs font-mono text-[#8C9891]">
+            <div className="pt-3 border-t border-[#1C3A52] flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-300">
                 {isGuest ? 'JOGANDO COMO VISITANTE' : user?.name}
               </span>
               <button onClick={handleLogout} className="text-xs text-rose-400 font-bold">
@@ -534,7 +539,7 @@ export default function PlayerLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1B3624] py-4 text-center text-xs font-mono text-[#8C9891]">
+      <footer className="border-t border-[#B8C6D0] dark:border-[#344653] py-4 text-center text-xs text-[#475569] dark:text-[#A8BAC8]">
         MOTION TENNIS © 2026 • Plataforma de Treinamento Esportivo e Gamificação
       </footer>
 

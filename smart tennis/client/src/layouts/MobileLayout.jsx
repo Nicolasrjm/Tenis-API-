@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { testServerConnection, getSavedServerUrl } from '../services/serverConfig';
 import { cloudAuthService } from '../services/cloudAuthService';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function MobileLayout() {
   const { user, isGuest } = useAuth();
@@ -74,49 +75,51 @@ export default function MobileLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#060D09] text-[#F5F7F5] flex flex-col justify-between selection:bg-[#39FF88] selection:text-black">
+    <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col justify-between selection:bg-[#B8F044] selection:text-[#101820] transition-colors duration-200">
       
       {/* Top Mobile Header */}
-      <header className="sticky top-0 z-40 bg-[#060D09]/95 backdrop-blur border-b border-[#142A1B] px-4 py-2.5 flex items-center justify-between safe-area-top">
+      <header className="sticky top-0 z-40 bg-[#142B3D]/95 dark:bg-[#0D1B2A]/95 backdrop-blur border-b border-[#1C3A52] dark:border-[#344653] px-3 sm:px-4 py-2.5 flex items-center justify-between safe-area-top text-white">
         {/* Brand Logo */}
         <div 
           onClick={() => navigate('/mobile/dashboard')}
           className="flex items-center space-x-2 cursor-pointer"
         >
-          <div className="w-7 h-7 rounded-lg bg-[#0D1E13] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88] shadow-[0_0_10px_rgba(57,255,136,0.2)]">
+          <div className="w-7 h-7 rounded-lg bg-[#0D1C28] border border-[#B8F044]/50 flex items-center justify-center text-[#B8F044] shadow-xs">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="3" fill="#39FF88" />
+              <circle cx="12" cy="12" r="3" fill="#B8F044" />
             </svg>
           </div>
           <span className="text-sm font-black tracking-wider uppercase">
-            MOTION <span className="text-[#39FF88]">TENNIS</span>
+            MOTION <span className="text-[#B8F044]">TENNIS</span>
           </span>
         </div>
 
-        {/* Status / Connect Pill */}
-        <div className="flex items-center space-x-2">
+        {/* Status / Connect Pill + Theme Toggle */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2">
+          <ThemeToggle className="py-1 px-1.5 text-xs" />
+
           {/* Connection Indicator Button (Tapping opens /mobile/connect) */}
           <button
             onClick={() => navigate('/mobile/connect')}
             data-testid="header-connection-pill"
-            className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1.5 border transition ${
+            className={`px-2 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1 border transition ${
               connectionState.online
-                ? 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88] hover:bg-[#132B1B]'
+                ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044] hover:bg-[#1C3A52]'
                 : cloudActive
-                  ? 'bg-[#0D1E13] border-[#39FF88]/40 text-[#39FF88] hover:bg-[#132B1B]'
+                  ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044] hover:bg-[#1C3A52]'
                   : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
             }`}
             title={connectionState.online ? 'Conectado à quadra' : cloudActive ? 'Acessando via Supabase Cloud' : 'Toque para gerenciar conexão do servidor'}
           >
             {connectionState.online ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#39FF88] shadow-[0_0_6px_#39FF88] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B8F044] shadow-[0_0_6px_#B8F044] animate-pulse" />
                 <span>{connectionState.latency ? `${connectionState.latency}ms` : 'Quadra'}</span>
               </>
             ) : cloudActive ? (
               <>
-                <Cloud className="w-3 h-3 text-[#39FF88]" />
+                <Cloud className="w-3 h-3 text-[#B8F044]" />
                 <span>Nuvem</span>
               </>
             ) : (
@@ -131,7 +134,7 @@ export default function MobileLayout() {
           {user ? (
             <div 
               onClick={() => navigate('/mobile/profile')}
-              className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-[#0D1E13] border border-[#1B3624] cursor-pointer"
+              className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-[#0D1C28] border border-[#1C3A52] cursor-pointer"
             >
               <span className="text-xs">{user.avatar || '🎾'}</span>
               <span className="text-[11px] font-bold text-white max-w-[70px] truncate">
@@ -139,8 +142,8 @@ export default function MobileLayout() {
               </span>
             </div>
           ) : isGuest ? (
-            <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
+            <div className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-900/60 border border-blue-400/40 text-blue-200 text-[10px] font-mono font-bold">
+              <Sparkles className="w-3 h-3 text-blue-300" />
               <span>Visitante</span>
             </div>
           ) : null}
@@ -171,7 +174,7 @@ export default function MobileLayout() {
       {/* Fixed Bottom Navigation Bar (4 Items: Início, Histórico, Evolução, Perfil) */}
       <nav 
         data-testid="mobile-bottom-navigation"
-        className="fixed bottom-0 inset-x-0 z-40 bg-[#07110B]/98 backdrop-blur-md border-t border-[#142A1B] px-1 py-1.5 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+        className="fixed bottom-0 inset-x-0 z-40 bg-[#142B3D]/98 dark:bg-[#0D1B2A]/98 backdrop-blur-md border-t border-[#1C3A52] dark:border-[#344653] px-1 py-1.5 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.2)] text-slate-300"
       >
         <div className="max-w-md mx-auto grid grid-cols-4 gap-1">
           {navItems.map((item) => {

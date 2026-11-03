@@ -278,11 +278,11 @@ export default function AdminAcademyPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            to="/academy"
+            to="/app/academy"
             className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-[#07110B] border border-[#1B3624] hover:border-[#39FF88]/50 text-xs font-mono text-[#F5F7F5] transition-colors"
           >
             <ExternalLink className="w-4 h-4 text-[#39FF88]" />
-            <span>Ver Catálogo Público</span>
+            <span>Ver Academy do Atleta</span>
           </Link>
 
           <button

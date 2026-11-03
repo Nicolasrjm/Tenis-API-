@@ -1,3 +1,5 @@
+import { isWebDemoMode } from './appEnvironment';
+
 // Real-time WebSocket Client with automatic reconnection
 class WebSocketClient {
   constructor() {
@@ -8,6 +10,10 @@ class WebSocketClient {
   }
 
   connect() {
+    if (isWebDemoMode()) {
+      return;
+    }
+
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }

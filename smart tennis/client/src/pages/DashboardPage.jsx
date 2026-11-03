@@ -34,75 +34,75 @@ export default function DashboardPage() {
     }
   };
 
-  const xpPercent = player ? Math.min(100, Math.round((player.xp / player.xp_next) * 100)) : 0;
+  const xpPercent = player && player.xp_next > 0 ? Math.min(100, Math.round((player.xp / player.xp_next) * 100)) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-fadeIn">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
       
-      {/* 23. CABEÇALHO LIMPO DO JOGADOR (Requirement 23) */}
-      <div className="p-8 rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] space-y-6 shadow-2xl relative overflow-hidden">
+      {/* CABEÇALHO DO ATLETA — Dual Theme (#F4F6F8 / #22313D) */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-6 shadow-sm relative overflow-hidden transition-colors">
         
-        {/* Glow */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-[#39FF88]/10 rounded-full blur-3xl pointer-events-none"></div>
+        {/* Glow sutil */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#2563EB]/5 dark:bg-[#B8F044]/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
-            <span className="text-xs font-mono font-bold tracking-widest text-[#39FF88] uppercase">
+            <span className="text-xs font-mono font-bold tracking-widest text-[#2563EB] dark:text-[#B8F044] uppercase">
               BEM-VINDO DE VOLTA
             </span>
-            <h1 className="text-3xl sm:text-5xl font-black text-[#F5F7F5] uppercase tracking-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#142B3D] dark:text-[#F1F5F9] uppercase tracking-tight">
               OLÁ, {user?.name || player?.name || 'NICOLAS'}
             </h1>
-            <div className="flex items-center space-x-2 pt-1 font-mono">
-              <span className="text-sm font-bold text-[#39FF88] bg-[#39FF88]/15 px-2.5 py-0.5 rounded border border-[#39FF88]/40">
+            <div className="flex flex-wrap items-center gap-2 pt-1 font-mono">
+              <span className="text-xs sm:text-sm font-bold text-[#142B3D] dark:text-[#B8F044] bg-[#E8EDF1] dark:bg-[#18242E] px-2.5 py-0.5 rounded border border-[#B8C6D0] dark:border-[#344653]">
                 LV. {player?.level || 12} — {player?.title || 'COMPETIDOR'}
               </span>
-              <span className="text-xs text-[#8C9891]">
+              <span className="text-xs text-[#475569] dark:text-[#A8BAC8]">
                 • Equipamento {user?.equipment?.name || 'Motion Tennis #001'}
               </span>
             </div>
           </div>
 
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#102216] border-2 border-[#39FF88] flex items-center justify-center text-3xl sm:text-4xl shadow-neon">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border-2 border-[#B8C6D0] dark:border-[#B8F044] flex items-center justify-center text-3xl sm:text-4xl shadow-sm">
             {user?.avatar || player?.avatar || '🎾'}
           </div>
         </div>
 
         {/* Barra de XP */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-2 relative z-10">
           <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-[#8C9891] font-bold">PROGRESSO DE EXPERIÊNCIA</span>
-            <span className="text-[#39FF88] font-bold">
+            <span className="text-[#475569] dark:text-[#A8BAC8] font-bold">PROGRESSO DE EXPERIÊNCIA</span>
+            <span className="text-[#2563EB] dark:text-[#B8F044] font-bold">
               {player?.xp || 2450} / {player?.xp_next || 3000} XP ({xpPercent}%)
             </span>
           </div>
-          <div className="w-full h-3 rounded-full bg-[#07110B] border border-[#1B3624] overflow-hidden">
+          <div className="w-full h-3 rounded-full bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#16C96B] to-[#39FF88] rounded-full transition-all duration-700 shadow-neon-sm"
+              className="h-full bg-gradient-to-r from-[#2563EB] to-[#B8F044] rounded-full transition-all duration-700"
               style={{ width: `${xpPercent}%` }}
             ></div>
           </div>
         </div>
 
         {/* 3 Métricas Centrais */}
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[#1B3624] font-mono text-center">
-          <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-            <span className="text-[11px] text-[#8C9891] block uppercase">Precisão</span>
-            <span className="text-2xl sm:text-3xl font-black text-[#39FF88] mt-1 block">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-[#B8C6D0] dark:border-[#344653] font-mono text-center relative z-10">
+          <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+            <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Precisão</span>
+            <span className="text-xl sm:text-3xl font-black text-[#2563EB] dark:text-[#B8F044] mt-1 block">
               {player?.precision || 82}%
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-            <span className="text-[11px] text-[#8C9891] block uppercase">Treinos</span>
-            <span className="text-2xl sm:text-3xl font-black text-[#F5F7F5] mt-1 block">
+          <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+            <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Treinos</span>
+            <span className="text-xl sm:text-3xl font-black text-[#142B3D] dark:text-[#F1F5F9] mt-1 block">
               {player?.trainings_completed || 24}
             </span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624]">
-            <span className="text-[11px] text-[#8C9891] block uppercase">Sequência</span>
-            <span className="text-2xl sm:text-3xl font-black text-amber-400 mt-1 block">
+          <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+            <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Sequência</span>
+            <span className="text-xl sm:text-3xl font-black text-amber-500 dark:text-amber-400 mt-1 block">
               {player?.streak_days || 5} dias
             </span>
           </div>
@@ -110,26 +110,35 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* CONTINUAR TREINANDO — 3 BOTÕES PRINCIPAIS DE JOGO (Requirement 23) */}
+      {/* CONTINUAR TREINANDO — 3 BOTÕES PRINCIPAIS DE JOGO COM DESTAQUE */}
       <div className="space-y-4">
-        <h2 className="text-sm font-mono font-bold tracking-widest text-[#39FF88] uppercase">
-          CONTINUAR TREINANDO
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs sm:text-sm font-mono font-bold tracking-widest text-[#2563EB] dark:text-[#B8F044] uppercase">
+            CONTINUAR TREINANDO (SELEÇÃO DE MODOS)
+          </h2>
+          <Link
+            to="/app/play"
+            className="text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9] hover:text-[#2563EB] dark:hover:text-[#B8F044] flex items-center space-x-1"
+          >
+            <span>Ir para Arena</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           {/* Treino Livre */}
           <Link
             to="/app/play?mode=free"
-            className="p-6 rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] hover:border-[#39FF88] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-neon"
+            className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
           >
-            <div className="w-12 h-12 rounded-2xl bg-[#102216] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88] mb-4 group-hover:scale-110 transition-transform">
-              <Play className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#142B3D] dark:text-[#B8F044] mb-4 group-hover:scale-110 group-hover:border-[#B8F044] transition-all">
+              <Play className="w-6 h-6 fill-current" />
             </div>
-            <h3 className="text-lg font-black text-[#F5F7F5] group-hover:text-[#39FF88] transition-colors">
+            <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] transition-colors">
               TREINO LIVRE
             </h3>
-            <p className="text-xs text-[#8C9891] mt-1.5 leading-relaxed">
+            <p className="text-xs text-[#475569] dark:text-[#A8BAC8] mt-1.5 leading-relaxed">
               Realize jogadas sem objetivo específico. Todos os sensores medem seus acertos.
             </p>
           </Link>
@@ -137,15 +146,15 @@ export default function DashboardPage() {
           {/* Alvo Único */}
           <Link
             to="/app/play?mode=single"
-            className="p-6 rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] hover:border-[#39FF88] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-neon"
+            className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
           >
-            <div className="w-12 h-12 rounded-2xl bg-[#102216] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88] mb-4 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#142B3D] dark:text-[#B8F044] mb-4 group-hover:scale-110 group-hover:border-[#B8F044] transition-all">
               <Target className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-[#F5F7F5] group-hover:text-[#39FF88] transition-colors">
+            <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] transition-colors">
               ALVO ÚNICO
             </h3>
-            <p className="text-xs text-[#8C9891] mt-1.5 leading-relaxed">
+            <p className="text-xs text-[#475569] dark:text-[#A8BAC8] mt-1.5 leading-relaxed">
               Acerte o sensor iluminado em tempo hábil para alternar para o próximo alvo.
             </p>
           </Link>
@@ -153,15 +162,15 @@ export default function DashboardPage() {
           {/* Apague Todos */}
           <Link
             to="/app/play?mode=clear_all"
-            className="p-6 rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] hover:border-[#39FF88] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-neon"
+            className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
           >
-            <div className="w-12 h-12 rounded-2xl bg-[#102216] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88] mb-4 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#142B3D] dark:text-[#B8F044] mb-4 group-hover:scale-110 group-hover:border-[#B8F044] transition-all">
               <Flame className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-[#F5F7F5] group-hover:text-[#39FF88] transition-colors">
+            <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] transition-colors">
               APAGUE TODOS
             </h3>
-            <p className="text-xs text-[#8C9891] mt-1.5 leading-relaxed">
+            <p className="text-xs text-[#475569] dark:text-[#A8BAC8] mt-1.5 leading-relaxed">
               Desligue todos os sensores. Se acertar um sensor já desligado, ele religa!
             </p>
           </Link>
@@ -169,9 +178,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* LINKS RÁPIDOS PARA ESTATÍSTICAS, EVOLUÇÃO E HISTÓRICO (Requirement 23) */}
-      <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-4">
-        <h3 className="text-xs font-mono font-bold tracking-widest text-[#8C9891] uppercase">
+      {/* LINKS RÁPIDOS PARA ESTATÍSTICAS, EVOLUÇÃO E HISTÓRICO */}
+      <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-4 shadow-sm">
+        <h3 className="text-xs font-mono font-bold tracking-widest text-[#475569] dark:text-[#A8BAC8] uppercase">
           ÁREAS DE ACOMPANHAMENTO DO ATLETA
         </h3>
 
@@ -179,44 +188,44 @@ export default function DashboardPage() {
           
           <Link
             to="/app/statistics"
-            className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] hover:border-[#39FF88]/50 flex items-center justify-between transition-colors group"
+            className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] flex items-center justify-between transition-colors group"
           >
             <div className="flex items-center space-x-3">
-              <BarChart2 className="w-5 h-5 text-[#39FF88]" />
+              <BarChart2 className="w-5 h-5 text-[#2563EB] dark:text-[#B8F044]" />
               <div>
-                <h4 className="text-xs font-bold text-[#F5F7F5] group-hover:text-[#39FF88]">Estatísticas</h4>
-                <span className="text-[10px] text-[#8C9891]">6 Atributos & Dicas</span>
+                <h4 className="text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044]">Estatísticas</h4>
+                <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">6 Atributos & Dicas</span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#8C9891] group-hover:text-[#39FF88] group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-[#475569] dark:text-[#A8BAC8] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] group-hover:translate-x-0.5 transition-transform" />
           </Link>
 
           <Link
             to="/app/evolution"
-            className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] hover:border-[#39FF88]/50 flex items-center justify-between transition-colors group"
+            className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] flex items-center justify-between transition-colors group"
           >
             <div className="flex items-center space-x-3">
-              <GitFork className="w-5 h-5 text-[#39FF88]" />
+              <GitFork className="w-5 h-5 text-[#2563EB] dark:text-[#B8F044]" />
               <div>
-                <h4 className="text-xs font-bold text-[#F5F7F5] group-hover:text-[#39FF88]">Evolução</h4>
-                <span className="text-[10px] text-[#8C9891]">Skill Tree do Atleta</span>
+                <h4 className="text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044]">Evolução</h4>
+                <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">Skill Tree do Atleta</span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#8C9891] group-hover:text-[#39FF88] group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-[#475569] dark:text-[#A8BAC8] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] group-hover:translate-x-0.5 transition-transform" />
           </Link>
 
           <Link
             to="/app/history"
-            className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] hover:border-[#39FF88]/50 flex items-center justify-between transition-colors group"
+            className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] flex items-center justify-between transition-colors group"
           >
             <div className="flex items-center space-x-3">
-              <Clock className="w-5 h-5 text-[#39FF88]" />
+              <Clock className="w-5 h-5 text-[#2563EB] dark:text-[#B8F044]" />
               <div>
-                <h4 className="text-xs font-bold text-[#F5F7F5] group-hover:text-[#39FF88]">Histórico</h4>
-                <span className="text-[10px] text-[#8C9891]">Sessões Anteriores</span>
+                <h4 className="text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044]">Histórico</h4>
+                <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">Sessões Anteriores</span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#8C9891] group-hover:text-[#39FF88] group-hover:translate-x-0.5 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-[#475569] dark:text-[#A8BAC8] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] group-hover:translate-x-0.5 transition-transform" />
           </Link>
 
         </div>

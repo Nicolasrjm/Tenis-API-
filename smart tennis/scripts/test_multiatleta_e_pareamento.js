@@ -51,14 +51,6 @@ const {
   discoverHardwareCode
 } = require('../server/services/equipmentPairingService');
 const authRoutes = require('../server/routes/authRoutes');
-const {
-  getAppMode,
-  isWebDemoMode,
-  isAndroidCloudMode,
-  isEquipmentMode,
-  isCloudOnlyMode,
-  APP_MODES
-} = require('../client/src/services/appEnvironment');
 
 let passedTests = 0;
 let failedTests = 0;
@@ -117,6 +109,7 @@ async function runAllTests() {
 
     const nicolasToken = createSignedJwt({
       payload: {
+        iss: 'https://motion-tennis-test.supabase.co/auth/v1',
         sub: nicolasCloudUuid,
         email: nicolasEmail,
         aud: 'authenticated',
@@ -130,9 +123,9 @@ async function runAllTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ access_token: nicolasToken })
     });
+    const nicolasData = await loginNicolasRes.json();
 
     assert(loginNicolasRes.status === 200, 'Login de Nicolas com token Supabase responde HTTP 200');
-    const nicolasData = await loginNicolasRes.json();
 
     assert(nicolasData.success === true, 'Login de Nicolas validado com sucesso');
     assert(nicolasData.user?.cloudUserId === nicolasCloudUuid, 'UUID cloud de Nicolas corresponde à identidade definitiva');
@@ -148,6 +141,7 @@ async function runAllTests() {
 
     const beatrizToken = createSignedJwt({
       payload: {
+        iss: 'https://motion-tennis-test.supabase.co/auth/v1',
         sub: beatrizCloudUuid,
         email: beatrizEmail,
         aud: 'authenticated',
@@ -239,6 +233,18 @@ async function runAllTests() {
       if (url.includes('/functions/v1/equipment-gateway')) {
         const body = JSON.parse(options.body || '{}');
         if (body.op === 'issue_pairing_challenge') {
+          const codeRe = /^[A-Za-z0-9]{6,32}$/;
+          if (!body.data || typeof body.data.challenge_code !== 'string' || !codeRe.test(body.data.challenge_code)) {
+            return {
+              ok: false,
+              status: 400,
+              json: async () => ({
+                ok: false,
+                error: 'INVALID_REQUEST',
+                detail: 'challenge_code deve ter 6-32 caracteres alfanuméricos'
+              })
+            };
+          }
           issuedChallenge = body.data.challenge_code;
           return {
             ok: true,
@@ -298,7 +304,7 @@ async function runAllTests() {
     });
 
     assert(pairingNicolasResult.success === true, 'Aperto de mão de pareamento autorizado executado com sucesso para Nicolas');
-    assert(Boolean(issuedChallenge && issuedChallenge.startsWith('PAIR_')), 'Desafio emitido com prefixo seguro e alta entropia');
+    assert(Boolean(issuedChallenge && issuedChallenge.startsWith('PAIR') && /^[A-Za-z0-9]{6,32}$/.test(issuedChallenge)), 'Desafio emitido com prefixo seguro, alfanumérico estrito e alta entropia');
     assert(claimedPairing?.pairing_code === issuedChallenge, 'Desafio emitido consumido rigorosamente pela RPC com hash SHA-256');
     assert(claimedPairing?.user_id === nicolasCloudUuid, 'Vínculo na nuvem associado exclusivamente ao UUID autenticado de Nicolas');
 
@@ -329,6 +335,9 @@ async function runAllTests() {
     // TESTE 7: AMBIENTES VERCEL E APK ANDROID (READ-ONLY)
     // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 7] Garantia Arquitetural de Ambientes (Vercel e Android)\x1b[0m');
+
+    const appEnv = await import('../client/src/services/appEnvironment.js');
+    const { getAppMode, isWebDemoMode, isAndroidCloudMode, isEquipmentMode, isCloudOnlyMode, APP_MODES } = appEnv;
 
     // Em ambiente de teste do notebook (sem Vercel nem Android flags):
     assert(isEquipmentMode() === true, 'Notebook permanece em APP_MODES.EQUIPMENT por padrão');

@@ -86,10 +86,11 @@ async function pairAthleteWithEquipment({ accessToken, cloudUserId, hardwareCode
   // 1. Descobre o hardware_code oficial
   const resolvedHardwareCode = hardwareCode || await discoverHardwareCode({ accessToken, equipmentId: eqConfig.equipmentId, fetchFn });
 
-  // 2. Gera código de desafio com alta entropia (mínimo 8 caracteres alfanuméricos)
-  // Prefixo 'PAIR_' garante que não coincida com códigos previsíveis rejeitados pelo regex da RPC
-  const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
-  const challengeCode = `PAIR_${randomSuffix}`;
+  // 2. Gera código de desafio com alta entropia (mínimo 6-32 caracteres alfanuméricos estritos)
+  // Prefixo 'PAIR' sem símbolos garante conformidade com o regex do Edge Function equipment-gateway (/^[A-Za-z0-9]{6,32}$/)
+  // e evita padrões previsíveis bloqueados na RPC PostgreSQL
+  const randomSuffix = crypto.randomBytes(8).toString('hex').toUpperCase();
+  const challengeCode = `PAIR${randomSuffix}`;
 
   // 3. Emite desafio temporário via gateway (com credenciais do equipamento)
   const gatewayUrl = `${spConfig.url.replace(/\/+$/, '')}/functions/v1/equipment-gateway`;
@@ -121,10 +122,10 @@ async function pairAthleteWithEquipment({ accessToken, cloudUserId, hardwareCode
   } catch (_) {}
 
   if (!challengeRes.ok || !challengeData || challengeData.ok !== true || !challengeData.result?.success) {
-    const detail = (challengeData && (challengeData.error || challengeData.detail)) || `HTTP_${challengeRes.status}`;
+    const detailMsg = challengeData?.detail ? `${challengeData.error || 'ERRO'}: ${challengeData.detail}` : (challengeData?.error || `HTTP_${challengeRes.status}`);
     return {
       success: false,
-      error: `Emissão de desafio de pareamento rejeitada pelo gateway: ${detail}`,
+      error: `Emissão de desafio de pareamento rejeitada pelo gateway: ${detailMsg}`,
       code: 'CHALLENGE_ISSUANCE_REJECTED'
     };
   }

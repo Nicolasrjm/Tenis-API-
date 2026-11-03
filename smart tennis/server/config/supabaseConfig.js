@@ -190,7 +190,7 @@ function getPublicClientConfig() {
 function getEquipmentConfig() {
   const eqId = process.env.EQUIPMENT_ID ? process.env.EQUIPMENT_ID.trim() : null;
   const rawApiKey = process.env.EQUIPMENT_API_KEY ? process.env.EQUIPMENT_API_KEY.trim() : null;
-  const hardwareCode = process.env.EQUIPMENT_HARDWARE_CODE ? process.env.EQUIPMENT_HARDWARE_CODE.trim() : 'COURT_NOTEBOOK_01';
+  const hardwareCode = process.env.EQUIPMENT_HARDWARE_CODE ? process.env.EQUIPMENT_HARDWARE_CODE.trim() : 'ST-001';
   const location = process.env.EQUIPMENT_LOCATION ? process.env.EQUIPMENT_LOCATION.trim() : 'Quadra Principal';
   const wallPreset = process.env.EQUIPMENT_WALL_PRESET ? process.env.EQUIPMENT_WALL_PRESET.trim() : '3x2';
 

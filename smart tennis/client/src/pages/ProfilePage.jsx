@@ -36,7 +36,8 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
       const data = await api.getPlayer();
       if (data) {
         setPlayerData(data);
-        if (data.name) setName(data.name);
+        if (data.name && data.name !== 'Atleta') setName(data.name);
+        else if (propPlayer?.name && propPlayer.name !== 'Atleta') setName(propPlayer.name);
         if (data.avatar) setAvatar(data.avatar);
       }
     } catch (err) {
@@ -143,7 +144,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
             <div className="p-3.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
               <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8]">TREINOS</span>
               <div className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9]">
-                {loading ? '...' : (playerData?.trainings_completed ?? 0)}
+                {loading ? '...' : (playerData?.trainings_completed ?? playerData?.total_matches ?? 0)}
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">

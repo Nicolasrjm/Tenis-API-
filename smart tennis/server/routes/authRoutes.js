@@ -264,10 +264,23 @@ router.post('/cloud/link', requireAuth, async (req, res) => {
       metadata: { verifiedVia: 'supabase_jwt', verifiedAt: new Date().toISOString() }
     });
 
+    // Realiza o aperto de mão de pareamento autorizado com o equipamento físico
+    let pairingResult = null;
+    try {
+      const { pairAthleteWithEquipment } = require('../services/equipmentPairingService');
+      pairingResult = await pairAthleteWithEquipment({
+        accessToken: token,
+        cloudUserId: verifyRes.cloudUserId
+      });
+    } catch (pairingErr) {
+      console.warn('[AUTH] Aviso no pareamento automático ao vincular:', pairingErr.message);
+    }
+
     res.json({
       success: true,
       message: 'Atleta vinculado com sucesso à conta Supabase Auth.',
-      data: result
+      data: result,
+      pairing: pairingResult
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -346,12 +359,25 @@ router.post('/cloud/login-with-token', async (req, res) => {
       LIMIT 1
     `, [linkedUser.id]);
 
+    // Realiza o aperto de mão de pareamento autorizado com o equipamento físico
+    let pairingResult = null;
+    try {
+      const { pairAthleteWithEquipment } = require('../services/equipmentPairingService');
+      pairingResult = await pairAthleteWithEquipment({
+        accessToken: access_token,
+        cloudUserId: verifyRes.cloudUserId
+      });
+    } catch (pairingErr) {
+      console.warn('[AUTH] Aviso no pareamento automático ao logar:', pairingErr.message);
+    }
+
     const token = generateToken(linkedUser);
 
     res.json({
       success: true,
       token,
       authType: 'supabase',
+      pairing: pairingResult,
       user: {
         id: linkedUser.id,
         username: linkedUser.username,
@@ -363,6 +389,65 @@ router.post('/cloud/login-with-token', async (req, res) => {
         equipment: eqUser || null
       }
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/auth/cloud/authorize-pairing — Autoriza explicitamente o pareamento do atleta autenticado com o equipamento
+router.post('/cloud/authorize-pairing', requireAuth, async (req, res) => {
+  try {
+    const { access_token } = req.body || {};
+    if (!access_token || typeof access_token !== 'string') {
+      return res.status(400).json({ error: 'Token Supabase access_token não informado.', code: 'TOKEN_REQUIRED' });
+    }
+
+    const verifyRes = await verifySupabaseToken(access_token);
+    if (!verifyRes.valid) {
+      return res.status(401).json({ error: verifyRes.error || 'Token Supabase inválido.', code: verifyRes.code });
+    }
+
+    const { pairAthleteWithEquipment } = require('../services/equipmentPairingService');
+    const result = await pairAthleteWithEquipment({
+      accessToken: access_token,
+      cloudUserId: verifyRes.cloudUserId
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Equipamento autorizado e pareado com sucesso na nuvem!',
+        pairing: result.pairing
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error || 'Falha ao autorizar pareamento com a nuvem.',
+        code: result.code
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/auth/cloud/pairing-status — Verifica se o atleta atual tem pareamento ativo com o equipamento
+router.post('/cloud/pairing-status', requireAuth, async (req, res) => {
+  try {
+    const { access_token } = req.body || {};
+    if (!access_token) {
+      return res.json({ paired: false, reason: 'TOKEN_REQUIRED' });
+    }
+    const verifyRes = await verifySupabaseToken(access_token);
+    if (!verifyRes.valid) {
+      return res.json({ paired: false, reason: 'INVALID_TOKEN' });
+    }
+    const { checkAthletePairingStatus } = require('../services/equipmentPairingService');
+    const status = await checkAthletePairingStatus({
+      accessToken: access_token,
+      cloudUserId: verifyRes.cloudUserId
+    });
+    res.json(status);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

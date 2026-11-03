@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { isCloudOnlyMode } from '../services/appEnvironment';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -34,7 +35,9 @@ export default function DashboardPage() {
     }
   };
 
-  const xpPercent = player && player.xp_next > 0 ? Math.min(100, Math.round((player.xp / player.xp_next) * 100)) : 0;
+  const currentXp = player?.xp ?? user?.xp ?? 0;
+  const targetXp = player?.xp_next ?? user?.xp_next ?? 250;
+  const xpPercent = targetXp > 0 ? Math.min(100, Math.round((currentXp / targetXp) * 100)) : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
@@ -51,14 +54,14 @@ export default function DashboardPage() {
               BEM-VINDO DE VOLTA
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#142B3D] dark:text-[#F1F5F9] uppercase tracking-tight">
-              OLÁ, {user?.name || player?.name || 'NICOLAS'}
+              OLÁ, {user?.name || player?.name || 'ATLETA'}
             </h1>
             <div className="flex flex-wrap items-center gap-2 pt-1 font-mono">
               <span className="text-xs sm:text-sm font-bold text-[#142B3D] dark:text-[#B8F044] bg-[#E8EDF1] dark:bg-[#18242E] px-2.5 py-0.5 rounded border border-[#B8C6D0] dark:border-[#344653]">
-                LV. {player?.level || 12} — {player?.title || 'COMPETIDOR'}
+                LV. {player?.level ?? user?.level ?? 1} — {player?.title || user?.title || 'INICIANTE'}
               </span>
               <span className="text-xs text-[#475569] dark:text-[#A8BAC8]">
-                • Equipamento {user?.equipment?.name || 'Motion Tennis #001'}
+                • Equipamento {user?.equipment?.name || (isCloudOnlyMode() ? 'Nuvem Supabase' : 'Motion Tennis #001')}
               </span>
             </div>
           </div>
@@ -73,7 +76,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between text-xs font-mono">
             <span className="text-[#475569] dark:text-[#A8BAC8] font-bold">PROGRESSO DE EXPERIÊNCIA</span>
             <span className="text-[#2563EB] dark:text-[#B8F044] font-bold">
-              {player?.xp || 2450} / {player?.xp_next || 3000} XP ({xpPercent}%)
+              {currentXp} / {targetXp} XP ({xpPercent}%)
             </span>
           </div>
           <div className="w-full h-3 rounded-full bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden">
@@ -89,21 +92,21 @@ export default function DashboardPage() {
           <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
             <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Precisão</span>
             <span className="text-xl sm:text-3xl font-black text-[#2563EB] dark:text-[#B8F044] mt-1 block">
-              {player?.precision || 82}%
+              {player?.precision !== undefined ? Math.round(Number(player.precision)) : 0}%
             </span>
           </div>
 
           <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
             <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Treinos</span>
             <span className="text-xl sm:text-3xl font-black text-[#142B3D] dark:text-[#F1F5F9] mt-1 block">
-              {player?.trainings_completed || 24}
+              {player?.trainings_completed ?? player?.total_matches ?? 0}
             </span>
           </div>
 
           <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
-            <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Sequência</span>
+            <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Melhor Score</span>
             <span className="text-xl sm:text-3xl font-black text-amber-500 dark:text-amber-400 mt-1 block">
-              {player?.streak_days || 5} dias
+              {player?.best_score || 0} pts
             </span>
           </div>
         </div>

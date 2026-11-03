@@ -17,13 +17,17 @@ import {
   getCloudConfig,
   getCloudStatus,
   linkOnlineAccount,
-  unlinkOnlineAccount
+  unlinkOnlineAccount,
+  getStoredCloudSession
 } from '../services/cloudAuthService';
+import { api } from '../services/api';
+import { isEquipmentMode } from '../services/appEnvironment';
 
 export default function CloudLinkCard({ onStatusChange }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [pairingLoading, setPairingLoading] = useState(false);
   const [config, setConfig] = useState(null);
   const [status, setStatus] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -98,6 +102,29 @@ export default function CloudLinkCard({ onStatusChange }) {
       setErrorMsg(err.message || 'Falha ao desvincular conta online.');
     } finally {
       setUnlinking(false);
+    }
+  };
+
+  const handleAuthorizePairing = async () => {
+    setPairingLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const session = getStoredCloudSession();
+      if (!session?.accessToken) {
+        setErrorMsg('Faça login com sua conta online para autorizar o pareamento deste equipamento.');
+        return;
+      }
+      const res = await api.authorizeEquipmentPairing(session.accessToken);
+      if (res.success) {
+        setSuccessMsg(res.message || 'Equipamento autorizado e pareado com sucesso na nuvem!');
+      } else {
+        setErrorMsg(res.error || 'Falha ao autorizar pareamento do equipamento.');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Erro ao conectar ao serviço de autorização.');
+    } finally {
+      setPairingLoading(false);
     }
   };
 
@@ -250,6 +277,28 @@ export default function CloudLinkCard({ onStatusChange }) {
             Suas partidas finalizadas neste equipamento agora são enfileiradas e sincronizadas
             automaticamente com o banco de dados do Supabase.
           </p>
+
+          {isEquipmentMode() && (
+            <div className="p-3 rounded-xl bg-[#0B151F]/30 dark:bg-[#1B2936]/40 border border-[#2563EB]/20 dark:border-[#B8F044]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9] flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#B8F044]" />
+                  <span>Pareamento com Notebook da Quadra</span>
+                </span>
+                <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] block">
+                  Revalide a janela autorizada para envio de partidas à nuvem.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAuthorizePairing}
+                disabled={pairingLoading}
+                className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#B8F044] dark:hover:bg-[#A3DE34] text-white dark:text-[#0A120E] text-xs font-bold font-mono transition-colors disabled:opacity-50 whitespace-nowrap self-stretch sm:self-auto text-center"
+              >
+                {pairingLoading ? 'Autorizando...' : 'Autorizar Pareamento'}
+              </button>
+            </div>
+          )}
 
           {/* Unlink Action */}
           <div className="pt-2 border-t border-[#B8C6D0] dark:border-[#344653] flex items-center justify-between">

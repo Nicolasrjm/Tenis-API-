@@ -14,12 +14,19 @@ export default function HistoryPage() {
 
   const loadHistory = async () => {
     try {
+      setLoading(true);
       const [sessList, shotList] = await Promise.all([
-        api.getSessions(30),
-        api.getRecentShots(40)
+        api.getSessions(30).catch((err) => {
+          console.warn('[HISTORY] Erro ao carregar sessões:', err);
+          return [];
+        }),
+        api.getRecentShots(40).catch((err) => {
+          console.warn('[HISTORY] Erro ao carregar disparos:', err);
+          return [];
+        })
       ]);
-      setSessions(sessList || []);
-      setShots(shotList || []);
+      setSessions(Array.isArray(sessList) ? sessList : []);
+      setShots(Array.isArray(shotList) ? shotList : []);
     } catch (e) {
       console.error('Erro ao carregar histórico:', e);
     } finally {

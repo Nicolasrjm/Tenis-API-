@@ -30,8 +30,14 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
   const loadEvolutionData = async () => {
     try {
       const [attrs, tree] = await Promise.all([
-        api.getAttributes(),
-        api.getSkillTree()
+        api.getAttributes().catch((err) => {
+          console.warn('[EVOLUTION] Erro ao carregar atributos:', err);
+          return [];
+        }),
+        api.getSkillTree().catch((err) => {
+          console.warn('[EVOLUTION] Erro ao carregar skill tree:', err);
+          return [];
+        })
       ]);
       setAttributes(attrs || []);
       setNodes(tree || []);

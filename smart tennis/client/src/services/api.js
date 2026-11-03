@@ -1,17 +1,26 @@
-import { getApiBaseUrl, getSavedServerUrl, isNativeMobile } from './serverConfig';
-import { getPlayerOfflineData } from './db';
-import { isWebDemoMode } from './appEnvironment';
-import { cloudDataService } from './cloudDataService';
+import { getApiBaseUrl, getSavedServerUrl, isNativeMobile } from './serverConfig.js';
+import { getPlayerOfflineData } from './db.js';
+import { isWebDemoMode, isCloudOnlyMode } from './appEnvironment.js';
+import { cloudDataService } from './cloudDataService.js';
 
 function getActiveCloudToken() {
   try {
     const raw = localStorage.getItem('mt_cloud_session');
-    if (!raw) return null;
-    const session = JSON.parse(raw);
-    return session?.accessToken || null;
-  } catch (e) {
-    return null;
-  }
+    if (raw) {
+      const session = JSON.parse(raw);
+      if (session?.accessToken) return session.accessToken;
+    }
+  } catch (e) {}
+
+  // Fallback para smart_tennis_token se for JWT Supabase (3 partes separadas por ponto)
+  try {
+    const token = localStorage.getItem('smart_tennis_token');
+    if (token && token.startsWith('eyJ') && token.split('.').length === 3) {
+      return token;
+    }
+  } catch (e) {}
+
+  return null;
 }
 
 export function getAuthToken() {
@@ -55,9 +64,9 @@ export async function fetchJson(endpoint, options = {}) {
   const serverUrl = getSavedServerUrl();
   const baseUrl = getApiBaseUrl();
 
-  // Se estiver no celular Android nativo e nenhum servidor local tiver sido configurado
-  if (isNativeMobile() && !serverUrl) {
-    const err = new Error('Modo Cloud: servidor local da quadra não configurado.');
+  // Se estiver no celular Android nativo ou em modo estritamente Cloud (Vercel) e nenhum servidor local tiver sido configurado
+  if ((isNativeMobile() || isCloudOnlyMode()) && !serverUrl) {
+    const err = new Error('Modo Cloud / Web: servidor Express local da quadra não conectado.');
     err.code = 'NO_LOCAL_SERVER';
     err.status = 0;
     throw err;
@@ -184,6 +193,8 @@ export const api = {
   getCloudStatus: () => fetchJson('/auth/cloud/status'),
   linkCloudAccount: (data) => fetchJson('/auth/cloud/link', { method: 'POST', body: JSON.stringify(data) }),
   unlinkCloudAccount: (data) => fetchJson('/auth/cloud/unlink', { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+  authorizeEquipmentPairing: (accessToken) => fetchJson('/auth/cloud/authorize-pairing', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) }),
+  checkEquipmentPairingStatus: (accessToken) => fetchJson('/auth/cloud/pairing-status', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) }),
   loginWithSupabaseToken: (accessToken, options = {}) => fetchJson('/auth/cloud/login-with-token', {
     method: 'POST',
     body: JSON.stringify({
@@ -196,15 +207,31 @@ export const api = {
   // Player
   getPlayer: async () => {
     const token = getActiveCloudToken();
-    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
       if (token) {
         try {
           const overview = await cloudDataService.getCloudAthleteOverview({ accessToken: token });
           if (overview?.profile) {
+            // Se o perfil cloud foi criado com valores default, tenta obter nome do localStorage
+            let displayName = overview.profile.display_name;
+            let avatar = overview.profile.avatar;
+            try {
+              const raw = localStorage.getItem('mt_cloud_session');
+              if (raw) {
+                const session = JSON.parse(raw);
+                if ((!displayName || displayName === 'Atleta') && (session?.user?.user_metadata?.name || session?.user?.name)) {
+                  displayName = session.user.user_metadata?.name || session.user.name;
+                }
+                if (!avatar && session?.user?.avatar) {
+                  avatar = session.user.avatar;
+                }
+              }
+            } catch (_) {}
+
             return {
-              id: overview.profile.user_id,
-              name: overview.profile.display_name || 'Atleta',
-              avatar: overview.profile.avatar || '🎾',
+              id: overview.profile.user_id || null,
+              name: displayName || 'Atleta',
+              avatar: avatar || '🎾',
               level: overview.profile.level || 1,
               xp: overview.profile.xp || 0,
               xp_next: overview.profile.xp_next || 250,
@@ -217,13 +244,80 @@ export const api = {
               isCloudOnly: true
             };
           }
-        } catch (_) {}
+        } catch (e) {
+          console.warn('[API] Falha ao carregar perfil cloud:', e);
+        }
       }
-      return null;
+      // Retorna objeto padrão seguro em modo Cloud / Web Demo sem chamar /api local
+      let fallbackName = 'Atleta';
+      let fallbackAvatar = '🎾';
+      try {
+        const raw = localStorage.getItem('mt_cloud_session');
+        if (raw) {
+          const session = JSON.parse(raw);
+          if (session?.user?.user_metadata?.name || session?.user?.name) {
+            fallbackName = session.user.user_metadata?.name || session.user.name;
+          }
+          if (session?.user?.avatar) {
+            fallbackAvatar = session.user.avatar;
+          }
+        }
+      } catch (_) {}
+
+      return {
+        id: null,
+        name: fallbackName,
+        avatar: fallbackAvatar,
+        level: 1,
+        xp: 0,
+        xp_next: 250,
+        title: 'Iniciante',
+        precision: 0,
+        total_matches: 0,
+        total_shots: 0,
+        total_hits: 0,
+        best_score: 0,
+        isCloudOnly: true
+      };
     }
     return fetchJson('/player');
   },
-  updatePlayer: (data) => fetchJson('/player', { method: 'PUT', body: JSON.stringify(data) }),
+  updatePlayer: async (data) => {
+    const token = getActiveCloudToken();
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const updated = await cloudDataService.updateCloudProfile({
+            accessToken: token,
+            name: data?.name,
+            avatar: data?.avatar
+          });
+          // Atualiza dados na sessão em cache local
+          try {
+            const raw = localStorage.getItem('mt_cloud_session');
+            if (raw) {
+              const session = JSON.parse(raw);
+              if (session.user) {
+                if (!session.user.user_metadata) session.user.user_metadata = {};
+                if (data.name) session.user.user_metadata.name = data.name;
+                session.user.avatar = data.avatar;
+                localStorage.setItem('mt_cloud_session', JSON.stringify(session));
+              }
+            }
+          } catch (_) {}
+          return {
+            name: data?.name || updated?.display_name || 'Atleta',
+            avatar: data?.avatar || updated?.avatar || '🎾'
+          };
+        } catch (cloudErr) {
+          console.warn('[API] Erro ao atualizar perfil na nuvem:', cloudErr);
+          throw new Error('Falha ao salvar perfil na nuvem Supabase: ' + (cloudErr.message || 'Erro de comunicação.'));
+        }
+      }
+      return { name: data?.name || 'Atleta', avatar: data?.avatar || '🎾' };
+    }
+    return fetchJson('/player', { method: 'PUT', body: JSON.stringify(data) });
+  },
   resetDemoData: () => fetchJson('/player/reset', { method: 'POST' }),
   clearData: () => fetchJson('/player/clear', { method: 'POST' }),
 
@@ -244,14 +338,38 @@ export const api = {
   setHardwareMode: (mode) => fetchJson('/hardware/mode', { method: 'POST', body: JSON.stringify({ mode }) }),
 
   // Legacy Shots & Hitmap
-  getRecentShots: (limit = 20) => fetchJson(`/shots/recent?limit=${limit}`),
-  getHitMapData: () => fetchJson('/shots/hitmap'),
-  getHitmap: () => fetchJson('/shots/hitmap'),
+  getRecentShots: async (limit = 20) => {
+    const token = getActiveCloudToken();
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
+      if (token) {
+        try {
+          const shots = await cloudDataService.getCloudRecentShots({ accessToken: token, limit });
+          return shots || [];
+        } catch (_) {}
+      }
+      return [];
+    }
+    return fetchJson(`/shots/recent?limit=${limit}`);
+  },
+  getHitMapData: async () => {
+    const token = getActiveCloudToken();
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
+      return { shots: [], zoneDistribution: {}, totalCount: 0, totalHits: 0, accuracy: 0, bullseyes: 0 };
+    }
+    return fetchJson('/shots/hitmap');
+  },
+  getHitmap: async () => {
+    const token = getActiveCloudToken();
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
+      return { shots: [], zoneDistribution: {}, totalCount: 0, totalHits: 0, accuracy: 0, bullseyes: 0 };
+    }
+    return fetchJson('/shots/hitmap');
+  },
 
   // Skills & Tree
   getAttributes: async () => {
     const token = getActiveCloudToken();
-    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
       if (token) {
         try {
           const attrs = await cloudDataService.getCloudAttributes({ accessToken: token });
@@ -272,7 +390,7 @@ export const api = {
   getAttributeDetail: (key) => fetchJson(`/skills/attribute/${key}`),
   getSkillTree: async () => {
     const token = getActiveCloudToken();
-    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
       return [
         { id: 'tree_1', name: 'Fundamentos de Quadra', category: 'Fundamentos', status: 'completed', description: 'Empunhadura e postura básica.' },
         { id: 'tree_2', name: 'Controle de Ritmo', category: 'Consistência', status: 'available', description: 'Cadência e precisão em 50 golpes seguidos.' },
@@ -282,7 +400,13 @@ export const api = {
     }
     return fetchJson('/skills/tree');
   },
-  unlockSkillNode: (id) => fetchJson(`/skills/tree/${id}/unlock`, { method: 'POST' }),
+  unlockSkillNode: async (id) => {
+    const token = getActiveCloudToken();
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
+      return { success: true, message: 'Habilidade desbloqueada' };
+    }
+    return fetchJson(`/skills/tree/${id}/unlock`, { method: 'POST' });
+  },
 
   // Academy (100% Gratuito para Visitantes, Jogadores e Admins)
   getAcademyOverview: async () => {
@@ -353,7 +477,7 @@ export const api = {
   // Achievements
   getAchievements: async () => {
     const token = getActiveCloudToken();
-    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
       if (token) {
         try {
           const achs = await cloudDataService.getCloudAchievements({ accessToken: token });
@@ -369,7 +493,7 @@ export const api = {
   getSessions: async (limit = 30) => {
     const resolvedLimit = typeof limit === 'object' && limit !== null ? (limit.limit || 30) : limit;
     const token = getActiveCloudToken();
-    if (isWebDemoMode() || (token && !getSavedServerUrl())) {
+    if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
       if (token) {
         try {
           const res = await cloudDataService.getCloudSessions({ accessToken: token, limit: resolvedLimit });

@@ -282,11 +282,115 @@ export async function getCloudAthleteOverview({ supabaseUrl, anonKey, accessToke
   };
 }
 
+/**
+ * Atualiza o perfil visual do atleta autenticado no Supabase (display_name, avatar).
+ */
+export async function updateCloudProfile({
+  supabaseUrl,
+  anonKey,
+  accessToken,
+  name,
+  avatar,
+  fetchFn = globalThis.fetch
+}) {
+  if (!accessToken) throw new Error('Token de acesso do atleta não fornecido.');
+
+  let url = supabaseUrl;
+  let key = anonKey;
+  if (!url || !key) {
+    const config = await getCloudConfig();
+    url = config.supabaseUrl;
+    key = config.anonKey;
+  }
+  if (!url || !key) throw new Error('Configuração da nuvem Supabase não encontrada.');
+
+  const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/player_profiles`;
+  const body = {};
+  if (name !== undefined) body.display_name = name;
+  if (avatar !== undefined) body.avatar = avatar;
+  body.updated_at = new Date().toISOString();
+
+  const res = await fetchFn(endpoint, {
+    method: 'PATCH',
+    headers: {
+      ...buildPostgrestHeaders({ anonKey: key, accessToken }),
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const err = new Error(errData.message || 'Falha ao atualizar perfil na nuvem.');
+    err.status = res.status;
+    throw err;
+  }
+
+  const updatedRows = await res.json().catch(() => []);
+  return Array.isArray(updatedRows) && updatedRows.length > 0 ? updatedRows[0] : body;
+}
+
+/**
+ * Consulta os impactos recentes de todas as sessões do atleta autenticado (synced_shots).
+ */
+export async function getCloudRecentShots({
+  supabaseUrl,
+  anonKey,
+  accessToken,
+  limit = 40,
+  fetchFn = globalThis.fetch
+}) {
+  if (!accessToken) return [];
+
+  let url = supabaseUrl;
+  let key = anonKey;
+  if (!url || !key) {
+    const config = await getCloudConfig();
+    url = config.supabaseUrl;
+    key = config.anonKey;
+  }
+  if (!url || !key) return [];
+
+  const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/synced_shots?select=*&order=created_at.desc&limit=${limit}`;
+
+  try {
+    const res = await fetchFn(endpoint, {
+      method: 'GET',
+      headers: buildPostgrestHeaders({ anonKey: key, accessToken })
+    });
+
+    if (!res.ok) return [];
+
+    const shots = await res.json();
+    if (!Array.isArray(shots)) return [];
+
+    return shots.map((s) => ({
+      id: s.id,
+      session_id: s.session_id,
+      zone: s.sector_id ? `Setor ${s.sector_id}` : 'Fora',
+      sector_id: s.sector_id,
+      x: Number(s.x) || 0,
+      y: Number(s.y) || 0,
+      force: Number(s.force_kmh) || 0,
+      force_kmh: Number(s.force_kmh) || 0,
+      score: s.score || 0,
+      is_hit: !!s.is_hit,
+      is_bullseye: !!s.is_bullseye,
+      shot_time_offset_ms: s.shot_time_offset_ms || 0,
+      created_at: s.created_at
+    }));
+  } catch (_) {
+    return [];
+  }
+}
+
 export const cloudDataService = {
   getCloudProfile,
+  updateCloudProfile,
   getCloudAttributes,
   getCloudSessions,
   getCloudSessionShots,
+  getCloudRecentShots,
   getCloudAchievements,
   getCloudAthleteOverview
 };

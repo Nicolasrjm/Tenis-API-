@@ -23,8 +23,10 @@ export const APP_MODES = {
  * Retorna o modo operacional atual da aplicação.
  */
 export function getAppMode() {
-  // 1. Configuração explícita de build (VITE_APP_MODE)
-  const envMode = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_MODE) || '';
+  // 1. Configuração explícita de build (VITE_APP_MODE) ou runtime
+  const envMode = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_MODE)
+    || (typeof process !== 'undefined' && process.env?.VITE_APP_MODE)
+    || '';
   if (envMode === APP_MODES.WEB_DEMO) return APP_MODES.WEB_DEMO;
   if (envMode === APP_MODES.ANDROID_CLOUD) return APP_MODES.ANDROID_CLOUD;
   if (envMode === APP_MODES.EQUIPMENT) return APP_MODES.EQUIPMENT;

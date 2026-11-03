@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isNativeMobile, isMobileDevice } from '../services/serverConfig';
-import { isWebDemoMode, isEquipmentMode } from '../services/appEnvironment';
+import { isWebDemoMode, isEquipmentMode, isCloudOnlyMode } from '../services/appEnvironment';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function LoginPage() {
@@ -110,11 +110,11 @@ export default function LoginPage() {
     }
 
     const isEmail = rawInput.includes('@');
-    const isMobile = isMobileDevice();
-    const isWebDemo = isWebDemoMode();
+    const isMobile = isMobileDevice() || isNativeMobile();
+    const isCloudMode = isCloudOnlyMode() || isMobile;
 
-    // Se estiver no celular ou na Vercel (sem servidor local SQLite) e não digitou e-mail
-    if ((isMobile || isWebDemo) && !isEmail) {
+    // Se estiver no celular, app Android ou na Vercel (sem servidor local SQLite) e não digitou e-mail
+    if (isCloudMode && !isEmail) {
       setError('No celular ou acesso online, utilize o seu e-mail cadastrado (ex: atleta@exemplo.com).');
       return;
     }
@@ -466,8 +466,8 @@ export default function LoginPage() {
                 <span>{loading ? 'Entrando...' : 'Entrar'}</span>
               </button>
 
-              {/* Acessos Rápidos de Desenvolvimento (exclusivo para ambiente local) */}
-              {import.meta.env.DEV && (
+              {/* Acessos Rápidos de Desenvolvimento (exclusivo para ambiente local da quadra) */}
+              {import.meta.env.DEV && canShowGuest && (
                 <div data-testid="dev-shortcuts-panel" className="pt-3 border-t border-[#B8C6D0] dark:border-[#344653] space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-[#475569] dark:text-[#A8BAC8]">
                     <span className="uppercase tracking-wider">Acesso Rápido (Dev):</span>

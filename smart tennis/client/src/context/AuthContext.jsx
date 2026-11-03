@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api, setAuthToken, getAuthToken, setGuestToken, getGuestToken } from '../services/api';
 import { syncService } from '../services/syncService';
 import { cloudAuthService } from '../services/cloudAuthService';
-import { isWebDemoMode } from '../services/appEnvironment';
-import { getSavedServerUrl } from '../services/serverConfig';
+import { isWebDemoMode, isCloudOnlyMode, isEquipmentMode } from '../services/appEnvironment';
+import { getSavedServerUrl, isNativeMobile } from '../services/serverConfig';
 
 const AuthContext = createContext(null);
 
@@ -25,8 +25,8 @@ export function AuthProvider({ children }) {
     const token = getAuthToken();
     const guestToken = getGuestToken();
 
-    // 1. Em ambiente Vercel (web_demo) ou quando houver sessão Cloud ativa sem servidor local, restaura imediatamente
-    if (cloudSession?.accessToken && (isWebDemoMode() || !getSavedServerUrl() || !token)) {
+    // 1. Em ambiente Vercel (web_demo), Android Cloud ou quando houver sessão Cloud ativa, restaura imediatamente
+    if (cloudSession?.accessToken && (isWebDemoMode() || isCloudOnlyMode() || isNativeMobile() || !getSavedServerUrl() || !token)) {
       if (cloudSession.expiresAt && cloudSession.expiresAt < Date.now() + 60000 && cloudSession.refreshToken) {
         try {
           const refreshed = await cloudAuthService.refreshCloudSession({
@@ -65,17 +65,19 @@ export function AuthProvider({ children }) {
 
     // 2. Validação local no notebook via SQLite (quando token local existe e não é web_demo)
     if (token && !isWebDemoMode()) {
-      try {
-        const data = await api.getMe();
-        if (data?.user) {
-          setGuestToken(null);
-          setGuest(null);
-          setUser(data.user);
-          setLoading(false);
-          return;
+      if (isEquipmentMode() && !isNativeMobile()) {
+        try {
+          const data = await api.getMe();
+          if (data?.user) {
+            setGuestToken(null);
+            setGuest(null);
+            setUser(data.user);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // Se falhar ao conectar ao servidor local, tenta fallback para a sessão cloud
         }
-      } catch (e) {
-        // Se falhar ao conectar ao servidor local, tenta fallback para a sessão cloud
       }
     }
 
@@ -117,7 +119,7 @@ export function AuthProvider({ children }) {
       }
     }
 
-    if (guestToken) {
+    if (guestToken && isEquipmentMode() && !isNativeMobile()) {
       try {
         const data = await api.getGuestMe();
         if (data?.guest) {

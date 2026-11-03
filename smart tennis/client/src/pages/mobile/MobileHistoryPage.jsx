@@ -19,6 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { cloudDataService } from '../../services/cloudDataService';
 import { getStoredCloudSession } from '../../services/cloudAuthService';
+import { isEquipmentMode } from '../../services/appEnvironment';
+import { isNativeMobile } from '../../services/serverConfig';
 import MobileVisitorGuard from '../../components/mobile/MobileVisitorGuard';
 
 export default function MobileHistoryPage() {
@@ -74,7 +76,7 @@ export default function MobileHistoryPage() {
       }
     }
 
-    if (!loadedFromCloud) {
+    if (!loadedFromCloud && isEquipmentMode() && !isNativeMobile()) {
       try {
         const data = await api.getSessions(50);
         const list = Array.isArray(data) ? data : [];
@@ -88,6 +90,10 @@ export default function MobileHistoryPage() {
       } catch (err) {
         setError(err.message || 'Erro ao carregar histórico.');
       }
+    } else if (!loadedFromCloud) {
+      setSessions([]);
+      setTotalCount(0);
+      setIsCloudActive(true);
     }
 
     setLoading(false);

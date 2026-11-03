@@ -3,6 +3,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const isVercel = process.env.VERCEL === '1' || mode === 'vercel' || process.env.BUILD_TARGET === 'vercel';
+  const isAndroid = mode === 'android' || process.env.BUILD_TARGET === 'android';
+  const isCloudBundle = isVercel || isAndroid;
+
+  if (isAndroid && !process.env.VITE_APP_MODE) {
+    process.env.VITE_APP_MODE = 'android_cloud';
+  }
+  if (isVercel && !process.env.VITE_APP_MODE) {
+    process.env.VITE_APP_MODE = 'web_demo';
+  }
 
   return {
     plugins: [react()],
@@ -21,7 +30,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      outDir: isVercel ? 'dist' : '../server/public',
+      outDir: isCloudBundle ? 'dist' : '../server/public',
       emptyOutDir: true
     }
   };

@@ -17,6 +17,8 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { cloudDataService } from '../../services/cloudDataService';
 import { getStoredCloudSession } from '../../services/cloudAuthService';
+import { isEquipmentMode } from '../../services/appEnvironment';
+import { isNativeMobile } from '../../services/serverConfig';
 import MobileVisitorGuard from '../../components/mobile/MobileVisitorGuard';
 
 export default function MobileEvolutionPage() {
@@ -65,7 +67,7 @@ export default function MobileEvolutionPage() {
       }
     }
 
-    if (!loadedFromCloud) {
+    if (!loadedFromCloud && isEquipmentMode() && !isNativeMobile()) {
       try {
         const [playerData, sessData, achData] = await Promise.all([
           api.getPlayer().catch(() => null),
@@ -92,6 +94,10 @@ export default function MobileEvolutionPage() {
       } catch (err) {
         setError(err.message || 'Falha ao carregar evolução do atleta.');
       }
+    } else if (!loadedFromCloud) {
+      setEvolutionHistory([]);
+      setAchievements([]);
+      setIsCloudActive(true);
     }
 
     setLoading(false);

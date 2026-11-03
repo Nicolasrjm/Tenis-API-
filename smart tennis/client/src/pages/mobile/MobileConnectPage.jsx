@@ -22,6 +22,7 @@ import {
   validateServerUrl,
   isNativeMobile
 } from '../../services/serverConfig';
+import { isCloudOnlyMode } from '../../services/appEnvironment';
 import { useAuth } from '../../context/AuthContext';
 import QrScannerOverlay from '../../components/mobile/QrScannerOverlay';
 
@@ -41,6 +42,12 @@ export default function MobileConnectPage() {
   const [inputError, setInputError] = useState(null);
 
   useEffect(() => {
+    // No app Android nativo ou Vercel (modo cloud), o pareamento local não é exigido
+    if (isNativeMobile() || isCloudOnlyMode()) {
+      navigate('/mobile/dashboard', { replace: true });
+      return;
+    }
+
     const saved = getSavedServerUrl();
     if (saved) {
       setConfiguredUrl(saved);

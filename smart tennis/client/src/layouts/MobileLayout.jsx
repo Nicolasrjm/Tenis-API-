@@ -13,9 +13,9 @@ import {
   Cloud
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { testServerConnection, getSavedServerUrl } from '../services/serverConfig';
+import { testServerConnection, getSavedServerUrl, isNativeMobile } from '../services/serverConfig';
 import { cloudAuthService } from '../services/cloudAuthService';
-import { isWebDemoMode } from '../services/appEnvironment';
+import { isWebDemoMode, isCloudOnlyMode, isEquipmentMode } from '../services/appEnvironment';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function MobileLayout() {
@@ -52,6 +52,15 @@ export default function MobileLayout() {
   const checkConnection = async () => {
     // Em modo Web Demo na Vercel sem servidor local explicitamente salvo, não faz polling indevido
     if (isWebDemoMode() && !getSavedServerUrl()) {
+      setConnectionState({
+        online: false,
+        latency: null,
+        serverName: null
+      });
+      return;
+    }
+    // Em modo Android Cloud sem servidor local salvo, também não faz polling indevido
+    if ((isCloudOnlyMode() || isNativeMobile()) && !getSavedServerUrl()) {
       setConnectionState({
         online: false,
         latency: null,
@@ -110,36 +119,59 @@ export default function MobileLayout() {
         <div className="flex items-center space-x-1.5 sm:space-x-2">
           <ThemeToggle className="py-1 px-1.5 text-xs" />
 
-          {/* Connection Indicator Button (Tapping opens /mobile/connect) */}
-          <button
-            onClick={() => navigate('/mobile/connect')}
-            data-testid="header-connection-pill"
-            className={`px-2 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1 border transition ${
-              connectionState.online
-                ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044] hover:bg-[#1C3A52]'
-                : cloudActive
+          {/* Connection / Cloud Indicator */}
+          {isEquipmentMode() && !isNativeMobile() ? (
+            <button
+              onClick={() => navigate('/mobile/connect')}
+              data-testid="header-connection-pill"
+              className={`px-2 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1 border transition ${
+                connectionState.online
                   ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044] hover:bg-[#1C3A52]'
-                  : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
-            }`}
-            title={connectionState.online ? 'Conectado à quadra' : cloudActive ? 'Acessando via Supabase Cloud' : 'Toque para gerenciar conexão do servidor'}
-          >
-            {connectionState.online ? (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B8F044] shadow-[0_0_6px_#B8F044] animate-pulse" />
-                <span>{connectionState.latency ? `${connectionState.latency}ms` : 'Quadra'}</span>
-              </>
-            ) : cloudActive ? (
-              <>
-                <Cloud className="w-3 h-3 text-[#B8F044]" />
-                <span>Nuvem</span>
-              </>
-            ) : (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>Offline</span>
-              </>
-            )}
-          </button>
+                  : cloudActive
+                    ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044] hover:bg-[#1C3A52]'
+                    : 'bg-rose-950/60 border-rose-500/50 text-rose-300 hover:bg-rose-900/60'
+              }`}
+              title={connectionState.online ? 'Conectado à quadra' : cloudActive ? 'Acessando via Supabase Cloud' : 'Toque para gerenciar conexão do servidor'}
+            >
+              {connectionState.online ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B8F044] shadow-[0_0_6px_#B8F044] animate-pulse" />
+                  <span>{connectionState.latency ? `${connectionState.latency}ms` : 'Quadra'}</span>
+                </>
+              ) : cloudActive ? (
+                <>
+                  <Cloud className="w-3 h-3 text-[#B8F044]" />
+                  <span>Nuvem</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>Offline</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div
+              data-testid="header-connection-pill"
+              className={`px-2 py-1 rounded-full text-[10px] font-mono font-bold flex items-center space-x-1 border ${
+                cloudActive
+                  ? 'bg-[#0D1C28] border-[#B8F044]/40 text-[#B8F044]'
+                  : 'bg-rose-950/60 border-rose-500/50 text-rose-300'
+              }`}
+            >
+              {cloudActive ? (
+                <>
+                  <Cloud className="w-3 h-3 text-[#B8F044]" />
+                  <span>Nuvem</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>Offline</span>
+                </>
+              )}
+            </div>
+          )}
 
           {/* User mini badge */}
           {user ? (
@@ -161,19 +193,21 @@ export default function MobileLayout() {
         </div>
       </header>
 
-      {/* Offline Alert Banner (shown only when neither notebook nor cloud is accessible) */}
-      {!connectionState.online && !cloudActive && location.pathname !== '/mobile/connect' && (
+      {/* Offline Alert Banner */}
+      {!cloudActive && !connectionState.online && location.pathname !== '/mobile/connect' && (
         <div className="bg-rose-950/90 border-b border-rose-500/30 px-4 py-2 flex items-center justify-between text-xs text-rose-200">
           <div className="flex items-center space-x-2 truncate mr-2">
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span className="truncate">Sem conexão com o notebook ou nuvem.</span>
+            <span className="truncate">Sem conexão com a internet. Verifique sua rede.</span>
           </div>
-          <button
-            onClick={() => navigate('/mobile/connect')}
-            className="px-2.5 py-1 rounded-lg bg-rose-900 text-rose-100 font-bold text-[10px] shrink-0 uppercase"
-          >
-            Reconectar
-          </button>
+          {isEquipmentMode() && !isNativeMobile() && (
+            <button
+              onClick={() => navigate('/mobile/connect')}
+              className="px-2.5 py-1 rounded-lg bg-rose-900 text-rose-100 font-bold text-[10px] shrink-0 uppercase"
+            >
+              Reconectar
+            </button>
+          )}
         </div>
       )}
 

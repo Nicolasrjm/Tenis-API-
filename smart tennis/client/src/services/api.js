@@ -55,13 +55,10 @@ export async function fetchJson(endpoint, options = {}) {
   const serverUrl = getSavedServerUrl();
   const baseUrl = getApiBaseUrl();
 
-  // Se estiver no celular Android nativo e nenhum servidor tiver sido configurado
+  // Se estiver no celular Android nativo e nenhum servidor local tiver sido configurado
   if (isNativeMobile() && !serverUrl) {
-    const err = new Error(
-      'Nenhum servidor Motion Tennis configurado no aplicativo. ' +
-      'Por favor, conecte-se ao servidor informando o IP do notebook ou escaneando o QR Code.'
-    );
-    err.code = 'SERVER_NOT_CONFIGURED';
+    const err = new Error('Modo Cloud: servidor local da quadra não configurado.');
+    err.code = 'NO_LOCAL_SERVER';
     err.status = 0;
     throw err;
   }

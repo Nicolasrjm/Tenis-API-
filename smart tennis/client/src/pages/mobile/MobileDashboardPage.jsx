@@ -20,6 +20,8 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { cloudDataService } from '../../services/cloudDataService';
 import { getStoredCloudSession } from '../../services/cloudAuthService';
+import { isEquipmentMode, isCloudOnlyMode } from '../../services/appEnvironment';
+import { isNativeMobile } from '../../services/serverConfig';
 import MobileVisitorGuard from '../../components/mobile/MobileVisitorGuard';
 
 export default function MobileDashboardPage() {
@@ -82,8 +84,8 @@ export default function MobileDashboardPage() {
       }
     }
 
-    // 2. Fallback: Consulta ao servidor local do notebook (quando na quadra/mesmo Wi-Fi)
-    if (!loadedFromCloud) {
+    // 2. Fallback: Consulta ao servidor local do notebook (exclusivo para quando estiver na quadra física)
+    if (!loadedFromCloud && isEquipmentMode() && !isNativeMobile()) {
       try {
         const [playerData, sessionsData] = await Promise.all([
           api.getPlayer().catch(() => null),
@@ -105,8 +107,16 @@ export default function MobileDashboardPage() {
         setIsCloudActive(false);
       } catch (err) {
         console.warn('Erro ao carregar dashboard local:', err);
-        setError('Não foi possível sincronizar os dados do atleta no momento.');
       }
+    } else if (!loadedFromCloud && user) {
+      setPlayer({
+        name: user.name || 'Atleta',
+        level: user.level || 1,
+        xp: user.xp || 0,
+        xp_next: user.xp_next || 250,
+        title: user.title || 'Tenista em Evolução'
+      });
+      setIsCloudActive(true);
     }
 
     setLoading(false);

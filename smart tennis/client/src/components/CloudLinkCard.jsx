@@ -239,9 +239,9 @@ export default function CloudLinkCard({ onStatusChange }) {
             </div>
 
             <div className="p-2.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653]">
-              <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8] block">UUID SUPABASE AUTH</span>
-              <span className="font-mono text-[11px] text-[#2563EB] dark:text-[#B8F044] truncate block" title={status.identity.cloudUserId}>
-                {status.identity.cloudUserId}
+              <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8] block">STATUS DA VINCULAÇÃO</span>
+              <span className="font-bold text-[11px] text-[#2563EB] dark:text-[#B8F044] truncate block">
+                Ativo na Nuvem
               </span>
             </div>
           </div>

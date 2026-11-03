@@ -12,6 +12,8 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
+import { isEquipmentMode } from '../services/appEnvironment';
+import { isNativeMobile } from '../services/serverConfig';
 import CloudLinkCard from '../components/CloudLinkCard';
 
 export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
@@ -164,8 +166,8 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
         </form>
       </div>
 
-      {/* Cloud & Supabase Identity Section */}
-      <CloudLinkCard />
+      {/* Cloud & Supabase Identity Section (exclusivo para o equipamento da quadra) */}
+      {isEquipmentMode() && !isNativeMobile() && <CloudLinkCard />}
 
     </div>
   );

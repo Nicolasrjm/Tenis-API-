@@ -98,7 +98,7 @@ export default function App() {
     <>
       <Routes>
         {/* ── Public ── */}
-        <Route path="/" element={isNativeMobile() ? <Navigate to="/mobile/connect" replace /> : <LandingPage />} />
+        <Route path="/" element={isNativeMobile() ? <Navigate to="/mobile/dashboard" replace /> : <LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/connect-qr" element={<div className="min-h-screen bg-[#07110B] flex items-center justify-center p-4"><ConnectMobileModal isOpen={true} onClose={() => {}} /></div>} />
 

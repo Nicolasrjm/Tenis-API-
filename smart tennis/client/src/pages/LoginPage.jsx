@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isNativeMobile, isMobileDevice } from '../services/serverConfig';
-import { isWebDemoMode } from '../services/appEnvironment';
+import { isWebDemoMode, isEquipmentMode } from '../services/appEnvironment';
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function LoginPage() {
@@ -54,6 +54,10 @@ export default function LoginPage() {
   const { login, loginCloud, signupCloud, recoverPasswordCloud, resendConfirmationEmail, startGuest } = useAuth();
   const navigate = useNavigate();
 
+  // O modo visitante só é permitido no equipamento físico da quadra (notebook local com SQLite)
+  // Na Vercel (web demo), no app Android nativo (Capacitor) e em dispositivos móveis, fica desabilitado.
+  const canShowGuest = isEquipmentMode() && !isNativeMobile() && !isMobileDevice();
+
   const handleResendConfirmation = async () => {
     if (!unconfirmedEmail) return;
     setResendingEmail(true);
@@ -75,6 +79,10 @@ export default function LoginPage() {
   };
 
   const handlePlayAsGuest = async () => {
+    if (!canShowGuest) {
+      setError('O modo visitante está disponível apenas no equipamento físico da quadra.');
+      return;
+    }
     setActiveTab('guest');
     setError(null);
     setInfoMessage(null);
@@ -272,8 +280,8 @@ export default function LoginPage() {
             <p className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Plataforma Esportiva e Tecnológica</p>
           </div>
 
-          {/* Abas Principais: Entrar | Criar Conta | Visitante */}
-          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
+          {/* Abas Principais: Entrar | Criar Conta | Visitante (se canShowGuest) */}
+          <div className={`grid ${canShowGuest ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 p-1 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]`}>
             <button
               type="button"
               data-testid="btn-enter-with-account"
@@ -312,24 +320,26 @@ export default function LoginPage() {
               <span>Criar Conta</span>
             </button>
 
-            <button
-              type="button"
-              data-testid="btn-play-as-guest"
-              onClick={() => {
-                setActiveTab('guest');
-                setShowRecovery(false);
-                setError(null);
-                setInfoMessage(null);
-              }}
-              className={`py-2 px-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 ${
-                activeTab === 'guest'
-                  ? 'bg-[#2563EB] dark:bg-[#2563EB] text-white shadow-sm'
-                  : 'text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Visitante</span>
-            </button>
+            {canShowGuest && (
+              <button
+                type="button"
+                data-testid="btn-play-as-guest"
+                onClick={() => {
+                  setActiveTab('guest');
+                  setShowRecovery(false);
+                  setError(null);
+                  setInfoMessage(null);
+                }}
+                className={`py-2 px-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 ${
+                  activeTab === 'guest'
+                    ? 'bg-[#2563EB] dark:bg-[#2563EB] text-white shadow-sm'
+                    : 'text-[#2563EB] dark:text-[#60A5FA] hover:text-[#1D4ED8]'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Visitante</span>
+              </button>
+            )}
           </div>
 
           {/* Mensagens de Feedback */}
@@ -634,8 +644,8 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ABA 3: VISITANTE */}
-          {activeTab === 'guest' && (
+          {/* ABA 3: VISITANTE (Apenas no equipamento físico da quadra) */}
+          {canShowGuest && activeTab === 'guest' && (
             <div className="space-y-4 pt-1">
               <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs space-y-2 text-[#475569] dark:text-[#A8BAC8]">
                 <p className="text-[#142B3D] dark:text-[#F1F5F9] font-bold">

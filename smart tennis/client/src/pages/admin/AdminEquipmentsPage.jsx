@@ -182,7 +182,7 @@ export default function AdminEquipmentsPage() {
               </div>
               <div>
                 <span className="text-[10px] text-[#8C9891]">SENSORES</span>
-                <div className="text-base font-bold text-[#39FF88]">11 FIXOS</div>
+                <div className="text-base font-bold text-[#39FF88]">3 KY-037</div>
               </div>
             </div>
 

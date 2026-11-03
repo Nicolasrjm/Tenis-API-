@@ -147,7 +147,7 @@ export default function AdminOverviewPage() {
                 </div>
                 <div>
                   <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">SENSORES</span>
-                  <div className="font-bold text-emerald-600 dark:text-[#B8F044]">11 FIXOS</div>
+                  <div className="font-bold text-emerald-600 dark:text-[#B8F044]">3 KY-037</div>
                 </div>
               </div>
             </div>

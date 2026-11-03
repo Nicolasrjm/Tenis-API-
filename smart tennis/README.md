@@ -10,8 +10,8 @@
 O **Motion Tennis** foi atualizado para uma arquitetura modular profissional com três áreas totalmente independentes e protegidas por autenticação com hash criptográfico (PBKDF2):
 
 1. **Site Institucional (`/`)**: Página de produto esportivo que apresenta a tecnologia, os benefícios e o equipamento físico, com botão principal **ENTRAR** direcionando para `/login`.
-2. **Área do Jogador (`/app/*`)**: Dashboard gamificado com 3 modos de jogo, 11 sensores físicos fixos em botões circulares, telemetria de precisão, evolução por atributos RPG, árvore de habilidades, conquistas, histórico e **Motion Tennis Academy**.
-3. **Painel Administrativo (`/admin/*`)**: Gestão de múltiplos equipamentos físicos Motion Tennis, usuários, sessões, monitoramento dos 11 sensores, relatórios estatísticos e configurações do sistema.
+2. **Área do Jogador (`/app/*`)**: Dashboard gamificado com modos de treino, sensores acústicos KY-037 integrados ao Arduino e setores de treino projetados, telemetria de precisão, evolução por atributos RPG, árvore de habilidades, conquistas, histórico e **Motion Tennis Academy**.
+3. **Painel Administrativo (`/admin/*`)**: Gestão de múltiplos equipamentos físicos Motion Tennis, usuários, sessões, monitoramento de sensores e setores, relatórios estatísticos e configurações do sistema.
 
 ---
 

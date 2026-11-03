@@ -142,8 +142,8 @@ export default function LandingPage() {
               {/* Destaques Rápidos */}
               <div className="pt-6 grid grid-cols-3 gap-4 border-t border-[#B8C6D0] dark:border-[#344653] max-w-md mx-auto lg:mx-0 text-left">
                 <div>
-                  <div className="text-xl font-black font-sport text-[#142B3D] dark:text-[#F1F5F9]">11 SENSORES</div>
-                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Posições Físicas Fixas</div>
+                  <div className="text-xl font-black font-sport text-[#142B3D] dark:text-[#F1F5F9]">3 SENSORES</div>
+                  <div className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">KY-037 por Parede</div>
                 </div>
                 <div>
                   <div className="text-xl font-black font-sport text-[#2563EB] dark:text-[#60A5FA]">OFFLINE</div>
@@ -168,7 +168,7 @@ export default function LandingPage() {
                   <CourtTarget interactive={false} gameMode="single" activeSensorId={5} />
                 </div>
                 <div className="mt-3 text-center text-xs font-semibold text-[#475569] dark:text-[#A8BAC8]">
-                  Detecção eletrônica de contato em 11 posições calibradas
+                  3 sensores físicos KY-037 e projeção de 6 setores de treino
                 </div>
               </div>
             </div>
@@ -195,9 +195,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/40 flex items-center justify-center text-[#2563EB] dark:text-[#60A5FA] mb-3">
                 <Target className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Painel de Alvo Físico</h3>
+              <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9]">Parede de Treino Conectada</h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Estrutura de alta resistência montada na quadra, equipada com 11 sensores em posições milimétricas calibradas.
+                Estrutura de treino na quadra com 3 sensores KY-037 conectados ao Arduino e 6 setores visuais de treinamento.
               </p>
             </div>
 
@@ -296,10 +296,10 @@ export default function LandingPage() {
             <div className="p-7 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-3 hover:border-[#B8F044] transition-all">
               <h3 className="text-lg font-bold text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
                 <Radio className="w-5 h-5 text-[#2563EB] dark:text-[#60A5FA]" />
-                <span>Sensores com Posição Fixa</span>
+                <span>Sensores Acústicos KY-037</span>
               </h3>
               <p className="text-xs sm:text-sm text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
-                Cada sensor corresponde a uma localização física invariável no equipamento. Isso permite uma calibração biomecânica padronizada para jogadores de todos os níveis.
+                3 sensores acústicos KY-037 instalados na parede capturam as vibrações de impacto da bola em tempo real, integrando o treino físico aos 6 setores visuais projetados.
               </p>
             </div>
 

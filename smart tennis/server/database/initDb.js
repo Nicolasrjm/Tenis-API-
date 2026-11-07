@@ -253,7 +253,8 @@ async function runNonDestructiveMigrations() {
     INSERT OR IGNORE INTO system_settings (key, value) VALUES
     ('installation_mode', 'personal'),
     ('shopping_interval_seconds', '30'),
-    ('wall_preset', 'medium')
+    ('wall_preset', 'medium'),
+    ('hardware_mode', 'simulation')
   `);
 
   // 2. Add missing columns non-destructively

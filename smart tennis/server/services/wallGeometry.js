@@ -190,17 +190,18 @@ function calculateSensorPositions(presetOrDims = '3x2', sensorOffsetsCm = {}) {
     };
   };
 
-  const S1 = buildSensor('S1', 'Sensor S1', 'top_left', 'Canto Superior Esquerdo', 0, H);
-  const S2 = buildSensor('S2', 'Sensor S2', 'top_right', 'Canto Superior Direito', W, H);
-  const S3 = buildSensor('S3', 'Sensor S3', 'bottom_left', 'Canto Inferior Esquerdo', 0, 0);
+  const S1 = buildSensor('S1', 'Sensor S1', 'bottom_left', 'Canto Inferior Esquerdo', 0, 0);
+  const S2 = buildSensor('S2', 'Sensor S2', 'top_left', 'Canto Superior Esquerdo', 0, H);
+  const S3 = buildSensor('S3', 'Sensor S3', 'bottom_right', 'Canto Inferior Direito', W, 0);
 
   return {
     origin: 'bottom_left',
-    originDescription: 'Origem cartesiana (0, 0) no canto inferior esquerdo (S3)',
+    originDescription: 'Origem cartesiana (0, 0) no canto inferior esquerdo (S1)',
     widthM: W,
     heightM: H,
     sensorCount: 3,
-    bottomRightHasSensor: false,
+    bottomRightHasSensor: true,
+    topRightHasSensor: false,
     sensors: { S1, S2, S3 },
     sensorList: [S1, S2, S3]
   };
@@ -403,7 +404,8 @@ function calculateWallGeometry(presetKey = '3x2', sensorOffsetsCm = {}) {
     sectors,
     sensors: sensorLayout.sensors,
     sensorList: sensorLayout.sensorList,
-    bottomRightHasSensor: false
+    bottomRightHasSensor: true,
+    topRightHasSensor: false
   };
 }
 

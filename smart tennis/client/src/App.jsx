@@ -34,14 +34,12 @@ import AchievementsPage from './pages/AchievementsPage';
 import ProfilePage from './pages/ProfilePage';
 
 // Admin pages
-import AdminOverviewPage from './pages/admin/AdminOverviewPage';
-import AdminEquipmentsPage from './pages/admin/AdminEquipmentsPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminSessionsPage from './pages/admin/AdminSessionsPage';
 import AdminSensorsPage from './pages/admin/AdminSensorsPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminEquipmentsPage from './pages/admin/AdminEquipmentsPage';
 import AdminReportsPage from './pages/admin/AdminReportsPage';
-import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminAcademyPage from './pages/admin/AdminAcademyPage';
+import AdminDiagnosticPage from './pages/admin/AdminDiagnosticPage';
 
 // Global services
 import { wsClient } from './services/websocket';
@@ -150,15 +148,20 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/admin/overview" replace />} />
-          <Route path="overview" element={<AdminOverviewPage />} />
-          <Route path="academy" element={<AdminAcademyPage />} />
-          <Route path="equipments" element={<AdminEquipmentsPage />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="sessions" element={<AdminSessionsPage />} />
+          {/* As 6 Áreas Principais Simplificadas */}
+          <Route index element={<Navigate to="/admin/sensors" replace />} />
           <Route path="sensors" element={<AdminSensorsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="equipments" element={<AdminEquipmentsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
-          <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="academy" element={<AdminAcademyPage />} />
+          <Route path="diagnostic" element={<AdminDiagnosticPage />} />
+
+          {/* Redirecionamentos de compatibilidade para rotas legadas */}
+          <Route path="overview" element={<Navigate to="/admin/sensors" replace />} />
+          <Route path="sessions" element={<Navigate to="/admin/reports" replace />} />
+          <Route path="settings" element={<Navigate to="/admin/sensors" replace />} />
+          <Route path="iot" element={<Navigate to="/admin/diagnostic" replace />} />
         </Route>
 
         {/* ── Catch-all ── */}

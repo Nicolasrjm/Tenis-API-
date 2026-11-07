@@ -135,9 +135,35 @@ function finalizeGroup(group, reason, wallCfg) {
   );
 
   let category = 'HARDWARE_UNLOCATED';
-  let categoryLabel = isSimulatedDevice
-    ? '2. Impacto sintético sem localização confiável (Simulação)'
-    : '2. Impacto detectado pelo hardware sem localização confiável';
+  let categoryLabel = 'Impacto detectado';
+
+  if (isSimulatedDevice) {
+    if (isComplete && tdoa.status === 'valid' && tdoa.locationReliable) {
+      category = 'SIMULATED_TDOA_LOCATED';
+      categoryLabel = 'Simulação: Impacto sintético localizado pelo TDOA';
+    } else {
+      category = 'SIMULATED_UNLOCATED';
+      categoryLabel = 'Simulação: Impacto sintético sem localização confiável';
+    }
+  } else {
+    // Hardware físico real (Arduino Uno / KY-037)
+    if (!isComplete) {
+      category = 'HARDWARE_INCOMPLETE';
+      categoryLabel = isSingleSpikeNoise
+        ? `Hardware Real: Disparo isolado em ${presentSensors[0]} (ruído/bancada)`
+        : `Hardware Real: Leitura incompleta (${presentSensors.length}/3 sensores)`;
+    } else if (tdoa.reason === 'CALIBRATION_REQUIRED' || !wallCfg.calibration?.calibrated) {
+      category = 'HARDWARE_AWAITING_CALIBRATION';
+      categoryLabel = 'Hardware Real: 3/3 sensores detectados — Aguardando calibração';
+    } else if (tdoa.status === 'valid' && tdoa.locationReliable) {
+      category = 'HARDWARE_LOCATED';
+      categoryLabel = 'Hardware Real: Impacto físico localizado com sucesso';
+    } else {
+      category = 'HARDWARE_REJECTED';
+      categoryLabel = `Hardware Real: Rejeitado (${tdoa.reason || 'inconsistência física'})`;
+    }
+  }
+
   let groupingState = isComplete ? 'COMPLETE_3_OF_3' : 'INCOMPLETE';
   let groupingLabel = isComplete
     ? 'Agrupamento completo (S1, S2 e S3 dentro da janela temporal)'
@@ -146,13 +172,6 @@ function finalizeGroup(group, reason, wallCfg) {
   if (isSingleSpikeNoise) {
     groupingState = 'NOISE_OR_INCOMPLETE';
     groupingLabel = `Disparo isolado em ${presentSensors[0]} sem confirmação de ${missingSensors.join(' e ')} (ruído ou leitura incompleta)`;
-  }
-
-  if (isComplete && tdoa.status === 'valid' && tdoa.locationReliable) {
-    category = isSimulatedDevice ? 'SIMULATED_TDOA_LOCATED' : 'HARDWARE_LOCATED';
-    categoryLabel = isSimulatedDevice
-      ? '3. Impacto sintético localizado pelo algoritmo (Simulação)'
-      : '3. Impacto localizado pelo algoritmo com calibração válida';
   }
 
   const record = {
@@ -317,6 +336,11 @@ async function ingestSensorReading(rawReading = {}, wallCfg = null) {
   connectionState.lastArduinoPacketAt = new Date().toISOString();
   connectionState.lastDeviceId = deviceId;
 
+  const isSimReading = Boolean(rawReading.is_simulation || rawReading.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
+  if (!isSimReading && connectionState.mode !== 'connected') {
+    connectionState.mode = 'connected';
+  }
+
   let finalizedPreviousGroup = null;
   let currentGroup = pendingGroupsByDevice.get(deviceId) || null;
 
@@ -469,6 +493,9 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
     }
 
     const isSim = Boolean(payload.is_simulation || payload.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
+    if (!isSim && connectionState.mode !== 'connected') {
+      connectionState.mode = 'connected';
+    }
     const syntheticReadings = [];
     if (t1 !== null && t1 !== undefined && t1 !== '') {
       syntheticReadings.push({ event_id: baseEventId ? `${baseEventId}_S1` : null, sensor_id: 'S1', timestamp_us: t1, device_id: deviceId, valid: true, is_simulation: isSim });
@@ -632,7 +659,8 @@ async function getIotDiagnosticsState(actor = null) {
       widthM: wallCfg.widthM,
       heightM: wallCfg.heightM,
       aspectRatio: wallCfg.aspectRatio,
-      bottomRightHasSensor: false
+      bottomRightHasSensor: true,
+      topRightHasSensor: false
     },
     sensors: wallCfg.sensors,
     sensorList: wallCfg.sensorList,

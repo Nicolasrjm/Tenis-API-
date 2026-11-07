@@ -137,6 +137,28 @@ async function ensureIotAndWallTables() {
       );
     }
   }
+
+  // Atualiza de forma idempotente qualquer linha em user_wall_configs que ainda possua coordenadas antigas dos sensores
+  // (Layout oficial: S1=Canto Inf. Esq. (0,0), S2=Canto Sup. Esq. (0,H), S3=Canto Inf. Dir. (W,0))
+  const allConfigs = await all(`SELECT user_id, wall_preset, width_m, height_m, sensor_offsets_json, sensor_coordinates_json FROM user_wall_configs`).catch(() => []);
+  for (const cfgRow of (allConfigs || [])) {
+    try {
+      const parsed = JSON.parse(cfgRow.sensor_coordinates_json || '{}');
+      if (parsed?.S1?.corner === 'top_left' || parsed?.S2?.corner === 'top_right') {
+        const preset = resolveWallPreset(cfgRow.wall_preset || { width: cfgRow.width_m, height: cfgRow.height_m });
+        let offsets = DEFAULT_SENSOR_OFFSETS_CM;
+        try { offsets = sanitizeSensorOffsets(JSON.parse(cfgRow.sensor_offsets_json || '{}')); } catch (e) {}
+        const sensorLayout = calculateSensorPositions(preset, offsets);
+        await run(
+          `UPDATE user_wall_configs SET
+             sensor_coordinates_json = ?,
+             updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ?`,
+          [JSON.stringify(sensorLayout.sensors), cfgRow.user_id]
+        );
+      }
+    } catch (e) {}
+  }
 }
 
 /**
@@ -261,7 +283,8 @@ async function getWallConfigForActor(actorOrUserId = null) {
         sensorOffsetsCm: offsets,
         sensors: geometry.sensors,
         sensorList: geometry.sensorList,
-        bottomRightHasSensor: false,
+        bottomRightHasSensor: true,
+        topRightHasSensor: false,
         calibration,
         geometry,
         availableOptions: NICOLAS_WALL_OPTIONS,
@@ -288,7 +311,8 @@ async function getWallConfigForActor(actorOrUserId = null) {
     sensorOffsetsCm: DEFAULT_SENSOR_OFFSETS_CM,
     sensors: geometry.sensors,
     sensorList: geometry.sensorList,
-    bottomRightHasSensor: false,
+    bottomRightHasSensor: true,
+    topRightHasSensor: false,
     calibration: DEFAULT_CALIBRATION_PARAMS,
     geometry,
     availableOptions: NICOLAS_WALL_OPTIONS,
@@ -449,9 +473,10 @@ function signedMicrosDiff(tB, tA) {
 /**
  * Estima a posição física (X_metros, Y_metros) e o setor correspondente a partir
  * dos 3 timestamps (t1, t2, t3 em microssegundos) dos sensores KY-037:
- *   S1 = (0, H)  [Superior Esquerdo]
- *   S2 = (W, H)  [Superior Direito]
- *   S3 = (0, 0)  [Inferior Esquerdo]
+ *   S1 = (0, 0)  [Inferior Esquerdo - Origem Cartesiana]
+ *   S2 = (0, H)  [Superior Esquerdo]
+ *   S3 = (W, 0)  [Inferior Direito]
+ *   Canto Superior Direito: SEM SENSOR
  *
  * Diferenças temporais oficiais:
  *   Δt21 = t2 - t1

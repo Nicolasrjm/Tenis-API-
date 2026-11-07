@@ -172,10 +172,12 @@ def parse_arduino_line(line: str) -> Tuple[str, Optional[Any]]:
         return ("STATUS", cleaned)
 
     if tag == "EVENT":
-        # Formato esperado: EVENT,eventId,sensorId,timestampUs
+        # Formato esperado: EVENT,eventId,sensorId,timestampUs (exatamente 4 campos)
         if len(parts) != 4:
             return ("MALFORMED", f"EVENT requer 4 campos, recebido {len(parts)}: '{cleaned}'")
         event_id = parts[1]
+        if not event_id:
+            return ("MALFORMED", f"event_id vazio em: '{cleaned}'")
         raw_sensor = parts[2].upper()
         # Normaliza sensor (S1, S2, S3)
         if raw_sensor in ["S1", "1"]:
@@ -197,10 +199,12 @@ def parse_arduino_line(line: str) -> Tuple[str, Optional[Any]]:
         return ("EVENT", RawEvent(event_id, sensor_id, ts_us))
 
     if tag == "IMPACT":
-        # Formato esperado: IMPACT,impactId,t1Us,t2Us,t3Us,sensorCount
-        if len(parts) < 6:
-            return ("MALFORMED", f"IMPACT requer 6 campos, recebido {len(parts)}: '{cleaned}'")
+        # Formato esperado: IMPACT,impactId,t1Us,t2Us,t3Us,sensorCount (exatamente 6 campos)
+        if len(parts) != 6:
+            return ("MALFORMED", f"IMPACT requer exatamente 6 campos, recebido {len(parts)}: '{cleaned}'")
         impact_id = parts[1]
+        if not impact_id:
+            return ("MALFORMED", f"impact_id vazio em: '{cleaned}'")
         try:
             t1 = int(parts[2])
             t2 = int(parts[3])
@@ -208,6 +212,11 @@ def parse_arduino_line(line: str) -> Tuple[str, Optional[Any]]:
             count = int(parts[5])
             if count < 1 or count > 3:
                 return ("MALFORMED", f"Contagem de sensores inválida: {count}")
+            if t1 < 0 or t2 < 0 or t3 < 0:
+                return ("MALFORMED", f"Timestamps negativos não permitidos em IMPACT: t1={t1}, t2={t2}, t3={t3}")
+            active_count = sum(1 for t in [t1, t2, t3] if t > 0)
+            if active_count != count:
+                return ("MALFORMED", f"Inconsistência em IMPACT: contagem declarada {count} diverge dos timestamps informados ({active_count})")
         except ValueError:
             return ("MALFORMED", f"Valores numéricos de IMPACT inválidos em: '{cleaned}'")
 
@@ -346,7 +355,7 @@ class NodeApiDispatcher:
 class SyntheticScenarioGenerator:
     """
     Gera timestamps e pacotes sintéticos reproduzíveis baseados na física da parede
-    e na geometria oficial dos 3 sensores: S1=(0,H), S2=(W,H), S3=(0,0).
+    e na geometria oficial dos 3 sensores: S1=(0,0) [Inf. Esq.], S2=(0,H) [Sup. Esq.], S3=(W,0) [Inf. Dir.].
     """
     def __init__(
         self,
@@ -365,12 +374,12 @@ class SyntheticScenarioGenerator:
     def calculate_timestamps_for_point(self, x: float, y: float, base_us: Optional[int] = None) -> Tuple[int, int, int]:
         """Calcula t1, t2, t3 teóricos no ar para um impacto em (x, y)."""
         base = base_us if base_us is not None else self.base_micros
-        # S1 = (0, H)
-        d1 = math.hypot(x - 0.0, y - self.wall_h)
-        # S2 = (W, H)
-        d2 = math.hypot(x - self.wall_w, y - self.wall_h)
-        # S3 = (0, 0)
-        d3 = math.hypot(x - 0.0, y - 0.0)
+        # S1 = (0, 0) - Canto Inferior Esquerdo
+        d1 = math.hypot(x - 0.0, y - 0.0)
+        # S2 = (0, H) - Canto Superior Esquerdo
+        d2 = math.hypot(x - 0.0, y - self.wall_h)
+        # S3 = (W, 0) - Canto Inferior Direito
+        d3 = math.hypot(x - self.wall_w, y - 0.0)
 
         t1 = int(base + (d1 / self.speed_mps) * 1_000_000) % MAX_MICROS
         t2 = int(base + (d2 / self.speed_mps) * 1_000_000) % MAX_MICROS
@@ -381,9 +390,9 @@ class SyntheticScenarioGenerator:
         """
         Produz payload estruturado para o cenário especificado:
           - center: 3 sensores disparando em impacto central
-          - top_left: impacto próximo a S1 (S1 dispara bem antes)
-          - top_right: impacto próximo a S2
-          - bottom_left: impacto próximo a S3
+          - top_left: impacto próximo a S2 (S2 dispara bem antes)
+          - bottom_right: impacto próximo a S3 (S3 dispara bem antes)
+          - bottom_left: impacto próximo a S1 (S1 dispara bem antes)
           - incomplete_2: 2 sensores disparam, 1 ausente (sem timestamp inventado)
           - isolated_1: apenas 1 sensor dispara (ruído de bancada / leitura incompleta)
           - duplicate: replay de event_id já transmitido
@@ -413,10 +422,10 @@ class SyntheticScenarioGenerator:
             }
 
         elif scenario_name == "top_left":
-            # Perto de S1 (X=0.40m, Y=1.80m)
+            # Perto de S2 (X=0.40m, Y=1.80m)
             t1, t2, t3 = self.calculate_timestamps_for_point(0.40, 1.80)
             return {
-                "name": "Canto Superior Esquerdo - Próximo S1",
+                "name": "Canto Superior Esquerdo - Próximo S2",
                 "event_id": event_id,
                 "payload": {
                     "event_id": event_id,
@@ -427,7 +436,43 @@ class SyntheticScenarioGenerator:
                     "valid": True,
                     "is_simulation": True
                 },
-                "expected": "Setor 1 ou 2 localizado com S1 adiantado"
+                "expected": "Setor 1 ou 2 localizado com S2 adiantado"
+            }
+
+        elif scenario_name == "bottom_left":
+            # Perto de S1 (X=0.40m, Y=0.30m)
+            t1, t2, t3 = self.calculate_timestamps_for_point(0.40, 0.30)
+            return {
+                "name": "Canto Inferior Esquerdo - Próximo S1",
+                "event_id": event_id,
+                "payload": {
+                    "event_id": event_id,
+                    "device_id": "BRIDGE_SIMULATOR",
+                    "t1_us": t1,
+                    "t2_us": t2,
+                    "t3_us": t3,
+                    "valid": True,
+                    "is_simulation": True
+                },
+                "expected": "Setor 4 localizado com S1 adiantado"
+            }
+
+        elif scenario_name == "bottom_right":
+            # Perto de S3 (X=2.60m, Y=0.30m)
+            t1, t2, t3 = self.calculate_timestamps_for_point(2.60, 0.30)
+            return {
+                "name": "Canto Inferior Direito - Próximo S3",
+                "event_id": event_id,
+                "payload": {
+                    "event_id": event_id,
+                    "device_id": "BRIDGE_SIMULATOR",
+                    "t1_us": t1,
+                    "t2_us": t2,
+                    "t3_us": t3,
+                    "valid": True,
+                    "is_simulation": True
+                },
+                "expected": "Setor 6 localizado com S3 adiantado"
             }
 
         elif scenario_name == "incomplete_2":
@@ -669,6 +714,9 @@ def run_serial_mode(args, dispatcher: NodeApiDispatcher):
     logger.info(f" Baud Rate:          {args.baud}")
     logger.info(f" Destino da API:     {dispatcher.api_url}")
     logger.info(f" Modo Encaminhamento: {args.forward_mode.upper()}")
+    if args.forward_mode == "both":
+        logger.warning("[AVISO DE DUPLICAÇÃO] Modo 'both' encaminha EVENT e IMPACT simultaneamente.")
+        logger.warning("  O backend pode registrar a mesma batida duas vezes. Recomendado: 'impact' (padrão).")
     logger.info("==============================================================\n")
 
     ser = None

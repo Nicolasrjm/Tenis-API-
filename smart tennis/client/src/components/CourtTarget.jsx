@@ -166,15 +166,15 @@ export default function CourtTarget({
           interactive ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >
-        {/* POSICIONAMENTO FÍSICO REAL DOS 3 SENSORES KY-037 NOS CANTOS DA PAREDE (SEÇÕES 3 E 4) */}
+        {/* POSICIONAMENTO FÍSICO REAL DOS 3 SENSORES KY-037 NOS CANTOS DA PAREDE */}
         {showSensors && (
           <>
-            {/* S1: Canto Superior Esquerdo = (0, altura) */}
+            {/* S1: Canto Inferior Esquerdo = (0, 0) [Origem Cartesiana] */}
             <div
               data-testid="wall-sensor-S1"
-              data-sensor-corner="top_left"
+              data-sensor-corner="bottom_left"
               data-sensor-coords={`(${S1.xM}, ${S1.yM})`}
-              className="absolute top-1.5 left-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
+              className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
             >
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span className="font-mono font-black text-[10px] text-cyan-300 tracking-wider">
@@ -182,12 +182,12 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* S2: Canto Superior Direito = (largura, altura) */}
+            {/* S2: Canto Superior Esquerdo = (0, altura) */}
             <div
               data-testid="wall-sensor-S2"
-              data-sensor-corner="top_right"
+              data-sensor-corner="top_left"
               data-sensor-coords={`(${S2.xM}, ${S2.yM})`}
-              className="absolute top-1.5 right-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
+              className="absolute top-1.5 left-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
             >
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span className="font-mono font-black text-[10px] text-cyan-300 tracking-wider">
@@ -195,12 +195,12 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* S3: Canto Inferior Esquerdo = (0, 0) [Origem Cartesiana] */}
+            {/* S3: Canto Inferior Direito = (largura, 0) */}
             <div
               data-testid="wall-sensor-S3"
-              data-sensor-corner="bottom_left"
+              data-sensor-corner="bottom_right"
               data-sensor-coords={`(${S3.xM}, ${S3.yM})`}
-              className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
+              className="absolute bottom-1.5 right-1.5 z-20 pointer-events-none flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#07180F]/95 border border-cyan-400/70 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
             >
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span className="font-mono font-black text-[10px] text-cyan-300 tracking-wider">
@@ -208,11 +208,11 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* Canto Inferior Direito NÃO possui sensor — apenas indicador discreto da dimensão da parede */}
+            {/* Canto Superior Direito NÃO possui sensor — apenas indicador discreto da dimensão da parede */}
             <div
-              data-testid="wall-corner-bottom-right-empty"
+              data-testid="wall-corner-top-right-empty"
               data-has-sensor="false"
-              className="absolute bottom-1.5 right-2 z-10 pointer-events-none font-mono text-[9px] text-[#8C9891]/60"
+              className="absolute top-1.5 right-2 z-10 pointer-events-none font-mono text-[9px] text-[#8C9891]/60"
             >
               {geometry.widthM}m × {geometry.heightM}m
             </div>

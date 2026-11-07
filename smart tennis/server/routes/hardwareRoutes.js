@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { get, run } = require('../database/db');
 const { generateSimulatedSensorHit } = require('../services/gameEngine');
 const { broadcastEvent } = require('../services/eventHub');
 const { requireAuth, requireUserOrGuest } = require('../services/authService');
@@ -15,6 +16,19 @@ let hardwareStatus = {
   baudRate: 115200,
   port: 'COM3 (Virtual)'
 };
+
+// Carrega o modo de hardware previamente persistido no SQLite
+(async function initHardwareMode() {
+  try {
+    const row = await get(`SELECT value FROM system_settings WHERE key = 'hardware_mode'`);
+    if (row?.value && (row.value === 'simulation' || row.value === 'connected')) {
+      hardwareStatus.mode = row.value;
+      arduinoIngestService.setHardwareConnectionMode(row.value);
+    }
+  } catch (err) {
+    // Tabela system_settings pode ainda estar sendo inicializada
+  }
+})();
 
 async function requireNicolasOrAdmin(req, res, next) {
   if (!req.user) {
@@ -39,7 +53,7 @@ router.get('/status', (req, res) => {
 });
 
 // POST /api/hardware/mode
-router.post('/mode', (req, res) => {
+router.post('/mode', async (req, res) => {
   const { mode, port, baudRate } = req.body || {};
   if (mode === 'simulation' || mode === 'connected') {
     hardwareStatus.mode = mode;
@@ -47,6 +61,14 @@ router.post('/mode', (req, res) => {
     if (baudRate) hardwareStatus.baudRate = Number(baudRate);
     hardwareStatus.lastSeen = new Date().toISOString();
     arduinoIngestService.setHardwareConnectionMode(mode, { port, baudRate });
+    try {
+      await run(
+        `INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES ('hardware_mode', ?, CURRENT_TIMESTAMP)`,
+        [mode]
+      );
+    } catch (e) {
+      console.warn('[Hardware] Falha ao persistir hardware_mode:', e.message);
+    }
     broadcastEvent('HARDWARE_STATUS_CHANGED', hardwareStatus);
     return res.json({ success: true, hardwareStatus });
   }
@@ -60,8 +82,20 @@ router.post('/mode', (req, res) => {
 // POST /api/hardware/arduino/events e /api/hardware/arduino/reading
 async function handleArduinoEvents(req, res) {
   try {
-    const result = await arduinoIngestService.ingestArduinoPayload(req.body || {});
+    const payload = req.body || {};
+    const result = await arduinoIngestService.ingestArduinoPayload(payload);
     hardwareStatus.lastSeen = new Date().toISOString();
+
+    // Se pacotes de hardware ou ponte serial estiverem chegando (sem tag de simulação),
+    // detecta e consolida automaticamente a conexão ativa
+    if (!payload.is_simulation && !payload.isSimulation && payload.device_id && !String(payload.device_id).toUpperCase().includes('SIMULAT')) {
+      if (hardwareStatus.mode !== 'connected') {
+        hardwareStatus.mode = 'connected';
+        arduinoIngestService.setHardwareConnectionMode('connected');
+        run(`INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES ('hardware_mode', 'connected', CURRENT_TIMESTAMP)`).catch(() => {});
+        broadcastEvent('HARDWARE_STATUS_CHANGED', hardwareStatus);
+      }
+    }
 
     const httpCode = result.accepted ? 200 : (
       result.status === 'REJECTED_DUPLICATE_EVENT' || result.duplicateSensorInGroup ? 409 : 422

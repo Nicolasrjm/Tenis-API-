@@ -5,8 +5,8 @@
 
 // PINOS
 const int sensor5m = 4;
-const int sensor4m = 2;
-const int sensor3m = 0;
+const int sensor4m = 3;
+const int sensor3m = 2;
 
 // CONTADORES
 unsigned long cont5m = 0;

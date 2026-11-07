@@ -4,9 +4,10 @@
  * Microcontrolador: Arduino Uno (ATmega328P @ 16 MHz)
  * Sensores: 3x KY-037 (Microfone de Eletreto + Comparador LM393)
  * Mapeamento:
- *   S1 (Canto Superior Esquerdo) -> Pino Digital D2 (INT0)
- *   S2 (Canto Superior Direito)   -> Pino Digital D3 (INT1)
- *   S3 (Canto Inferior Esquerdo)  -> Pino Digital D4 (PCINT20 - Port D Pin 4)
+ *   S1 (Canto Inferior Esquerdo) -> Pino Digital D2 (INT0)
+ *   S2 (Canto Superior Esquerdo) -> Pino Digital D3 (INT1)
+ *   S3 (Canto Inferior Direito)  -> Pino Digital D4 (PCINT20 - Port D Pin 4)
+ *   (Canto Superior Direito: SEM SENSOR)
  * Comunicação: USB Serial @ 115200 baud
  * ==============================================================================
  * 
@@ -244,9 +245,9 @@ void finalizeCurrentImpact(const char* reason) {
       Serial.println(F("\n=================================================="));
       Serial.print(F("🎾 IMPACTO DETECTADO (3/3 SENSORES) - ID: #"));
       Serial.println(currentImpact.impactId);
-      Serial.print(F("  S1 (Canto Sup. Esq.): ")); Serial.print(currentImpact.t1Us); Serial.println(F(" us"));
-      Serial.print(F("  S2 (Canto Sup. Dir.): ")); Serial.print(currentImpact.t2Us); Serial.println(F(" us"));
-      Serial.print(F("  S3 (Canto Inf. Esq.): ")); Serial.print(currentImpact.t3Us); Serial.println(F(" us"));
+      Serial.print(F("  S1 (Canto Inf. Esq.): ")); Serial.print(currentImpact.t1Us); Serial.println(F(" us"));
+      Serial.print(F("  S2 (Canto Sup. Esq.): ")); Serial.print(currentImpact.t2Us); Serial.println(F(" us"));
+      Serial.print(F("  S3 (Canto Inf. Dir.): ")); Serial.print(currentImpact.t3Us); Serial.println(F(" us"));
       long dt21 = (long)(currentImpact.t2Us - currentImpact.t1Us);
       long dt31 = (long)(currentImpact.t3Us - currentImpact.t1Us);
       Serial.print(F("  Diferencas de tempo: dt21=")); Serial.print(dt21);
@@ -298,19 +299,19 @@ void printDiagnosticSnapshot() {
   Serial.println(F("--------------------------------------------------------"));
   
   // Status de cada sensor
-  Serial.print(F("S1 (D2 - Sup. Esq.): Cont=")); Serial.print(totalDetectionsS1);
+  Serial.print(F("S1 (D2 - Inf. Esq.): Cont=")); Serial.print(totalDetectionsS1);
   Serial.print(F(" | Sinal atual=")); Serial.print(rawS1 == LOW ? F("LOW") : F("HIGH"));
   if (rawS1 == activeLevel) Serial.print(F(" [ALERTA: DISPARADO/PRESO - REGULAR TRIMPOT]"));
   else Serial.print(F(" [OK - Repouso]"));
   Serial.println();
 
-  Serial.print(F("S2 (D3 - Sup. Dir.): Cont=")); Serial.print(totalDetectionsS2);
+  Serial.print(F("S2 (D3 - Sup. Esq.): Cont=")); Serial.print(totalDetectionsS2);
   Serial.print(F(" | Sinal atual=")); Serial.print(rawS2 == LOW ? F("LOW") : F("HIGH"));
   if (rawS2 == activeLevel) Serial.print(F(" [ALERTA: DISPARADO/PRESO - REGULAR TRIMPOT]"));
   else Serial.print(F(" [OK - Repouso]"));
   Serial.println();
 
-  Serial.print(F("S3 (D4 - Inf. Esq.): Cont=")); Serial.print(totalDetectionsS3);
+  Serial.print(F("S3 (D4 - Inf. Dir.): Cont=")); Serial.print(totalDetectionsS3);
   Serial.print(F(" | Sinal atual=")); Serial.print(rawS3 == LOW ? F("LOW") : F("HIGH"));
   if (rawS3 == activeLevel) Serial.print(F(" [ALERTA: DISPARADO/PRESO - REGULAR TRIMPOT]"));
   else Serial.print(F(" [OK - Repouso]"));

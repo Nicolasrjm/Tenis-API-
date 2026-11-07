@@ -101,6 +101,37 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
     }
   };
 
+  const handleQuickCalibrate = async (speed = 343) => {
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const res = await api.updateIotCalibration({
+        sensorOffsetsCm: offsets,
+        calibration: {
+          calibrated: true,
+          propagationSpeedMps: speed,
+          groupingWindowUs: Number(groupingWindowUs) || 25000,
+          maxResidualM: Number(maxResidualM) || 0.20
+        }
+      });
+      if (res?.diagnostics) {
+        setDiag(res.diagnostics);
+        syncFormFromDiag(res.diagnostics);
+      }
+      if (onWallConfigChanged && res?.wallConfig) {
+        onWallConfigChanged(res.wallConfig);
+      }
+      setFeedback({
+        ok: true,
+        text: `Calibração ativada com sucesso (v = ${speed} m/s)! Impactos físicos do hardware agora serão localizados.`
+      });
+    } catch (err) {
+      setFeedback({ ok: false, text: err.message || 'Falha ao ativar calibração.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleTestSynthetic = async () => {
     setTesting(true);
     setFeedback(null);
@@ -132,9 +163,9 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
   }
 
   const wall = diag?.wall || { preset: '3x2', label: '3 × 2 metros', widthM: 3, heightM: 2 };
-  const S1 = diag?.sensors?.S1 || { xM: 0, yM: wall.heightM, idealXM: 0, idealYM: wall.heightM, offsetXCm: 0, offsetYCm: 0 };
-  const S2 = diag?.sensors?.S2 || { xM: wall.widthM, yM: wall.heightM, idealXM: wall.widthM, idealYM: wall.heightM, offsetXCm: 0, offsetYCm: 0 };
-  const S3 = diag?.sensors?.S3 || { xM: 0, yM: 0, idealXM: 0, idealYM: 0, offsetXCm: 0, offsetYCm: 0 };
+  const S1 = diag?.sensors?.S1 || { xM: 0, yM: 0, idealXM: 0, idealYM: 0, offsetXCm: 0, offsetYCm: 0 };
+  const S2 = diag?.sensors?.S2 || { xM: 0, yM: wall.heightM, idealXM: 0, idealYM: wall.heightM, offsetXCm: 0, offsetYCm: 0 };
+  const S3 = diag?.sensors?.S3 || { xM: wall.widthM, yM: 0, idealXM: wall.widthM, idealYM: 0, offsetXCm: 0, offsetYCm: 0 };
   const hw = diag?.hardwareConnection || { mode: 'simulation', statusLabel: 'Modo Simulação' };
   const cal = diag?.calibration || { calibrated: false, propagationSpeedMps: null };
   const lastArduino = diag?.lastArduinoEvent || null;
@@ -200,7 +231,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
             {wall.label} ({wall.widthM}m × {wall.heightM}m)
           </div>
           <div className="text-[10px] text-[#8C9891] mt-1">
-            Origem cartesiana (0, 0) no canto inferior esquerdo (S3)
+            Origem cartesiana (0, 0) no canto inferior esquerdo (S1)
           </div>
         </div>
 
@@ -238,48 +269,48 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
             Disposição Física Oficial dos 3 Sensores KY-037
           </span>
           <span className="text-[10px] text-amber-400 font-bold">
-            Canto Inferior Direito: NÃO POSSUI SENSOR
+            Canto Superior Direito: NÃO POSSUI SENSOR
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div data-testid="iot-coord-S1" className="p-3 rounded-xl bg-[#07110B] border border-cyan-500/30">
-            <div className="text-[10px] text-cyan-300 font-bold">S1 • Canto Superior Esquerdo</div>
+            <div className="text-[10px] text-cyan-300 font-bold">S1 • Canto Inferior Esquerdo</div>
             <div className="text-base font-black text-[#F5F7F5] mt-1">
               ({S1.xM} m, {S1.yM} m)
             </div>
             <div className="text-[10px] text-[#8C9891] mt-0.5">
-              Ideal: (0, {wall.heightM}) • Offset: ({S1.offsetXCm || 0}cm, {S1.offsetYCm || 0}cm)
+              Ideal: (0, 0) • Offset: ({S1.offsetXCm || 0}cm, {S1.offsetYCm || 0}cm)
             </div>
           </div>
 
           <div data-testid="iot-coord-S2" className="p-3 rounded-xl bg-[#07110B] border border-cyan-500/30">
-            <div className="text-[10px] text-cyan-300 font-bold">S2 • Canto Superior Direito</div>
+            <div className="text-[10px] text-cyan-300 font-bold">S2 • Canto Superior Esquerdo</div>
             <div className="text-base font-black text-[#F5F7F5] mt-1">
               ({S2.xM} m, {S2.yM} m)
             </div>
             <div className="text-[10px] text-[#8C9891] mt-0.5">
-              Ideal: ({wall.widthM}, {wall.heightM}) • Offset: ({S2.offsetXCm || 0}cm, {S2.offsetYCm || 0}cm)
+              Ideal: (0, {wall.heightM}) • Offset: ({S2.offsetXCm || 0}cm, {S2.offsetYCm || 0}cm)
             </div>
           </div>
 
           <div data-testid="iot-coord-S3" className="p-3 rounded-xl bg-[#07110B] border border-cyan-500/30">
-            <div className="text-[10px] text-cyan-300 font-bold">S3 • Canto Inferior Esquerdo</div>
+            <div className="text-[10px] text-cyan-300 font-bold">S3 • Canto Inferior Direito</div>
             <div className="text-base font-black text-[#F5F7F5] mt-1">
               ({S3.xM} m, {S3.yM} m)
             </div>
             <div className="text-[10px] text-[#8C9891] mt-0.5">
-              Ideal: (0, 0) • Offset: ({S3.offsetXCm || 0}cm, {S3.offsetYCm || 0}cm)
+              Ideal: ({wall.widthM}, 0) • Offset: ({S3.offsetXCm || 0}cm, {S3.offsetYCm || 0}cm)
             </div>
           </div>
 
-          <div data-testid="iot-coord-bottom-right-none" className="p-3 rounded-xl bg-[#07110B]/60 border border-[#1B3624] opacity-75">
-            <div className="text-[10px] text-[#8C9891] font-bold">Canto Inferior Direito</div>
+          <div data-testid="iot-coord-top-right-none" className="p-3 rounded-xl bg-[#07110B]/60 border border-[#1B3624] opacity-75">
+            <div className="text-[10px] text-[#8C9891] font-bold">Canto Superior Direito</div>
             <div className="text-sm font-black text-[#8C9891] mt-1">
               SEM SENSOR
             </div>
             <div className="text-[10px] text-[#8C9891] mt-0.5">
-              Posição ({wall.widthM} m, 0 m) livre
+              Posição ({wall.widthM} m, {wall.heightM} m) livre
             </div>
           </div>
         </div>
@@ -295,8 +326,12 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
             </span>
           </div>
           {lastArduino && (
-            <div className="flex items-center gap-2">
-              {lastArduino.isSimulation && (
+            <div className="flex flex-wrap items-center gap-2">
+              {lastArduino.isArduinoHardware ? (
+                <span className="px-2 py-0.5 rounded-md font-mono text-[9px] uppercase font-bold bg-emerald-950/80 border border-emerald-400/60 text-emerald-300">
+                  Origem: Hardware Real (Arduino Uno)
+                </span>
+              ) : (
                 <span className="px-2 py-0.5 rounded-md font-mono text-[9px] uppercase font-bold bg-cyan-950/80 border border-cyan-400/60 text-cyan-300">
                   Origem: Simulação Sintética
                 </span>
@@ -306,7 +341,11 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
                 className={`px-2.5 py-1 rounded-lg font-bold text-[10px] border ${
                   lastArduino.category === 'HARDWARE_LOCATED' || lastArduino.category === 'SIMULATED_TDOA_LOCATED'
                     ? 'bg-[#39FF88]/15 border-[#39FF88]/50 text-[#39FF88]'
-                    : 'bg-amber-400/15 border-amber-400/50 text-amber-300'
+                    : lastArduino.category === 'HARDWARE_AWAITING_CALIBRATION'
+                      ? 'bg-amber-400/15 border-amber-400/60 text-amber-300'
+                      : lastArduino.category === 'HARDWARE_INCOMPLETE'
+                        ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                        : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
                 }`}
               >
                 {lastArduino.categoryLabel}
@@ -373,7 +412,11 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
                 <div data-testid="iot-est-x" className="text-sm font-black text-[#39FF88] mt-0.5">
                   {lastArduino.xMeters !== null && lastArduino.xMeters !== undefined
                     ? `${lastArduino.xMeters} m (X_norm: ${lastArduino.xNormalized})`
-                    : 'Indisponível (Sem localização)'}
+                    : lastArduino.category === 'HARDWARE_AWAITING_CALIBRATION'
+                      ? 'Aguardando calibração'
+                      : lastArduino.category === 'HARDWARE_INCOMPLETE'
+                        ? 'Leitura incompleta'
+                        : 'Indisponível'}
                 </div>
               </div>
 
@@ -382,7 +425,11 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
                 <div data-testid="iot-est-y" className="text-sm font-black text-[#39FF88] mt-0.5">
                   {lastArduino.yMeters !== null && lastArduino.yMeters !== undefined
                     ? `${lastArduino.yMeters} m (Y_norm: ${lastArduino.yNormalized})`
-                    : 'Indisponível (Sem localização)'}
+                    : lastArduino.category === 'HARDWARE_AWAITING_CALIBRATION'
+                      ? 'Aguardando calibração'
+                      : lastArduino.category === 'HARDWARE_INCOMPLETE'
+                        ? 'Leitura incompleta'
+                        : 'Indisponível'}
                 </div>
               </div>
 
@@ -391,7 +438,9 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
                 <div data-testid="iot-est-sector" className="text-sm font-black text-amber-400 mt-0.5">
                   {lastArduino.xMeters !== null
                     ? (lastArduino.sectorId ? `SETOR ${lastArduino.sectorId}` : 'ÁREA NEUTRA')
-                    : 'Não localizado'}
+                    : lastArduino.category === 'HARDWARE_AWAITING_CALIBRATION'
+                      ? 'Calibração pendente'
+                      : 'Não localizado'}
                 </div>
                 <div className="text-[10px] text-[#8C9891]">
                   Classificação: {lastArduino.estimationStatusLabel || 'indisponível'}
@@ -399,6 +448,22 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
                 </div>
               </div>
             </div>
+
+            {/* Mensagem explicativa do algoritmo TDOA */}
+            {lastArduino.estimationMessage && (
+              <div className={`p-2.5 rounded-xl border text-[11px] ${
+                lastArduino.category === 'HARDWARE_LOCATED'
+                  ? 'bg-[#39FF88]/10 border-[#39FF88]/30 text-[#39FF88]'
+                  : lastArduino.category === 'HARDWARE_AWAITING_CALIBRATION'
+                    ? 'bg-amber-950/30 border-amber-400/40 text-amber-200'
+                    : 'bg-[#07110B] border-[#1B3624] text-[#8C9891]'
+              }`}>
+                <span className="font-bold uppercase text-[9px] block text-[#8C9891] mb-0.5">
+                  Diagnóstico do Algoritmo de Localização:
+                </span>
+                <span>{lastArduino.estimationMessage}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -496,13 +561,26 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
             ))}
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-[#07110B] font-black uppercase tracking-wider transition-all"
-          >
-            {saving ? 'Salvando...' : 'Salvar Parâmetros de Calibração e Sensores'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-[#07110B] font-black uppercase tracking-wider transition-all text-xs"
+            >
+              {saving ? 'Salvando...' : 'Salvar Parâmetros'}
+            </button>
+            {!cal.calibrated && (
+              <button
+                type="button"
+                onClick={() => handleQuickCalibrate(343)}
+                disabled={saving}
+                className="px-3 py-2 rounded-xl bg-[#16C96B]/20 border border-[#16C96B]/50 hover:bg-[#16C96B]/30 text-[#39FF88] font-bold text-xs transition-all whitespace-nowrap"
+                title="Ativar calibração padrão imediata a 343 m/s para testes físicos"
+              >
+                Ativar Calibração Imediata (343 m/s)
+              </button>
+            )}
+          </div>
         </form>
 
         <div className="p-4 rounded-2xl bg-[#0B1910] border border-[#1B3624] flex flex-col justify-between space-y-3">

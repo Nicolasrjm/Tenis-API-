@@ -1,242 +1,434 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, Target, Activity, RefreshCw, Radio } from 'lucide-react';
+import { 
+  Radio, 
+  Target, 
+  Cpu, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Save, 
+  Wifi, 
+  WifiOff, 
+  Layers, 
+  Sliders
+} from 'lucide-react';
 import { api } from '../../services/api';
-import IotDiagnosticPanel from '../../components/IotDiagnosticPanel';
 
-const SECTOR_POSITIONS = [
-  { id: 1, label: 'Setor 1 (Superior Esquerdo)', zone: 'top_left', x: 20, y: 27 },
-  { id: 2, label: 'Setor 2 (Superior Central)',  zone: 'top_center', x: 50, y: 27 },
-  { id: 3, label: 'Setor 3 (Superior Direito)',  zone: 'top_right', x: 80, y: 27 },
-  { id: 4, label: 'Setor 4 (Inferior Esquerdo)', zone: 'bottom_left', x: 20, y: 73 },
-  { id: 5, label: 'Setor 5 (Inferior Central)',  zone: 'bottom_center', x: 50, y: 73 },
-  { id: 6, label: 'Setor 6 (Inferior Direito)',  zone: 'bottom_right', x: 80, y: 73 }
-];
-
-const KY037_CORNERS = [
-  { id: 'S1', corner: 'Canto Superior Esquerdo', formula: '(0, H)', screenX: 4, screenY: 6 },
-  { id: 'S2', corner: 'Canto Superior Direito',  formula: '(L, H)', screenX: 96, screenY: 6 },
-  { id: 'S3', corner: 'Canto Inferior Esquerdo', formula: '(0, 0)', screenX: 4, screenY: 94 }
+const WALL_PRESETS = [
+  { 
+    id: '3x2', 
+    label: '3 × 2 metros', 
+    shortLabel: '3x2 m',
+    aspect: '3:2 (Padrão)', 
+    widthM: 3, 
+    heightM: 2,
+    desc: 'Proporção áurea recomendada para projeções e quadras convencionais.'
+  },
+  { 
+    id: '3x3', 
+    label: '3 × 3 metros', 
+    shortLabel: '3x3 m',
+    aspect: '1:1 (Quadrada)', 
+    widthM: 3, 
+    heightM: 3,
+    desc: 'Área vertical estendida para treinos intensivos de smash e saque.'
+  },
+  { 
+    id: '4x3', 
+    label: '4 × 3 metros', 
+    shortLabel: '4x3 m',
+    aspect: '4:3 (Ampla)', 
+    widthM: 4, 
+    heightM: 3,
+    desc: 'Área ampla para treinos em espaço aberto ou ginásios esportivos.'
+  }
 ];
 
 export default function AdminSensorsPage() {
-  const [sensors, setSensors] = useState([]);
+  // Estado da Parede
+  const [selectedPreset, setSelectedPreset] = useState('3x2');
+  
+  // Estado do Modo de Hardware (Arduino via Ponte Serial vs Simulação)
+  const [hardwareMode, setHardwareMode] = useState('connected');
+  const [lastSeen, setLastSeen] = useState(null);
+
+  // Calibração Essencial
+  const [propagationSpeed, setPropagationSpeed] = useState('343');
+  const [groupingWindow, setGroupingWindow] = useState('25000');
+  const [calibrated, setCalibrated] = useState(true);
+
+  // Estados de feedback e carregamento
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
-    loadSensors();
+    loadCurrentConfiguration();
   }, []);
 
-  const loadSensors = async () => {
+  const loadCurrentConfiguration = async () => {
+    setLoading(true);
     try {
-      const res = await api.getSensors();
-      const merged = SECTOR_POSITIONS.map(pos => {
-        const db = (res || []).find(s => s.id === pos.id || s.sensor_index === pos.id);
-        return { ...pos, hits: db?.total_hits || 0, status: db?.status || 'online', last_hit: db?.last_hit };
-      });
-      setSensors(merged);
-    } catch (e) {
-      console.error('Erro ao carregar sensores:', e);
-      setSensors(SECTOR_POSITIONS.map(p => ({ ...p, hits: 0, status: 'online', last_hit: null })));
+      const [wallRes, hwRes, iotRes] = await Promise.allSettled([
+        api.admin.getWallConfig(),
+        api.getHardwareStatus(),
+        api.getIotDiagnostics()
+      ]);
+
+      if (wallRes.status === 'fulfilled' && wallRes.value?.preset) {
+        setSelectedPreset(wallRes.value.preset);
+      }
+
+      if (hwRes.status === 'fulfilled' && hwRes.value?.details) {
+        const mode = hwRes.value.details.mode || 'connected';
+        setHardwareMode(mode);
+        setLastSeen(hwRes.value.details.lastSeen || null);
+      }
+
+      if (iotRes.status === 'fulfilled' && iotRes.value?.calibration) {
+        const cal = iotRes.value.calibration;
+        setCalibrated(Boolean(cal.calibrated));
+        if (cal.propagationSpeedMps) {
+          setPropagationSpeed(String(cal.propagationSpeedMps));
+        }
+        if (cal.groupingWindowUs) {
+          setGroupingWindow(String(cal.groupingWindowUs));
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao carregar configurações de sensores:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadSensors();
-    setRefreshing(false);
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setFeedback(null);
+
+    try {
+      // 1. Salva o preset da parede
+      await api.admin.setWallConfig(selectedPreset);
+
+      // 2. Salva o modo de hardware (persiste no SQLite para nunca reverter sozinho)
+      await api.setHardwareMode(hardwareMode);
+
+      // 3. Salva os parâmetros essenciais de calibração acústica TDOA
+      await api.updateIotCalibration({
+        calibration: {
+          calibrated: Boolean(calibrated && Number(propagationSpeed) > 0),
+          propagationSpeedMps: Number(propagationSpeed) || 343,
+          groupingWindowUs: Number(groupingWindow) || 25000,
+          maxResidualM: 0.20
+        }
+      });
+
+      setFeedback({
+        ok: true,
+        text: 'Configurações de sensores e parede salvas com sucesso!'
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      setFeedback({
+        ok: false,
+        text: err.message || 'Falha ao salvar configurações.'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const maxHits = Math.max(...sensors.map(s => s.hits), 1);
-  const totalHits = sensors.reduce((a, s) => a + s.hits, 0);
-  const onlineCount = sensors.filter(s => s.status === 'online').length;
-
-  const sensorColor = (sensor) => {
-    if (sensor.zone === 'center') return '#39FF88';
-    const ratio = sensor.hits / maxHits;
-    if (ratio > 0.7) return '#16C96B';
-    if (ratio > 0.4) return '#8C9891';
-    return '#1B3624';
-  };
+  const activePresetConfig = WALL_PRESETS.find(p => p.id === selectedPreset) || WALL_PRESETS[0];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn font-mono">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#08120B] border border-[#295437]">
         <div>
-          <h1 className="text-2xl font-black text-amber-400 tracking-wide">ALVOS E SENSORES</h1>
-          <p className="text-[#8C9891] text-sm mt-1">Monitoramento dos 6 alvos físicos fixos</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-2 bg-[#0C1A11] border border-[#1B3624] hover:border-amber-400/50 text-[#8C9891] hover:text-amber-400 px-4 py-2 rounded-xl text-sm transition-all"
-        >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
-      </div>
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Alvos Online', value: `${onlineCount}/6`, icon: Wifi, color: 'text-[#39FF88]' },
-          { label: 'Alvos Offline', value: `${6 - onlineCount}/6`, icon: WifiOff, color: 'text-red-400' },
-          { label: 'Total Acertos', value: totalHits, icon: Target, color: 'text-amber-400' },
-          { label: 'Média/Alvo', value: Math.round(totalHits / 6), icon: Activity, color: 'text-blue-400' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0C1A11] border border-[#1B3624] rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon size={16} className={color} />
-              <span className="text-[#8C9891] text-xs uppercase tracking-wider">{label}</span>
-            </div>
-            <div className={`text-2xl font-black ${color}`}>{value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Visual Map */}
-        <div className="bg-[#0C1A11] border border-[#1B3624] rounded-2xl p-6">
-          <h2 className="text-sm font-bold text-[#8C9891] uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Target size={14} />
-            Mapa Físico: 3 Sensores KY-037 nos Cantos + 6 Setores
-          </h2>
-          <div className="relative aspect-[3/2] max-w-md mx-auto">
-            {/* Background grid */}
-            <div className="absolute inset-0 rounded-2xl border-2 border-[#1B3624] bg-[#07110B]">
-              {/* Crosshair lines */}
-              <div className="absolute left-1/3 top-0 bottom-0 w-px bg-[#1B3624]/50" />
-              <div className="absolute left-2/3 top-0 bottom-0 w-px bg-[#1B3624]/50" />
-              <div className="absolute top-1/2 left-0 right-0 h-px bg-[#1B3624]/50" />
-            </div>
-
-            {/* 3 Sensores Acústicos KY-037 nos Cantos */}
-            {KY037_CORNERS.map((s) => (
-              <div
-                key={s.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 px-2 py-0.5 rounded bg-cyan-950/90 border border-cyan-400 text-[10px] font-mono font-bold text-cyan-300 shadow"
-                style={{ left: `${s.screenX}%`, top: `${s.screenY}%` }}
-                title={`${s.id}: ${s.corner} ${s.formula}`}
-              >
-                {s.id} {s.formula}
-              </div>
-            ))}
-
-            {/* Indicador explícito do canto inferior direito sem sensor */}
-            <div
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 px-1.5 py-0.5 rounded bg-[#08120B]/80 border border-[#1B3624] text-[9px] font-mono text-[#8C9891]/60"
-              style={{ left: '92%', top: '94%' }}
-            >
-              Sem sensor
-            </div>
-
-            {/* 6 Setores */}
-            {sensors.map(sensor => (
-              <button
-                key={sensor.id}
-                onClick={() => setSelected(sensor)}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all hover:scale-110 z-10"
-                style={{ left: `${sensor.x}%`, top: `${sensor.y}%` }}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl border-2 flex items-center justify-center text-xs font-black transition-all"
-                  style={{
-                    backgroundColor: `${sensorColor(sensor)}20`,
-                    borderColor: selected?.id === sensor.id ? '#39FF88' : sensorColor(sensor),
-                    color: sensorColor(sensor),
-                    boxShadow: selected?.id === sensor.id ? `0 0 12px ${sensorColor(sensor)}80` : 'none'
-                  }}
-                >
-                  S{sensor.id}
-                </div>
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-[#8C9891] text-center mt-4">
-            Sensores KY-037: S1 (sup. esq.), S2 (sup. dir.), S3 (inf. esq. — origem 0,0). Canto inferior direito não possui sensor.
+          <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
+            <Radio className="w-6 h-6 text-amber-400" />
+            <span>Sensores e Parede Digital</span>
+          </h1>
+          <p className="text-xs text-[#8C9891] mt-0.5">
+            Seleção do tamanho físico da parede, status do hardware e calibração dos sensores KY-037.
           </p>
         </div>
 
-        {/* Sensor Details / List */}
-        <div className="bg-[#0C1A11] border border-[#1B3624] rounded-2xl p-6">
-          {selected ? (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-sm font-bold text-[#8C9891] uppercase tracking-wider">Sensor #{selected.id}</h2>
-                <button onClick={() => setSelected(null)} className="text-[#8C9891] hover:text-[#F5F7F5] text-xs">← Voltar</button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-[#8C9891] text-xs uppercase tracking-wider mb-1">Posição</div>
-                  <div className="text-[#F5F7F5] font-bold">{selected.label}</div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="px-5 py-2.5 rounded-xl bg-amber-400 text-[#07110B] font-bold text-xs uppercase flex items-center space-x-2 hover:bg-amber-300 transition shadow-sm"
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? 'Salvando...' : 'Salvar Configurações'}</span>
+        </button>
+      </div>
+
+      {feedback && (
+        <div className={`p-4 rounded-2xl border flex items-center gap-2 text-xs ${
+          feedback.ok ? 'bg-[#39FF88]/10 border-[#39FF88]/40 text-[#39FF88]' : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+        }`}>
+          {feedback.ok ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+          <span>{feedback.text}</span>
+        </div>
+      )}
+
+      {/* 1. Seleção do Tamanho da Parede */}
+      <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
+        <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
+          <Layers className="w-5 h-5 text-amber-400" />
+          <h2 className="text-base font-black text-[#F5F7F5] uppercase">
+            1. Dimensões Físicas da Parede
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {WALL_PRESETS.map((preset) => {
+            const isSelected = selectedPreset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setSelectedPreset(preset.id)}
+                className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                  isSelected
+                    ? 'bg-amber-400/15 border-amber-400 shadow-md'
+                    : 'bg-[#0C1A11] border-[#1B3624] hover:border-amber-400/40 text-[#8C9891]'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-lg font-black ${isSelected ? 'text-amber-400' : 'text-[#F5F7F5]'}`}>
+                    {preset.label}
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                    isSelected ? 'bg-amber-400 text-[#07110B]' : 'bg-[#1B3624] text-[#8C9891]'
+                  }`}>
+                    {preset.aspect}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-[#8C9891] text-xs uppercase tracking-wider mb-1">Status</div>
-                  <div className={`flex items-center gap-2 font-bold ${selected.status === 'online' ? 'text-[#39FF88]' : 'text-red-400'}`}>
-                    {selected.status === 'online' ? <Wifi size={14} /> : <WifiOff size={14} />}
-                    {selected.status === 'online' ? 'Online' : 'Offline'}
-                  </div>
+                <p className="text-xs text-[#8C9891]">{preset.desc}</p>
+                <div className="mt-3 text-[11px] font-bold text-cyan-300">
+                  Largura: {preset.widthM}m • Altura: {preset.heightM}m
                 </div>
-                <div>
-                  <div className="text-[#8C9891] text-xs uppercase tracking-wider mb-1">Total de Acertos</div>
-                  <div className="text-3xl font-black text-amber-400">{selected.hits}</div>
-                </div>
-                <div>
-                  <div className="text-[#8C9891] text-xs uppercase tracking-wider mb-2">Uso Relativo</div>
-                  <div className="h-2 bg-[#1B3624] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#39FF88] rounded-full transition-all" style={{ width: `${(selected.hits / maxHits) * 100}%` }} />
-                  </div>
-                  <div className="text-xs text-[#8C9891] mt-1">{Math.round((selected.hits / maxHits) * 100)}% do sensor mais ativo</div>
-                </div>
-                {selected.zone === 'center' && (
-                  <div className="flex items-center gap-2 bg-[#39FF88]/5 border border-[#39FF88]/20 rounded-xl p-3 text-xs text-[#39FF88]">
-                    <Target size={12} />
-                    Bullseye — Região de maior precisão
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <h2 className="text-sm font-bold text-[#8C9891] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Activity size={14} />
-                Lista de Sensores
-              </h2>
-              <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                {sensors.map(sensor => (
-                  <button
-                    key={sensor.id}
-                    onClick={() => setSelected(sensor)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#1B3624]/30 transition-colors text-left group"
-                  >
-                    <div className="w-8 h-8 rounded-full border flex items-center justify-center text-xs font-black flex-shrink-0"
-                      style={{ borderColor: sensorColor(sensor), color: sensorColor(sensor), backgroundColor: `${sensorColor(sensor)}15` }}>
-                      {sensor.id}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[#F5F7F5] text-sm font-medium truncate">{sensor.label}</div>
-                      <div className="h-1 bg-[#1B3624] rounded-full mt-1 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${(sensor.hits / maxHits) * 100}%`, backgroundColor: sensorColor(sensor) }} />
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-[#F5F7F5] font-bold text-sm">{sensor.hits}</div>
-                      <div className="text-[#8C9891] text-xs">acertos</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Painel de Diagnóstico IoT Completo */}
-      <IotDiagnosticPanel />
+      {/* 2. Status da Conexão de Hardware */}
+      <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-[#1B3624]">
+          <div className="flex items-center space-x-2">
+            <Cpu className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base font-black text-[#F5F7F5] uppercase">
+              2. Conexão do Hardware
+            </h2>
+          </div>
+          <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase flex items-center gap-1.5 ${
+            hardwareMode === 'connected'
+              ? 'bg-[#39FF88]/15 text-[#39FF88] border border-[#39FF88]/40'
+              : 'bg-amber-400/15 text-amber-400 border border-amber-400/40'
+          }`}>
+            {hardwareMode === 'connected' ? <Wifi size={12} /> : <WifiOff size={12} />}
+            <span>{hardwareMode === 'connected' ? 'Arduino Ativo' : 'Simulação'}</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs text-[#8C9891] font-bold uppercase block">
+              Modo de Operação
+            </label>
+            <select
+              value={hardwareMode}
+              onChange={(e) => setHardwareMode(e.target.value)}
+              className="w-full bg-[#0C1A11] border border-[#1B3624] rounded-xl px-4 py-2.5 text-[#F5F7F5] text-xs font-mono focus:outline-none focus:border-amber-400"
+            >
+              <option value="connected">Conectado (Arduino via Ponte Serial Python)</option>
+              <option value="simulation">Modo Simulação (Mouse / Testes de Bancada)</option>
+            </select>
+            <p className="text-[11px] text-[#8C9891]">
+              Fluxo oficial: Arduino Uno → Ponte Python (`ponte_serial_motion_tennis.py`) → API REST → Node.js.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0C1A11] border border-[#1B3624] text-xs space-y-1.5">
+            <div className="text-[10px] text-[#8C9891] uppercase font-bold">Estado do Subsistema</div>
+            <div className="text-sm font-bold text-[#F5F7F5]">
+              {hardwareMode === 'connected'
+                ? 'Aguardando / Processando pacotes na rota POST /api/hardware/arduino/reading'
+                : 'Modo simulação habilitado no navegador.'}
+            </div>
+            <div className="text-[11px] text-[#8C9891]">
+              {lastSeen ? `Último pacote recebido em: ${new Date(lastSeen).toLocaleTimeString('pt-BR')}` : 'Nenhum pacote recente.'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Mapeamento Físico Oficial dos Três Sensores KY-037 */}
+      <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
+        <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
+          <Target className="w-5 h-5 text-amber-400" />
+          <h2 className="text-base font-black text-[#F5F7F5] uppercase">
+            3. Mapeamento Físico dos Sensores (Montagem Real)
+          </h2>
+        </div>
+
+        {/* Três Sensores em Cards Claros */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 rounded-2xl bg-[#0C1A11] border border-cyan-400/40 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-cyan-300">SENSOR S1</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-400/30">
+                Pino D2
+              </span>
+            </div>
+            <div className="text-sm font-bold text-[#F5F7F5]">Canto Inferior Esquerdo</div>
+            <div className="text-xs text-amber-400 font-bold">Origem Cartesiana (0, 0)</div>
+            <p className="text-[10px] text-[#8C9891]">Cabo de 3m. Ponto de referência inicial de tempo.</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#0C1A11] border border-cyan-400/40 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-cyan-300">SENSOR S2</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-400/30">
+                Pino D3
+              </span>
+            </div>
+            <div className="text-sm font-bold text-[#F5F7F5]">Canto Superior Esquerdo</div>
+            <div className="text-xs text-amber-400 font-bold">Coordenada (0, {activePresetConfig.heightM}m)</div>
+            <p className="text-[10px] text-[#8C9891]">Cabo de 4m. Sensor de altura máxima da parede.</p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#0C1A11] border border-cyan-400/40 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-cyan-300">SENSOR S3</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-400/30">
+                Pino D4
+              </span>
+            </div>
+            <div className="text-sm font-bold text-[#F5F7F5]">Canto Inferior Direito</div>
+            <div className="text-xs text-amber-400 font-bold">Coordenada ({activePresetConfig.widthM}m, 0)</div>
+            <p className="text-[10px] text-[#8C9891]">Cabo de 5m. Sensor de largura máxima da parede.</p>
+          </div>
+        </div>
+
+        {/* Representação visual da parede com os 6 alvos */}
+        <div className="p-4 rounded-2xl bg-[#050C07] border border-[#1B3624] space-y-3">
+          <div className="flex items-center justify-between text-xs text-[#8C9891]">
+            <span>Layout Físico dos 6 Alvos com os 3 Sensores</span>
+            <span className="text-amber-400 font-bold">Canto Superior Direito: SEM SENSOR</span>
+          </div>
+
+          <div className="relative aspect-[3/2] max-w-md mx-auto rounded-xl border-2 border-[#1B3624] bg-[#08120B] p-2">
+            {/* Sensor S2 no canto superior esquerdo */}
+            <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
+              S2 (0, {activePresetConfig.heightM}m)
+            </div>
+
+            {/* Aviso no canto superior direito sem sensor */}
+            <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded bg-[#08120B] border border-dashed border-[#1B3624] text-[9px] text-[#8C9891]">
+              Sem sensor
+            </div>
+
+            {/* Sensor S1 no canto inferior esquerdo */}
+            <div className="absolute bottom-2 left-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
+              S1 (0, 0)
+            </div>
+
+            {/* Sensor S3 no canto inferior direito */}
+            <div className="absolute bottom-2 right-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
+              S3 ({activePresetConfig.widthM}m, 0)
+            </div>
+
+            {/* 6 Alvos Retangulares */}
+            <div className="grid grid-cols-3 grid-rows-2 gap-2 h-full py-6 px-1">
+              {[1, 2, 3, 4, 5, 6].map((num) => (
+                <div
+                  key={num}
+                  className="rounded-lg border border-[#1B3624] bg-[#0C1A11]/60 flex items-center justify-center text-xs font-bold text-[#8C9891]"
+                >
+                  Alvo {num}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Configuração e Calibração Essenciais */}
+      <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
+        <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
+          <Sliders className="w-5 h-5 text-amber-400" />
+          <h2 className="text-base font-black text-[#F5F7F5] uppercase">
+            4. Calibração Essencial TDOA
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs text-[#8C9891] uppercase font-bold block">
+              Velocidade do Som (m/s)
+            </label>
+            <input
+              type="number"
+              value={propagationSpeed}
+              onChange={(e) => setPropagationSpeed(e.target.value)}
+              className="w-full bg-[#0C1A11] border border-[#1B3624] rounded-xl px-4 py-2.5 text-[#F5F7F5] text-xs font-mono focus:outline-none focus:border-amber-400"
+              placeholder="343"
+            />
+            <p className="text-[10px] text-[#8C9891]">Padrão: 343 m/s no ar a 20°C.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-[#8C9891] uppercase font-bold block">
+              Janela de Agrupamento (µs)
+            </label>
+            <input
+              type="number"
+              value={groupingWindow}
+              onChange={(e) => setGroupingWindow(e.target.value)}
+              className="w-full bg-[#0C1A11] border border-[#1B3624] rounded-xl px-4 py-2.5 text-[#F5F7F5] text-xs font-mono focus:outline-none focus:border-amber-400"
+              placeholder="25000"
+            />
+            <p className="text-[10px] text-[#8C9891]">Padrão: 25.000 µs (25 ms) para cobrir até 8m de diagonal.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-[#8C9891] uppercase font-bold block">
+              Status da Calibração
+            </label>
+            <label className="flex items-center gap-2 p-3 rounded-xl bg-[#0C1A11] border border-[#1B3624] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={calibrated}
+                onChange={(e) => setCalibrated(e.target.checked)}
+                className="w-4 h-4 accent-amber-400 rounded"
+              />
+              <span className="text-xs text-[#F5F7F5] font-bold">
+                {calibrated ? 'Calibração Ativa' : 'Pendente de Medição'}
+              </span>
+            </label>
+            <p className="text-[10px] text-[#8C9891]">Permite que o algoritmo TDOA calcule os alvos oficiais.</p>
+          </div>
+        </div>
+
+        {/* Botão Salvar no Rodapé da Página */}
+        <div className="pt-4 border-t border-[#1B3624] flex justify-end">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-3 rounded-xl bg-amber-400 text-[#07110B] font-bold text-xs uppercase flex items-center space-x-2 hover:bg-amber-300 transition shadow-md"
+          >
+            <Save className="w-4 h-4" />
+            <span>{saving ? 'Gravando Alterações...' : 'Salvar Todas as Configurações'}</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

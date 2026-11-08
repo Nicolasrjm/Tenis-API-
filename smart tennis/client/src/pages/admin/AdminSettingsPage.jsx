@@ -38,7 +38,7 @@ export default function AdminSettingsPage() {
   const [installMode, setInstallMode] = useState('personal');
   const [installInterval, setInstallInterval] = useState(30);
   const [installRound, setInstallRound] = useState(120);
-  const [installMsg, setInstallMsg] = useState(null); // { ok: boolean, text: string }
+  const [installMsg, setInstallMsg] = useState(null);
   const [settings, setSettings] = useState({
     systemName: 'Motion Tennis',
     apiPort: '3000',
@@ -104,7 +104,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
+      
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-black text-amber-400 tracking-wide">CONFIGURAÇÕES</h1>
@@ -119,7 +119,7 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
-      {/* Saved feedback */}
+      
       {saved && (
         <div className="flex items-center gap-2 bg-[#39FF88]/10 border border-[#39FF88]/20 rounded-xl p-3 text-[#39FF88] text-sm font-mono">
           <CheckCircle2 size={16} />
@@ -127,7 +127,7 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      {/* TIPO DE INSTALAÇÃO (SHOPPING | PESSOAL) — salvo no SQLite */}
+      
       <div className="p-6 rounded-2xl bg-[#0C1A11] border-2 border-amber-400/40 shadow-xl space-y-4">
         <div className="border-b border-[#1B3624] pb-3">
           <h2 className="text-base font-black text-amber-400 tracking-wide uppercase flex items-center gap-2">
@@ -195,7 +195,7 @@ export default function AdminSettingsPage() {
         )}
       </div>
 
-      {/* SEÇÃO OBRIGATÓRIA: CONFIGURAÇÃO DA PAREDE */}
+      
       <div className="p-6 rounded-2xl bg-[#0C1A11] border-2 border-amber-400/40 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#1B3624] pb-3">
           <div>
@@ -272,7 +272,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sistema */}
+        
         <SettingSection icon={Settings} title="Sistema">
           <SettingRow label="Nome do Sistema" description="Identificação da plataforma">
             <input
@@ -304,7 +304,7 @@ export default function AdminSettingsPage() {
           </SettingRow>
         </SettingSection>
 
-        {/* Hardware */}
+        
         <SettingSection icon={Wifi} title="Hardware e Conexão">
           <SettingRow label="Modo de Operação" description="Simulação ou hardware real">
             <select
@@ -339,7 +339,7 @@ export default function AdminSettingsPage() {
           </SettingRow>
         </SettingSection>
 
-        {/* Jogo */}
+        
         <SettingSection icon={Globe} title="Configurações de Jogo">
           <SettingRow label="Modo Padrão" description="Modo selecionado ao abrir /app/play">
             <select
@@ -357,7 +357,7 @@ export default function AdminSettingsPage() {
           </SettingRow>
         </SettingSection>
 
-        {/* Manutenção */}
+        
         <SettingSection icon={Shield} title="Manutenção e Debug">
           <SettingRow label="Backup Automático" description="Backup diário do banco de dados">
             <Toggle enabled={settings.autoBackup} onChange={v => update('autoBackup', v)} />
@@ -377,7 +377,7 @@ export default function AdminSettingsPage() {
         </SettingSection>
       </div>
 
-      {/* Database Info */}
+      
       <SettingSection icon={Database} title="Informações do Banco de Dados">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[

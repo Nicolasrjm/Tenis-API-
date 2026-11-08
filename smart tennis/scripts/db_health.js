@@ -1,4 +1,3 @@
-// Verificação SOMENTE LEITURA do banco (abre com OPEN_READONLY). Não altera nada.
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');

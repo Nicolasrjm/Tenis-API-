@@ -1,6 +1,5 @@
 import { isWebDemoMode } from './appEnvironment';
 
-// Real-time WebSocket Client with automatic reconnection
 class WebSocketClient {
   constructor() {
     this.ws = null;
@@ -19,7 +18,6 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // When running under vite proxy, window.location.host is localhost:5173 which proxies /ws
     const wsUrl = `${protocol}//${window.location.host}/ws`;
 
     try {
@@ -37,7 +35,6 @@ class WebSocketClient {
             this.emit(data.type, data.payload || data);
           }
         } catch (e) {
-          // ignore non-json
         }
       };
 
@@ -81,7 +78,6 @@ class WebSocketClient {
     if (this.listeners.has(event)) {
       this.listeners.get(event).forEach((cb) => cb(data));
     }
-    // Also trigger wildcards
     if (this.listeners.has('*')) {
       this.listeners.get('*').forEach((cb) => cb({ event, data }));
     }

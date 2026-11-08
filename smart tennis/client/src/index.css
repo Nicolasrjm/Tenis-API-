@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* Sport Premium Dark (Default Theme) */
   --sport-bg: #101820;
   --sport-bg-sec: #18242E;
   --sport-card: #22313D;
@@ -18,7 +17,6 @@
   --sport-input: #18242E;
   --sport-border-input: #344653;
 
-  /* Legacy light compatibility variables */
   --sport-navy: #142B3D;
   --sport-navy-deep: #0D1C28;
   --sport-navy-heading: #142B3D;
@@ -31,7 +29,6 @@
 }
 
 html.light {
-  /* Sport Premium Light (Cinza-Azulado) */
   --sport-bg: #DCE3E8;
   --sport-bg-sec: #C9D4DC;
   --sport-card: #F4F6F8;
@@ -56,7 +53,6 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -72,7 +68,6 @@ body {
   background: var(--sport-lime);
 }
 
-/* Sports Tech Glass Panels */
 .glass-panel {
   background: linear-gradient(135deg, rgba(34, 49, 61, 0.85) 0%, rgba(24, 36, 46, 0.95) 100%);
   backdrop-filter: blur(12px);
@@ -89,7 +84,6 @@ body {
   box-shadow: 0 0 20px rgba(184, 240, 68, 0.15);
 }
 
-/* Tech Grid Pattern */
 .bg-tech-grid {
   background-image: 
     linear-gradient(to right, rgba(52, 70, 83, 0.35) 1px, transparent 1px),
@@ -102,12 +96,10 @@ body {
   background-size: 24px 24px;
 }
 
-/* Text glow */
 .text-glow-neon {
   text-shadow: 0 0 12px rgba(184, 240, 68, 0.6);
 }
 
-/* Neon button pulse */
 .btn-neon {
   background: #B8F044;
   color: #101820;
@@ -139,16 +131,11 @@ body {
   transform: translateY(-1px);
 }
 
-/* ==========================================================================
-   SPORT PREMIUM + SPORT PLAY — DESIGN SYSTEM CLASSES
-   ========================================================================== */
-
 .font-sport {
   font-family: 'Barlow Condensed', sans-serif;
   letter-spacing: 0.02em;
 }
 
-/* Sport Buttons */
 .btn-sport-lime {
   background-color: #B8F044;
   color: #101820;
@@ -210,7 +197,6 @@ body {
   background-color: var(--sport-bg-sec);
 }
 
-/* Sport Cards */
 .card-sport {
   background-color: var(--sport-card);
   border: 1px solid var(--sport-border);
@@ -228,7 +214,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Sport Inputs */
 .input-sport {
   background-color: var(--sport-input);
   border: 1px solid var(--sport-border-input);

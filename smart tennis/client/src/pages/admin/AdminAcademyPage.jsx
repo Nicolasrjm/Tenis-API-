@@ -53,10 +53,9 @@ export default function AdminAcademyPage() {
   const [error, setError] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
-  const [filterStatus, setFilterStatus] = useState('ALL'); // 'ALL' | 'PUBLISHED' | 'UNPUBLISHED' | 'SLOTS12'
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal state for Create / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -64,7 +63,6 @@ export default function AdminAcademyPage() {
   const [saving, setSaving] = useState(false);
   const [ytPreview, setYtPreview] = useState(null);
 
-  // Delete confirmation state
   const [deletingLesson, setDeletingLesson] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -259,7 +257,7 @@ export default function AdminAcademyPage() {
 
   return (
     <div className="space-y-6 pb-12" data-testid="admin-academy-page">
-      {/* Cabeçalho Administrativo */}
+      
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#0C1A11] p-6 rounded-2xl border border-[#1B3624]">
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
@@ -297,7 +295,7 @@ export default function AdminAcademyPage() {
         </div>
       </div>
 
-      {/* Feedback Toast */}
+      
       {feedback && (
         <div
           className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between ${
@@ -319,7 +317,7 @@ export default function AdminAcademyPage() {
         </div>
       )}
 
-      {/* Cards de Métricas da Academy */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-[#0C1A11] border border-[#1B3624]">
           <span className="text-[10px] font-mono uppercase text-[#8C9891] block">Total de Registros</span>
@@ -359,7 +357,7 @@ export default function AdminAcademyPage() {
         </div>
       </div>
 
-      {/* Barra de Filtros e Pesquisa */}
+      
       <div className="p-4 rounded-2xl bg-[#0C1A11] border border-[#1B3624] flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
         <div className="flex flex-wrap gap-2">
           {[
@@ -395,7 +393,7 @@ export default function AdminAcademyPage() {
         </div>
       </div>
 
-      {/* Lista de Aulas Administrativas */}
+      
       <div className="rounded-2xl bg-[#0C1A11] border border-[#1B3624] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -528,7 +526,7 @@ export default function AdminAcademyPage() {
         </div>
       </div>
 
-      {/* Modal Criar / Editar Aula */}
+      
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div
@@ -775,7 +773,7 @@ export default function AdminAcademyPage() {
         </div>
       )}
 
-      {/* Modal de Confirmação de Exclusão */}
+      
       {deletingLesson && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-[#0C1A11] border-2 border-rose-500/40 p-6 space-y-4 shadow-2xl">

@@ -369,7 +369,7 @@ async function runNonDestructiveMigrations() {
     }
   }
 
-  // 5. Etapa B: Preparar associação segura com Supabase Auth sem alterar dados existentes
+  // 5. Preparar associação segura com Supabase Auth sem alterar dados existentes
   if (!(await hasColumn('users', 'supabase_user_id'))) {
     await run(`ALTER TABLE users ADD COLUMN supabase_user_id TEXT`);
   }
@@ -390,7 +390,7 @@ async function runNonDestructiveMigrations() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_supabase_user_id ON users(supabase_user_id) WHERE supabase_user_id IS NOT NULL;
   `);
 
-  // 6. Etapa C: Fila local de sincronização Cloud Outbox (Offline-First)
+  // 6. Fila local de sincronização Cloud Outbox (Offline-First)
   await exec(`
     CREATE TABLE IF NOT EXISTS cloud_outbox (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

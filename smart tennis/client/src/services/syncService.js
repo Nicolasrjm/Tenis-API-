@@ -1,9 +1,6 @@
 import { savePlayerSnapshot, getPlayerOfflineData, getSyncMetadata } from './db';
 import { testServerConnection } from './serverConfig';
 
-/**
- * Estados possíveis do serviço de sincronização
- */
 export const SyncState = {
   ONLINE: 'ONLINE',
   OFFLINE: 'OFFLINE',
@@ -41,13 +38,11 @@ class SyncService {
         this.notify();
       }
     } catch (e) {
-      // Ignora erro de leitura inicial
     }
   }
 
   subscribe(listener) {
     this.listeners.add(listener);
-    // Dispara estado atual imediatamente
     listener({
       state: this.currentState,
       lastSyncAt: this.lastSyncAt,
@@ -94,13 +89,11 @@ class SyncService {
     this.setState(SyncState.SYNCING);
 
     try {
-      // 1. Testa conectividade preliminar com o servidor
       const connTest = await testServerConnection();
       if (!connTest.success) {
         throw new Error(connTest.error);
       }
 
-      // 2. Consulta endpoints existentes no notebook em paralelo
       const [profile, sessions, attributes, achievements, hitmap] = await Promise.all([
         api.getPlayer().catch(() => null),
         api.getSessions({ limit: 100 }).catch(() => []),
@@ -113,7 +106,6 @@ class SyncService {
         throw new Error('Falha ao obter perfil do atleta do servidor.');
       }
 
-      // 3. Validação dos dados recebidos
       const snapshot = {
         profile,
         sessions: Array.isArray(sessions) ? sessions : [],
@@ -122,7 +114,6 @@ class SyncService {
         hitmap: hitmap && typeof hitmap === 'object' ? hitmap : { shots: [] }
       };
 
-      // 4. Salva no IndexedDB com isolamento transacional por userId
       const saveResult = await savePlayerSnapshot(this.currentUserId, snapshot);
 
       this.lastSyncAt = saveResult.lastSyncAt;
@@ -154,7 +145,6 @@ class SyncService {
           message: 'Modo offline — exibindo últimos dados sincronizados.'
         };
       } else {
-        // Sem cache prévio para este usuário
         this.setState(SyncState.ERROR, errorMsg);
         return {
           success: false,
@@ -166,12 +156,9 @@ class SyncService {
     }
   }
 
-  /**
-   * Obtém os dados do atleta: primeiro tenta IndexedDB ou servidor conforme conectividade.
-   */
+  
   async getPlayerData(userId, api) {
     if (!userId) return null;
-    // Tenta primeiro consultar online se servidor acessível
     try {
       const conn = await testServerConnection();
       if (conn.success && api) {
@@ -179,10 +166,8 @@ class SyncService {
         if (syncRes.success) return syncRes.data;
       }
     } catch (e) {
-      // Falhou conexão, continua para offline
     }
 
-    // Retorna cache seguro do IndexedDB
     return await getPlayerOfflineData(userId);
   }
 }

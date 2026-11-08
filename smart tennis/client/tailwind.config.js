@@ -8,7 +8,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Sport Premium + Sport Play Dual Theme Tokens
         sport: {
           navy: '#142B3D',
           navyDeep: '#0D1C28',
@@ -25,7 +24,6 @@ export default {
           darkTextSec: '#A8BAC8',
           darkBlue: '#60A5FA',
 
-          // Light Theme Palette (Cinza-Azulado)
           bgLight: '#DCE3E8',
           surfaceAlt: '#C9D4DC',
           surfaceCard: '#F4F6F8',
@@ -36,7 +34,7 @@ export default {
           textMuted: '#475569',
           ice: '#DCE3E8',
 
-          // Accents
+          
           lime: '#B8F044',
           limeHover: '#A4DE2D',
           blue: '#2563EB',

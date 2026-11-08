@@ -1,4 +1,3 @@
-// Web Audio API Synthesizer for Smart Tennis
 let audioCtx = null;
 let soundEnabled = true;
 
@@ -23,7 +22,6 @@ export function isSoundEnabled() {
   return soundEnabled;
 }
 
-// Tennis ball racket impact sound
 export function playBallHit(force = 80) {
   if (!soundEnabled) return;
   try {
@@ -47,11 +45,9 @@ export function playBallHit(force = 80) {
     osc.start();
     osc.stop(ctx.currentTime + 0.15);
   } catch (e) {
-    // ignore audio context restrictions
   }
 }
 
-// High-precision Bullseye reward sound
 export function playBullseye() {
   if (!soundEnabled) return;
   try {
@@ -78,7 +74,6 @@ export function playBullseye() {
   } catch (e) {}
 }
 
-// Level Up Fanfare
 export function playLevelUp() {
   if (!soundEnabled) return;
   try {

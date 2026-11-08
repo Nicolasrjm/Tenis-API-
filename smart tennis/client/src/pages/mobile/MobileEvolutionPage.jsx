@@ -24,7 +24,7 @@ import MobileVisitorGuard from '../../components/mobile/MobileVisitorGuard';
 export default function MobileEvolutionPage() {
   const { isGuest } = useAuth();
 
-  const [period, setPeriod] = useState('all'); // '7d' | '30d' | 'all'
+  const [period, setPeriod] = useState('all');
   const [profile, setProfile] = useState(null);
   const [attributes, setAttributes] = useState([]);
   const [achievements, setAchievements] = useState([]);
@@ -107,7 +107,6 @@ export default function MobileEvolutionPage() {
     return <MobileVisitorGuard featureName="a Evolução e Estatísticas" />;
   }
 
-  // Filtrar histórico por período
   const now = Date.now();
   const filteredHistory = evolutionHistory.filter((item) => {
     if (period === 'all' || !item.date) return true;
@@ -117,7 +116,6 @@ export default function MobileEvolutionPage() {
     return true;
   });
 
-  // Cálculo de progresso de XP
   const currentXp = profile?.xp || 0;
   const nextXp = profile?.xp_next || 250;
   const xpPct = Math.min(100, Math.max(0, Math.round((currentXp / nextXp) * 100)));
@@ -125,7 +123,7 @@ export default function MobileEvolutionPage() {
   return (
     <div className="p-4 sm:p-5 space-y-5 animate-fadeIn">
       
-      {/* 1. Top Title & Period Switcher */}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-white uppercase tracking-tight flex items-center space-x-2">
@@ -147,7 +145,7 @@ export default function MobileEvolutionPage() {
         </button>
       </div>
 
-      {/* 2. Resumo de Carreira e Nível */}
+      
       <div className="p-5 rounded-3xl bg-gradient-to-br from-[#0D2215] to-[#08120C] border border-[#1C4229] shadow-[0_0_20px_rgba(57,255,136,0.12)] space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -173,7 +171,7 @@ export default function MobileEvolutionPage() {
           </div>
         </div>
 
-        {/* Barra de Progresso */}
+        
         <div className="space-y-1">
           <div className="w-full bg-[#070F0A] h-2.5 rounded-full overflow-hidden border border-[#142A1B] p-0.5">
             <div
@@ -188,7 +186,7 @@ export default function MobileEvolutionPage() {
         </div>
       </div>
 
-      {/* 3. Evolução de Precisão e Pontuação ao Longo do Tempo */}
+      
       <div className="p-4 rounded-3xl bg-[#09150E] border border-[#163020] space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -198,7 +196,7 @@ export default function MobileEvolutionPage() {
             </h3>
           </div>
 
-          {/* Filtro de Período */}
+          
           <div className="flex items-center space-x-1 p-0.5 rounded-lg bg-[#07110B] border border-[#163020]">
             {[
               { id: '7d', label: '7D' },
@@ -222,7 +220,7 @@ export default function MobileEvolutionPage() {
 
         {filteredHistory.length > 0 ? (
           <div className="space-y-2 pt-1">
-            {/* Barras de Desempenho Recentes */}
+            
             <div className="flex items-end justify-between h-28 gap-1.5 px-2 pt-3 pb-1 bg-[#060D08] rounded-2xl border border-[#142A1B]">
               {filteredHistory.slice(-8).map((h, i) => {
                 const maxScore = Math.max(...filteredHistory.map((x) => x.score || 100), 200);
@@ -256,7 +254,7 @@ export default function MobileEvolutionPage() {
         )}
       </div>
 
-      {/* 4. 6 Atributos Esportivos Oficiais da Nuvem */}
+      
       <div className="space-y-3">
         <div className="flex items-center space-x-2">
           <Target className="w-4 h-4 text-[#39FF88]" />
@@ -309,7 +307,7 @@ export default function MobileEvolutionPage() {
         </div>
       </div>
 
-      {/* 5. Conquistas da Nuvem */}
+      
       {achievements.length > 0 && (
         <div className="p-4 rounded-3xl bg-[#09150E] border border-[#163020] space-y-3">
           <div className="flex items-center space-x-2">

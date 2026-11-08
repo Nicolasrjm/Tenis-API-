@@ -5,7 +5,6 @@ const { requireAuth } = require('../services/authService');
 
 router.use(requireAuth);
 
-// GET /api/achievements
 router.get('/', async (req, res) => {
   try {
     const achievements = await all(`SELECT * FROM achievements ORDER BY unlocked DESC, id ASC`);

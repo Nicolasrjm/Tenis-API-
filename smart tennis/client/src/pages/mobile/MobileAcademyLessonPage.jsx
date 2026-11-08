@@ -33,11 +33,9 @@ export default function MobileAcademyLessonPage() {
   const loadLessonDetail = async () => {
     setLoading(true);
     try {
-      // First try specific endpoint
       let data = await api.getAcademyLessonDetail(id).catch(() => null);
 
       if (!data) {
-        // Fallback: search in catalog
         const catalog = await api.getAcademyCatalog().catch(() => null);
         const all = [
           ...(catalog?.lessons || []),
@@ -50,7 +48,6 @@ export default function MobileAcademyLessonPage() {
         setLesson(data);
         setCompleted(Boolean(data.completed));
 
-        // Load related lessons
         const catalog = await api.getAcademyCatalog().catch(() => null);
         const related = (catalog?.initialModulesPreview || []).filter(
           (l) => l.id !== id && `slot_${l.slot_number}` !== id
@@ -111,7 +108,7 @@ export default function MobileAcademyLessonPage() {
   return (
     <div className="p-4 sm:p-5 space-y-5 animate-fadeIn">
       
-      {/* Top Navigation */}
+      
       <button
         onClick={() => navigate('/mobile/academy')}
         data-testid="btn-back-academy"
@@ -121,7 +118,7 @@ export default function MobileAcademyLessonPage() {
         <span>Voltar ao Catálogo</span>
       </button>
 
-      {/* Video Player Frame (16:9 responsive) */}
+      
       <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black border border-[#163020] shadow-[0_0_25px_rgba(0,0,0,0.8)]">
         {embedUrl ? (
           <iframe
@@ -151,7 +148,7 @@ export default function MobileAcademyLessonPage() {
         )}
       </div>
 
-      {/* Lesson Details */}
+      
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -185,7 +182,7 @@ export default function MobileAcademyLessonPage() {
         )}
       </div>
 
-      {/* Complete Lesson Action */}
+      
       <div className="p-4 rounded-2xl bg-[#0A1810] border border-[#163020] space-y-2 text-center">
         <button
           onClick={handleToggleComplete}
@@ -208,7 +205,7 @@ export default function MobileAcademyLessonPage() {
         )}
       </div>
 
-      {/* Related Lessons */}
+      
       {relatedLessons.length > 0 && (
         <div className="space-y-3 pt-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-white">

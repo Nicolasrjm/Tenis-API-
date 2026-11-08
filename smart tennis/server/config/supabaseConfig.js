@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — MÓDULO CENTRALIZADO DE CONFIGURAÇÃO SUPABASE (ETAPA B)
+ * MOTION TENNIS — MÓDULO CENTRALIZADO DE CONFIGURAÇÃO SUPABASE
  * ==============================================================================
  * Gerencia a leitura segura de variáveis de ambiente para a fundação cloud.
  *
@@ -17,7 +17,6 @@
 const fs = require('fs');
 const path = require('path');
 
-// Carregador leve e nativo de arquivos .env (zero dependências externas)
 function loadEnvFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return false;
@@ -30,11 +29,9 @@ function loadEnvFile(filePath) {
       if (eqIdx <= 0) continue;
       const key = line.slice(0, eqIdx).trim();
       let value = line.slice(eqIdx + 1).trim();
-      // Remove aspas simples ou duplas ao redor do valor
       if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       }
-      // Não sobrescreve variáveis já definidas explicitamente no ambiente
       if (process.env[key] === undefined) {
         process.env[key] = value;
       }
@@ -45,7 +42,6 @@ function loadEnvFile(filePath) {
   }
 }
 
-// Inicializa a leitura dos arquivos de ambiente na inicialização do módulo
 (function initEnv() {
   const candidates = [
     path.resolve(__dirname, '..', '..', '.env.local'),
@@ -60,7 +56,6 @@ function loadEnvFile(filePath) {
     loadEnvFile(p);
   }
 
-  // Defesa estatutária: detecta e neutraliza tentativa de injetar service_role no notebook
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.warn('\x1b[33m[SEGURANÇA] AVISO: SUPABASE_SERVICE_ROLE_KEY detectada no ambiente local!\x1b[0m');
     console.warn('\x1b[33m[SEGURANÇA] Por regra arquitetural, a service_role é estritamente proibida no notebook e foi desconsiderada.\x1b[0m');
@@ -68,7 +63,6 @@ function loadEnvFile(filePath) {
   }
 })();
 
-// Regex de validação
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const JWT_REGEX = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
@@ -93,33 +87,23 @@ function decodeJwtPayload(jwtStr) {
   }
 }
 
-/**
- * Valida chaves públicas do Supabase (anon keys).
- * Aceita:
- * 1. Formato JWT tradicional (3 partes) com payload não-administrativo (role != 'service_role').
- * 2. Chaves publicáveis modernas do Supabase (oficiais sb_publishable_..., sbp_... ou pk_...).
- * Rejeita categoricamente chaves secretas (sb_secret_..., sbs_..., sk_..., ou JWTs de service_role).
- */
 function isValidAnonKey(key) {
   if (!key || typeof key !== 'string') return false;
   const trimmed = key.trim();
 
-  // Rejeita categoricamente chaves secretas/administrativas conhecidas
   if (trimmed.startsWith('sb_secret_') || trimmed.startsWith('sbs_') || trimmed.startsWith('sk_')) {
     return false;
   }
 
-  // Chaves publicáveis do Supabase (oficiais sb_publishable_..., sbp_..., pk_...)
   if (/^(sb_publishable|sbp|pk)_[A-Za-z0-9_-]{10,}$/.test(trimmed)) {
     return true;
   }
 
-  // Chave pública clássica no formato JWT de 3 partes
   if (JWT_REGEX.test(trimmed)) {
     const payload = decodeJwtPayload(trimmed);
     if (!payload) return false;
     if (payload.role === 'service_role' || payload.role === 'secret') {
-      return false; // Rejeita se possuir role administrativa
+      return false;
     }
     return true;
   }
@@ -141,19 +125,12 @@ function isValidSupabaseUrl(rawUrl) {
   }
 }
 
-/**
- * Retorna true se a nuvem Supabase está adequadamente configurada no notebook.
- */
 function isSupabaseConfigured() {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
   return isValidSupabaseUrl(url) && isValidAnonKey(anonKey);
 }
 
-/**
- * Retorna a configuração do Supabase para consumo interno do servidor.
- * NUNCA contém chaves administrativas.
- */
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.trim().replace(/\/+$/, '') : null;
   const anonKey = process.env.SUPABASE_ANON_KEY ? process.env.SUPABASE_ANON_KEY.trim() : null;
@@ -164,16 +141,12 @@ function getSupabaseConfig() {
     configured,
     url: configured ? url : null,
     anonKey: configured ? anonKey : null,
-    jwtSecret: jwtSecret || null, // Somente no backend local para validação offline de tokens
+    jwtSecret: jwtSecret || null,
     audience: 'authenticated',
     issuer: configured ? `${url}/auth/v1` : null
   };
 }
 
-/**
- * Retorna a configuração pública segura para ser consumida pelo frontend/mobile app.
- * NUNCA expõe jwtSecret, chaves de equipamento ou credenciais privadas.
- */
 function getPublicClientConfig() {
   const config = getSupabaseConfig();
   return {
@@ -184,9 +157,6 @@ function getPublicClientConfig() {
   };
 }
 
-/**
- * Retorna os metadados do equipamento local configurado na quadra.
- */
 function getEquipmentConfig() {
   const eqId = process.env.EQUIPMENT_ID ? process.env.EQUIPMENT_ID.trim() : null;
   const rawApiKey = process.env.EQUIPMENT_API_KEY ? process.env.EQUIPMENT_API_KEY.trim() : null;

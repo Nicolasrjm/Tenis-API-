@@ -24,7 +24,7 @@ export default function AchievementsPage() {
   return (
     <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-colors">
         <div>
           <h1 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
@@ -36,7 +36,7 @@ export default function AchievementsPage() {
           </p>
         </div>
 
-        {/* Progress pill */}
+        
         <div className="flex items-center space-x-3 bg-[#E8EDF1] dark:bg-[#18242E] px-4 py-2 rounded-2xl border border-[#B8C6D0] dark:border-[#344653] font-mono">
           <div className="text-right">
             <div className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">PROGRESSO GERAL</div>
@@ -47,7 +47,7 @@ export default function AchievementsPage() {
         </div>
       </div>
 
-      {/* Grid of Achievements */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {(data.achievements || []).map((ach) => {
           const isUnlocked = ach.unlocked === 1;
@@ -64,7 +64,7 @@ export default function AchievementsPage() {
             >
               <div className="space-y-3">
                 
-                {/* Top icon & status */}
+                
                 <div className="flex items-center justify-between">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border ${
                     isUnlocked
@@ -83,7 +83,7 @@ export default function AchievementsPage() {
                   </span>
                 </div>
 
-                {/* Title & Description */}
+                
                 <div>
                   <h3 className="text-lg font-black text-[#142B3D] dark:text-[#F1F5F9]">
                     {ach.title}
@@ -95,7 +95,7 @@ export default function AchievementsPage() {
 
               </div>
 
-              {/* Progress & Reward */}
+              
               <div className="mt-6 pt-4 border-t border-[#B8C6D0] dark:border-[#344653] space-y-2">
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-[#475569] dark:text-[#A8BAC8]">Progresso</span>

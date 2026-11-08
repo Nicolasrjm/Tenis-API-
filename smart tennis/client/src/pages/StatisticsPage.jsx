@@ -55,7 +55,7 @@ export default function StatisticsPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto animate-fadeIn">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-colors">
         <div>
           <h1 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
@@ -67,7 +67,7 @@ export default function StatisticsPage() {
           </p>
         </div>
 
-        {/* Link para a Academy */}
+        
         <button
           onClick={() => navigate('/app/academy')}
           className="px-4 py-2.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] text-[#142B3D] dark:text-[#B8F044] hover:bg-[#F4F6F8] dark:hover:bg-[#22313D] text-xs font-mono font-bold flex items-center space-x-2 transition-all shadow-xs"
@@ -77,7 +77,7 @@ export default function StatisticsPage() {
         </button>
       </div>
 
-      {/* Grid de 6 Atributos com o Botão "COMO MELHORAR" */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {attributes.map((attr) => {
           const Icon = attributeIcons[attr.key] || Target;
@@ -90,7 +90,7 @@ export default function StatisticsPage() {
             >
               <div className="space-y-3">
                 
-                {/* Header do Card */}
+                
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#2563EB] dark:text-[#B8F044] shrink-0">
@@ -111,7 +111,7 @@ export default function StatisticsPage() {
                   </span>
                 </div>
 
-                {/* Barra de Progresso */}
+                
                 <div className="w-full h-2 rounded-full bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#2563EB] to-[#B8F044] rounded-full transition-all duration-500"
@@ -119,12 +119,12 @@ export default function StatisticsPage() {
                   ></div>
                 </div>
 
-                {/* Breve Interpretação */}
+                
                 <p className="text-xs text-[#475569] dark:text-[#A8BAC8] leading-relaxed">
                   {attributeInterpretations[attr.key] || attr.objective}
                 </p>
 
-                {/* Pontos fortes e a melhorar resumidos */}
+                
                 <div className="p-3 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-[11px] font-mono text-[#475569] dark:text-[#A8BAC8] space-y-1">
                   <div>
                     <span className="text-[#2563EB] dark:text-[#B8F044] font-bold">Foco: </span>
@@ -134,7 +134,7 @@ export default function StatisticsPage() {
 
               </div>
 
-              {/* Ação: COMO MELHORAR -> LEVA PARA /app/academy/:skill */}
+              
               <div className="pt-2">
                 <button
                   onClick={() => navigate(`/app/academy/${attr.key}`)}

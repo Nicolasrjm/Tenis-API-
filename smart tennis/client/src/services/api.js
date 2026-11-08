@@ -12,7 +12,6 @@ function getActiveCloudToken() {
     }
   } catch (e) {}
 
-  // Fallback para smart_tennis_token se for JWT Supabase (3 partes separadas por ponto)
   try {
     const token = localStorage.getItem('smart_tennis_token');
     if (token && token.startsWith('eyJ') && token.split('.').length === 3) {
@@ -64,7 +63,6 @@ export async function fetchJson(endpoint, options = {}) {
   const serverUrl = getSavedServerUrl();
   const baseUrl = getApiBaseUrl();
 
-  // Se estiver no celular Android nativo ou em modo estritamente Cloud (Vercel) e nenhum servidor local tiver sido configurado
   if ((isNativeMobile() || isCloudOnlyMode()) && !serverUrl) {
     const err = new Error('Modo Cloud / Web: servidor Express local da quadra não conectado.');
     err.code = 'NO_LOCAL_SERVER';
@@ -93,7 +91,6 @@ export async function fetchJson(endpoint, options = {}) {
   try {
     response = await fetch(url, config);
   } catch (err) {
-    // Se for erro de rede e for requisição GET de atleta autenticado (nunca visitante!), tenta cache offline
     const isNetworkError = err.name === 'TypeError' || (err.message && (err.message.includes('fetch') || err.message.includes('NetworkError')));
     const isGet = !options.method || options.method === 'GET';
 
@@ -131,7 +128,6 @@ export async function fetchJson(endpoint, options = {}) {
     throw connErr;
   }
 
-  // Validação estrita do Content-Type retornado
   const contentType = (response.headers.get('content-type') || '').toLowerCase();
   const isJson = contentType.includes('application/json');
 
@@ -157,7 +153,6 @@ export async function fetchJson(endpoint, options = {}) {
     throw err;
   }
 
-  // Parse seguro do JSON
   let data;
   try {
     data = await response.json();
@@ -180,7 +175,6 @@ export async function fetchJson(endpoint, options = {}) {
 }
 
 export const api = {
-  // Auth & Guest Session
   login: (credentials) => fetchJson('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
   getMe: () => fetchJson('/auth/me'),
   logout: () => fetchJson('/auth/logout', { method: 'POST' }),
@@ -188,7 +182,6 @@ export const api = {
   getGuestMe: () => fetchJson('/auth/guest/me'),
   logoutGuest: () => fetchJson('/auth/guest/logout', { method: 'POST' }),
 
-  // Cloud Auth & Supabase Identity (Etapa B)
   getCloudConfig: () => fetchJson('/auth/cloud/config'),
   getCloudStatus: () => fetchJson('/auth/cloud/status'),
   linkCloudAccount: (data) => fetchJson('/auth/cloud/link', { method: 'POST', body: JSON.stringify(data) }),
@@ -204,7 +197,6 @@ export const api = {
     })
   }),
 
-  // Player
   getPlayer: async () => {
     const token = getActiveCloudToken();
     if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
@@ -212,7 +204,6 @@ export const api = {
         try {
           const overview = await cloudDataService.getCloudAthleteOverview({ accessToken: token });
           if (overview?.profile) {
-            // Se o perfil cloud foi criado com valores default, tenta obter nome do localStorage
             let displayName = overview.profile.display_name;
             let avatar = overview.profile.avatar;
             try {
@@ -248,7 +239,6 @@ export const api = {
           console.warn('[API] Falha ao carregar perfil cloud:', e);
         }
       }
-      // Retorna objeto padrão seguro em modo Cloud / Web Demo sem chamar /api local
       let fallbackName = 'Atleta';
       let fallbackAvatar = '🎾';
       try {
@@ -292,7 +282,6 @@ export const api = {
             name: data?.name,
             avatar: data?.avatar
           });
-          // Atualiza dados na sessão em cache local
           try {
             const raw = localStorage.getItem('mt_cloud_session');
             if (raw) {
@@ -321,7 +310,6 @@ export const api = {
   resetDemoData: () => fetchJson('/player/reset', { method: 'POST' }),
   clearData: () => fetchJson('/player/clear', { method: 'POST' }),
 
-  // Sensors & Hits
   getSensors: () => fetchJson('/sensors'),
   sendHardwareHit: (data) => {
     if (isWebDemoMode()) {
@@ -337,7 +325,6 @@ export const api = {
   getHardwareStatus: () => fetchJson('/hardware/status'),
   setHardwareMode: (mode) => fetchJson('/hardware/mode', { method: 'POST', body: JSON.stringify({ mode }) }),
 
-  // Legacy Shots & Hitmap
   getRecentShots: async (limit = 20) => {
     const token = getActiveCloudToken();
     if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
@@ -366,7 +353,6 @@ export const api = {
     return fetchJson('/shots/hitmap');
   },
 
-  // Skills & Tree
   getAttributes: async () => {
     const token = getActiveCloudToken();
     if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
@@ -408,7 +394,6 @@ export const api = {
     return fetchJson(`/skills/tree/${id}/unlock`, { method: 'POST' });
   },
 
-  // Academy (100% Gratuito para Visitantes, Jogadores e Admins)
   getAcademyOverview: async () => {
     if (isWebDemoMode() || !getSavedServerUrl()) {
       try {
@@ -470,11 +455,9 @@ export const api = {
       body: JSON.stringify({ completed })
     }),
 
-  // Trainings
   getTrainings: () => fetchJson('/trainings'),
   completeTraining: (id, data) => fetchJson(`/trainings/${id}/complete`, { method: 'POST', body: JSON.stringify(data) }),
 
-  // Achievements
   getAchievements: async () => {
     const token = getActiveCloudToken();
     if (isCloudOnlyMode() || isWebDemoMode() || (token && !getSavedServerUrl())) {
@@ -489,7 +472,6 @@ export const api = {
     return fetchJson('/achievements');
   },
 
-  // Sessions
   getSessions: async (limit = 30) => {
     const resolvedLimit = typeof limit === 'object' && limit !== null ? (limit.limit || 30) : limit;
     const token = getActiveCloudToken();
@@ -519,19 +501,16 @@ export const api = {
   },
   createSession: (data) => fetchJson('/sessions', { method: 'POST', body: JSON.stringify(data) }),
 
-  // System Status & Wall Config
   getStatus: () => fetchJson('/status'),
   getWallConfig: () => fetchJson('/sensors/wall-config'),
   updateWallConfig: (data) => fetchJson('/sensors/wall-config', { method: 'PUT', body: JSON.stringify(data) }),
   updateMyWallConfig: (data) => fetchJson('/sensors/wall-config', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // IoT & Arduino Integration
   getIotDiagnostics: () => fetchJson('/hardware/iot-diagnostics'),
   updateIotCalibration: (data) => fetchJson('/hardware/iot-calibration', { method: 'PUT', body: JSON.stringify(data) }),
   testSyntheticTdoa: (data) => fetchJson('/hardware/iot-diagnostics/test-tdoa', { method: 'POST', body: JSON.stringify(data) }),
   sendArduinoEvents: (data) => fetchJson('/hardware/arduino/events', { method: 'POST', body: JSON.stringify(data) }),
 
-  // Instalação (Shopping / Pessoal) e experiência comercial (tempo e regras no backend)
   getInstallation: () => fetchJson('/installation'),
   experience: {
     getCurrent: () => fetchJson('/experience/current'),
@@ -540,7 +519,6 @@ export const api = {
     abort: (id) => fetchJson(`/experience/${id}/abort`, { method: 'POST' })
   },
 
-  // Partidas do Modo Pessoal (5s preparação + 5 minutos controlados pelo backend)
   personalMatch: {
     getCurrent: (mode = null) => {
       if (isWebDemoMode()) return Promise.resolve(null);
@@ -566,7 +544,6 @@ export const api = {
     }
   },
 
-  // Admin APIs
   admin: {
     setInstallation: (data) => fetchJson('/installation', { method: 'PUT', body: JSON.stringify(data) }),
     getUsers: () => fetchJson('/admin/users'),
@@ -587,7 +564,6 @@ export const api = {
     getWallConfig: () => fetchJson('/admin/wall-config'),
     setWallConfig: (preset) => fetchJson('/admin/wall-config', { method: 'POST', body: JSON.stringify({ preset }) }),
 
-    // Gerenciar Academy (Admin)
     getAcademyLessons: () => fetchJson('/admin/academy/lessons'),
     createAcademyLesson: (data) => fetchJson('/admin/academy/lessons', { method: 'POST', body: JSON.stringify(data) }),
     updateAcademyLesson: (id, data) =>

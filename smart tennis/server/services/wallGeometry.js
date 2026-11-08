@@ -1,10 +1,10 @@
 // SMART TENNIS — GEOMETRIA FÍSICA DA PAREDE, POSICIONAMENTO DOS 3 SENSORES KY-037 E CLASSIFICAÇÃO DE IMPACTOS
 // Origem cartesiana física: canto inferior esquerdo da parede = (0, 0).
-// Sensores KY-037 reais:
-//   S1 = (0, altura)        -> Canto superior esquerdo
-//   S2 = (largura, altura)  -> Canto superior direito
-//   S3 = (0, 0)             -> Canto inferior esquerdo
-//   Canto inferior direito NÃO possui sensor.
+// Mapeamento físico oficial dos sensores KY-037:
+//   S1 = D2 = (0, 0)        -> Canto inferior esquerdo
+//   S2 = D3 = (0, altura)   -> Canto superior esquerdo
+//   S3 = D4 = (largura, 0)  -> Canto inferior direito
+//   Canto superior direito NÃO possui sensor.
 
 const WALL_PRESETS = {
   '4x3': {
@@ -133,10 +133,10 @@ function resolveWallPreset(presetOrDims = '3x2') {
 /**
  * Calcula dinamicamente as coordenadas físicas dos 3 sensores KY-037 instalados nos cantos da parede.
  * Sistema Cartesiano com origem (0, 0) no canto inferior esquerdo:
- *   S1 = (0, altura)        -> Canto superior esquerdo
- *   S2 = (largura, altura)  -> Canto superior direito
- *   S3 = (0, 0)             -> Canto inferior esquerdo
- *   Canto inferior direito NÃO possui sensor.
+ *   S1 = D2 = (0, 0)        -> Canto inferior esquerdo
+ *   S2 = D3 = (0, altura)   -> Canto superior esquerdo
+ *   S3 = D4 = (largura, 0)  -> Canto inferior direito
+ *   Canto superior direito NÃO possui sensor.
  *
  * Também permite configurar deslocamentos reais em centímetros (offsetXCm, offsetYCm)
  * caso os sensores físicos sejam instalados ligeiramente afastados dos cantos ideais.

@@ -18,7 +18,6 @@ export default function AdminSessionsPage() {
       setSessions(res || []);
     } catch (e) {
       console.error('Erro ao carregar sessões:', e);
-      // Fallback demo data
       setSessions([
         { id: 1, player_name: 'Nicolas', equipment_name: 'ST-001', mode: 'free', hits: 24, score: 3200, accuracy: 87, duration_min: 18, created_at: new Date(Date.now() - 3600000).toISOString() },
         { id: 2, player_name: 'Nicolas', equipment_name: 'ST-001', mode: 'single', hits: 15, score: 2100, accuracy: 75, duration_min: 12, created_at: new Date(Date.now() - 86400000).toISOString() },
@@ -56,13 +55,13 @@ export default function AdminSessionsPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
+      
       <div>
         <h1 className="text-2xl font-black text-amber-400 tracking-wide">SESSÕES</h1>
         <p className="text-[#8C9891] text-sm mt-1">Histórico de todas as sessões de treino</p>
       </div>
 
-      {/* KPIs */}
+      
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Sessões', value: sessions.length, icon: Activity, color: 'text-amber-400' },
@@ -80,7 +79,7 @@ export default function AdminSessionsPage() {
         ))}
       </div>
 
-      {/* Filters */}
+      
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C9891]" />
@@ -103,7 +102,7 @@ export default function AdminSessionsPage() {
         </select>
       </div>
 
-      {/* Sessions Table */}
+      
       <div className="bg-[#0C1A11] border border-[#1B3624] rounded-2xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-[#8C9891]">Carregando sessões...</div>

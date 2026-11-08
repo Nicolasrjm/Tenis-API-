@@ -1,14 +1,3 @@
-// MOTION TENNIS — EXPERIÊNCIA COMERCIAL (MODO SHOPPING) — FASE 2 + FASE 3 (CONTAGEM 5S + VISITANTE)
-//
-// O backend é a autoridade do tempo e das regras dos três jogos durante a experiência.
-// O frontend só envia coordenadas (x, y) de impacto e exibe o estado devolvido.
-//
-// MÁQUINA DE ESTADOS (persistida no SQLite):
-//   Experiência: PREPARING (5s) -> ACTIVE -> COMPLETED (tempo esgotado ou vitória) | INTERRUPTED (abortada)
-//   Etapas (stage_index): 0 Treino Livre (120s) -> 1 Intervalo (30s) -> 2 Liga Um por Vez (120s) -> 3 Intervalo (30s) -> 4 Apagar Todos (120s)
-//   Os 5 segundos de preparação ocorrem apenas no início da experiência (antes da Rodada 1).
-//   Visitantes podem jogar toda a sequência comercial sem gravar sessões pessoais ou XP permanente,
-//   e seus metadados efêmeros são eliminados ao encerrar ou expirar a sessão.
 
 const crypto = require('crypto');
 const { run, get, all, exec } = require('../database/db');
@@ -23,9 +12,9 @@ const GAMES = {
 };
 const SEQUENCE = ['free', 'single', 'clear_all'];
 
-const COMMERCIAL_PREPARE_SECONDS = 5; // 5 segundos de contagem regressiva antes da 1ª rodada
-const COMMERCIAL_ROUND_SECONDS = 120; // fixo em produção (02:00)
-const DEFAULT_INTERVAL_SECONDS = 30;  // 00:30
+const COMMERCIAL_PREPARE_SECONDS = 5;
+const COMMERCIAL_ROUND_SECONDS = 120;
+const DEFAULT_INTERVAL_SECONDS = 30;
 const MAX_INTERVAL_SECONDS = 300;
 
 const POINTS = { FREE_HIT: 85, SINGLE_HIT: 1, CLEAR_OFF: 100, CLEAR_WIN_BONUS: 500 };
@@ -56,9 +45,6 @@ function minIntervalSeconds() {
   return isTestMode() ? 1 : 5;
 }
 
-// ---------------------------------------------------------------------------
-// Exclusão mútua
-// ---------------------------------------------------------------------------
 let lockChain = Promise.resolve();
 function withLock(fn) {
   const result = lockChain.then(() => fn());
@@ -66,7 +52,6 @@ function withLock(fn) {
   return result;
 }
 
-// Normaliza ator (suporta req.actor { type: 'user'|'guest' } ou objeto user legado { id, role })
 function normalizeActor(userOrActor) {
   if (!userOrActor) return null;
   if (userOrActor.type === 'guest' && userOrActor.guestId) {
@@ -104,9 +89,6 @@ function normalizeActor(userOrActor) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Esquema SQLite
-// ---------------------------------------------------------------------------
 async function ensureExperienceTables() {
   await exec(`
     CREATE TABLE IF NOT EXISTS system_settings (
@@ -176,7 +158,6 @@ async function ensureExperienceTables() {
       ON commercial_impacts(experience_id, client_event_id) WHERE client_event_id IS NOT NULL;
   `);
 
-  // Migração não-destrutiva para adicionar guest_id se a tabela já existia
   try {
     const cols = await all(`PRAGMA table_info(commercial_experiences)`);
     if (!cols.some((c) => c.name === 'guest_id')) {
@@ -194,9 +175,6 @@ async function ensureExperienceTables() {
   } catch (err) {}
 }
 
-// ---------------------------------------------------------------------------
-// Configuração da instalação
-// ---------------------------------------------------------------------------
 async function getSetting(key, fallback) {
   try {
     const row = await get(`SELECT value FROM system_settings WHERE key = ?`, [key]);
@@ -251,9 +229,6 @@ function setInstallation({ mode, shoppingIntervalSeconds }) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Estágios
-// ---------------------------------------------------------------------------
 function buildStages(intervalSeconds) {
   const R = getRoundSeconds();
   return [
@@ -276,9 +251,6 @@ function initRoundState(game) {
   return {};
 }
 
-// ---------------------------------------------------------------------------
-// Persistência auxiliar
-// ---------------------------------------------------------------------------
 async function saveExperience(exp) {
   await run(
     `UPDATE commercial_experiences SET
@@ -301,8 +273,6 @@ async function createRound(exp, stage, roundIndex, startedAt) {
   );
 }
 
-// Finaliza a rodada em andamento (idempotente) e grava a sessão do jogador autenticado UMA vez.
-// Visitantes (exp.user_id === null / exp.guest_id !== null) NUNCA gravam em sessions.
 async function finalizeRound(exp, roundIndex, status, endedAt) {
   const round = await get(
     `SELECT * FROM commercial_rounds WHERE experience_id = ? AND round_index = ?`,
@@ -345,15 +315,11 @@ async function loadExperience(id) {
   return get(`SELECT * FROM commercial_experiences WHERE id = ?`, [id]);
 }
 
-// ---------------------------------------------------------------------------
-// Avanço de etapas pelo relógio (determinístico: PREPARING -> ACTIVE -> etapas)
-// ---------------------------------------------------------------------------
 async function syncExperience(exp, now = Date.now()) {
   if (!exp) return exp;
   const stages = JSON.parse(exp.stages_json);
   let changed = false;
 
-  // 1. Transição de PREPARING (5s) para ACTIVE (Rodada 1 = 02:00)
   if (exp.state === 'PREPARING' && now >= exp.stage_ends_at) {
     const firstStageStart = exp.stage_ends_at;
     const firstStage = stages[0];
@@ -369,7 +335,6 @@ async function syncExperience(exp, now = Date.now()) {
     changed = true;
   }
 
-  // 2. Avanço das rodadas e intervalos durante ACTIVE
   while (exp.state === 'ACTIVE' && now >= exp.stage_ends_at) {
     const stage = stages[exp.stage_index];
     if (stage.type === 'round') {
@@ -415,9 +380,6 @@ async function loadActiveSynced(now = Date.now()) {
   return (exp.state === 'PREPARING' || exp.state === 'ACTIVE') ? exp : null;
 }
 
-// ---------------------------------------------------------------------------
-// Estado público
-// ---------------------------------------------------------------------------
 function mapRound(r) {
   const game = GAMES[r.mode] || GAMES.free;
   return {
@@ -462,7 +424,6 @@ async function buildState(exp, now = Date.now()) {
   const prepRemainingMs = isPreparing ? Math.max(0, exp.stage_ends_at - now) : 0;
   const prepRemainingSeconds = isPreparing ? Math.max(0, Math.ceil(prepRemainingMs / 1000)) : 0;
 
-  // Durante PREPARING, o cronômetro comercial da Rodada 1 fica parado em 02:00 (stages[0].seconds * 1000)
   const stageInfo = isPreparing
     ? {
         index: 0,
@@ -501,7 +462,7 @@ async function buildState(exp, now = Date.now()) {
     userId: exp.user_id,
     guestId: exp.guest_id || null,
     isGuest: Boolean(exp.guest_id),
-    state: exp.state, // 'PREPARING' | 'ACTIVE' | 'COMPLETED' | 'INTERRUPTED'
+    state: exp.state,
     endReason: exp.end_reason,
     version: exp.version,
     wallPreset: exp.wall_preset,
@@ -544,9 +505,6 @@ async function buildState(exp, now = Date.now()) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Operações públicas
-// ---------------------------------------------------------------------------
 function startExperience(userOrActor) {
   return withLock(async () => {
     const actor = normalizeActor(userOrActor);
@@ -642,7 +600,6 @@ function isSameOwner(exp, userOrActor) {
   return false;
 }
 
-// Estado da experiência atual (PREPARING ou ACTIVE) + última do próprio usuário/visitante
 function getCurrentFor(userOrActor) {
   return withLock(async () => {
     const now = Date.now();
@@ -678,7 +635,6 @@ function getCurrentFor(userOrActor) {
   });
 }
 
-// Núcleo de processamento de impacto (regras dos 3 jogos no backend)
 async function applyImpactLocked(exp, { x, y, clientEventId }, now) {
   await syncExperience(exp, now);
 
@@ -695,7 +651,6 @@ async function applyImpactLocked(exp, { x, y, clientEventId }, now) {
   if (exp.state === 'PREPARING') return reject('PREPARING_BLOCKED');
   if (exp.state !== 'ACTIVE') return reject('EXPERIENCE_ENDED');
 
-  // Deduplicação por client_event_id
   if (clientEventId) {
     const dup = await get(
       `SELECT id, accepted, reason FROM commercial_impacts WHERE experience_id = ? AND client_event_id = ?`,

@@ -25,14 +25,12 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [resetUser, setResetUser] = useState(null);
   const [profileUser, setProfileUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
 
-  // Form states
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -141,7 +139,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn font-mono">
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#08120B] border border-[#295437]">
         <div>
           <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
@@ -163,7 +161,7 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      {/* Barra de Busca de Usuários */}
+      
       <div className="p-4 rounded-2xl bg-[#08120B] border border-[#295437] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-[#8C9891] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -180,7 +178,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Users Table */}
+      
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4 overflow-x-auto">
         {loading ? (
           <div className="py-8 text-center text-[#8C9891] text-xs">Carregando usuários...</div>
@@ -298,7 +296,7 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Modal: Consultar Perfil */}
+      
       {profileUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-cyan-400/50 space-y-4 font-mono text-xs">
@@ -378,7 +376,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: Create User */}
+      
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">
@@ -467,7 +465,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: Edit User */}
+      
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">
@@ -543,7 +541,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modal: Reset Password */}
+      
       {resetUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">

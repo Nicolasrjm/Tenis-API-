@@ -4,7 +4,6 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 
-// Carregamento centralizado de variáveis de ambiente e segurança
 require('./config/supabaseConfig');
 
 const { initializeDatabase } = require('./database/initDb');
@@ -26,7 +25,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const academyRoutes = require('./routes/academyRoutes');
 const sensorsRoutes = require('./routes/sensorsRoutes');
 
-// Fase 2 & Fase 3: Modo Shopping / Modo Pessoal / Modo Visitante
+// Modo Shopping / Modo Pessoal / Modo Visitante
 const { experienceRouter, installationRouter } = require('./routes/experienceRoutes');
 const experienceService = require('./services/experienceService');
 const personalMatchRoutes = require('./routes/personalMatchRoutes');
@@ -93,7 +92,7 @@ async function startServer() {
   try {
     await initializeDatabase(false);
 
-    // Fase 2: tabelas da experiência comercial + recuperação após reinício + ticker de tempo
+    // Tabelas da experiência comercial + recuperação após reinício + ticker de tempo
     await experienceService.ensureExperienceTables();
     const recovery = await experienceService.recoverOnStartup();
     if (recovery.found > 0) {
@@ -109,18 +108,15 @@ async function startServer() {
     }
     personalMatchService.startPersonalMatchTicker();
 
-    // Fase 3: sessões temporárias e isoladas de visitante + limpeza automática
+    // Sessões temporárias e isoladas de visitante + limpeza automática
     await guestSessionService.ensureGuestTables();
     await guestSessionService.cleanupExpiredGuestSessions();
     guestSessionService.startGuestCleanupTicker();
 
-    // Fase 3 Finalização & Preparação IoT: configuração da parede do Nicolas e sensores KY-037
     await iotLocalizationService.ensureIotAndWallTables();
 
-    // Fase 4: Motion Tennis Academy (acesso gratuito, catálogo de 12 aulas, embed YouTube e progresso)
     await academyService.ensureAcademyTables();
 
-    // Etapa C: Inicia o worker de sincronização offline-first da cloud_outbox
     cloudSyncWorker.startWorker({ intervalMs: 20000 });
 
     initEventHub(server);

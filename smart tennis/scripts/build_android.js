@@ -1,15 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — SCRIPT OFICIAL DE BUILD DO APK ANDROID (CAPACITOR)
- * ==============================================================================
- * Executa as 6 etapas obrigatórias de compilação:
- * 1. Build do frontend Vite em modo android (VITE_APP_MODE=android_cloud)
- * 2. Validação dos assets compilados em client/dist
- * 3. Sincronização do Capacitor com a plataforma Android
- * 4. Compilação do APK Debug via Gradle Wrapper
- * 5. Verificação da integridade e tamanho do APK final
- * ==============================================================================
- */
+
 
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -23,11 +12,9 @@ const clientDir = path.resolve('client');
 const androidDir = path.resolve('client/android');
 
 try {
-  // ETAPA 1: Compilar frontend React/Vite para Android Cloud
   console.log('📦 [1/5] Compilando frontend Vite em modo Android Cloud (client/dist)...');
   execSync('npm run build:android', { cwd: clientDir, stdio: 'inherit' });
 
-  // ETAPA 2: Validar integridade dos assets gerados
   console.log('\n🔍 [2/5] Validando integridade dos assets gerados em client/dist...');
   const distIndexHtml = path.join(clientDir, 'dist/index.html');
   if (!fs.existsSync(distIndexHtml)) {
@@ -53,15 +40,12 @@ try {
   }
   console.log(`      Bundle verificado com sucesso: ${jsFile} (${(jsContent.length / 1024).toFixed(1)} KB)`);
 
-  // ETAPA 3: Sincronizar Capacitor com Android
   console.log('\n🔄 [3/5] Sincronizando assets com o projeto nativo Android...');
   execSync('npx cap sync android', { cwd: clientDir, stdio: 'inherit' });
 
-  // ETAPA 4: Compilar APK Debug via Gradle Wrapper
   console.log('\n⚙️ [4/5] Compilando APK Debug com Gradle Wrapper (assembleDebug)...');
   execSync('.\\gradlew.bat assembleDebug', { cwd: androidDir, stdio: 'inherit' });
 
-  // ETAPA 5: Verificar APK gerado
   console.log('\n📱 [5/5] Verificando APK gerado...');
   const apkPath = path.join(androidDir, 'app/build/outputs/apk/debug/app-debug.apk');
   if (!fs.existsSync(apkPath)) {

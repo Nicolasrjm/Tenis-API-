@@ -12,9 +12,6 @@ const guestSessionService = require('../services/guestSessionService');
 const iotLocalizationService = require('../services/iotLocalizationService');
 const { broadcastEvent } = require('../services/eventHub');
 
-/**
- * Extrai opcionalmente o ator (usuário autenticado ou visitante) a partir do header Authorization
- */
 async function resolveOptionalActor(req) {
   const authHeader = req.headers?.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -37,7 +34,6 @@ async function resolveOptionalActor(req) {
   return null;
 }
 
-// GET /api/sensors - Retorna os 6 alvos físicos da parede ativa para o ator atual
 router.get('/', async (req, res) => {
   try {
     const actor = await resolveOptionalActor(req);
@@ -54,7 +50,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/sensors/wall-config - Retorna a dimensão da parede, os 6 setores e os 3 sensores KY-037 (S1, S2, S3)
 router.get('/wall-config', async (req, res) => {
   try {
     const actor = await resolveOptionalActor(req);
@@ -84,7 +79,6 @@ router.get('/wall-config', async (req, res) => {
   }
 });
 
-// PUT e POST /api/sensors/wall-config - Atualiza a dimensão da parede vinculada ao ID real da conta Nicolas
 async function handleUpdateWallConfig(req, res) {
   try {
     const {

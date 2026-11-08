@@ -75,7 +75,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
   return (
     <div className="space-y-10 animate-fadeIn max-w-6xl mx-auto">
       
-      {/* Page Header */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-colors">
         <div>
           <h1 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
@@ -88,7 +88,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
         </div>
       </div>
 
-      {/* 1. SEÇÃO DE ATRIBUTOS DO JOGADOR */}
+      
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-[#142B3D] dark:text-[#F1F5F9]">Atributos Principais do Jogador</h2>
@@ -126,7 +126,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
                   <ChevronRight className="w-4 h-4 text-[#475569] dark:text-[#A8BAC8] group-hover:text-[#2563EB] dark:group-hover:text-[#B8F044] group-hover:translate-x-0.5 transition-all" />
                 </div>
 
-                {/* Progress bar */}
+                
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8]">
                     <span>EXP</span>
@@ -146,7 +146,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
         </div>
       </div>
 
-      {/* 2. ÁRVORE VISUAL DE EVOLUÇÃO (SKILL TREE) */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
@@ -159,7 +159,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
             </p>
           </div>
 
-          {/* Legend */}
+          
           <div className="flex items-center space-x-3 text-[10px] font-mono">
             <span className="flex items-center space-x-1">
               <span className="w-2 h-2 rounded-full bg-[#B8F044]"></span>
@@ -176,12 +176,12 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
           </div>
         </div>
 
-        {/* Visual Skill Tree Layout */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
           
-          {/* Interactive Tree Graph */}
+          
           <div className="lg:col-span-7 bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] rounded-2xl p-6 relative overflow-hidden min-h-[460px] flex flex-col justify-between">
-            {/* Nodes Stack */}
+            
             <div className="relative z-10 space-y-4">
               {nodes.map((node, i) => {
                 const isSelected = selectedNode?.id === node.id;
@@ -231,7 +231,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
             </div>
           </div>
 
-          {/* Selected Node Details Card */}
+          
           <div className="lg:col-span-5 p-6 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] space-y-4">
             {selectedNode ? (
               <>
@@ -258,7 +258,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
                   {selectedNode.description}
                 </p>
 
-                {/* Requirement Box */}
+                
                 <div className="p-3.5 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-1">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9]">
                     <Info className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#B8F044]" />
@@ -274,7 +274,7 @@ export default function EvolutionPage({ onSelectSkill, onLevelUp }) {
                   <span className="text-[#2563EB] dark:text-[#B8F044] font-bold">+{selectedNode.xp_reward} XP</span>
                 </div>
 
-                {/* Action button */}
+                
                 {selectedNode.status !== 'completed' && (
                   <button
                     onClick={() => handleUnlockNode(selectedNode.id)}

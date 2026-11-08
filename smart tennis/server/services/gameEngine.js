@@ -7,7 +7,6 @@ const {
   generateSimulatedImpact
 } = require('./wallGeometry');
 
-// Configuração padrão da parede (3x2m) para inicializações
 const DEFAULT_GEOMETRY = calculateWallGeometry('medium');
 const FIXED_SECTORS = DEFAULT_GEOMETRY.sectors;
 const FIXED_TARGETS = FIXED_SECTORS;
@@ -33,7 +32,6 @@ function getTitleForLevel(level) {
 
 async function getActiveWallPreset() {
   try {
-    // O preset da parede é persistido em system_settings (chave 'wall_preset'), usado pelo painel admin
     const row = await get(`SELECT value FROM system_settings WHERE key = 'wall_preset'`);
     return (row?.value && WALL_PRESETS[row.value]) ? row.value : 'medium';
   } catch (err) {
@@ -41,7 +39,6 @@ async function getActiveWallPreset() {
   }
 }
 
-// DETECÇÃO POR SETOR RETANGULAR COM ESPAÇAMENTO FÍSICO DE 30 CM E MARGENS DE 10 CM
 function detectSector(x, y, preset = 'medium') {
   if (x === undefined || x === null || y === undefined || y === null) {
     return { hit: false, sectorId: null, targetId: null, sensorId: null, sector: null, classification: 'INVALID' };
@@ -76,7 +73,6 @@ function detectSector(x, y, preset = 'medium') {
   };
 }
 
-// Alias de detecção para compatibilidade
 function detectNearestTarget(x, y, preset = 'medium') {
   const res = detectSector(x, y, preset);
   return {
@@ -145,7 +141,7 @@ async function registerHit({
   userId = 1,
   equipmentId = 1,
   sessionId = null,
-  gameMode = 'free', // 'free', 'single', 'clear_all'
+  gameMode = 'free',
   sensorId = null,
   sectorId = null,
   targetId = null,
@@ -175,10 +171,9 @@ async function registerHit({
     score = sensor.base_score || 85;
     xp = Math.round(score / 2);
 
-    // Mode specific scoring
     if (gameMode === 'single') {
       if (targetSensorId && sensor.id === Number(targetSensorId)) {
-        score += 30; // Bônus de acerto no alvo solicitado
+        score += 30;
         xp += 20;
       }
     } else if (gameMode === 'clear_all') {
@@ -186,7 +181,6 @@ async function registerHit({
       xp += 10;
     }
 
-    // Speed bonus
     if (hitSpeed > 95) {
       score += 5;
       xp += 5;
@@ -195,7 +189,6 @@ async function registerHit({
 
   const storedSensorId = isHit && sensor.id > 0 ? sensor.id : null;
 
-  // Insert into hits table
   let hitInsert;
   try {
     hitInsert = await run(`
@@ -211,7 +204,6 @@ async function registerHit({
     `, [userId, equipmentId, sessionId, gameMode, storedSensorId, resolved.x, resolved.y, hitSpeed, score]);
   }
 
-  // Insert into legacy shots table for compatibility with existing hitmap
   let shotInsert;
   try {
     shotInsert = await run(`
@@ -227,7 +219,6 @@ async function registerHit({
     `, [sessionId, resolved.x, resolved.y, isHit ? sensor.name : 'FORA', storedSensorId || 0, hitSpeed, score, isHit, isBullseye, simFlag ? 'simulation' : source, isHit ? sensor.name : 'FORA']);
   }
 
-  // Update Player stats and XP for the authenticated player (including mouse simulation)
   let player = userId ? await get(`SELECT * FROM players WHERE user_id = ? LIMIT 1`, [userId]) : null;
   if (!player && userId) {
     const userRow = await get(`SELECT id, name, avatar, role FROM users WHERE id = ?`, [userId]);
@@ -284,7 +275,6 @@ async function registerHit({
     `, [newXp, currentLevel, newTitle, xpNext, newTotalShots, newTotalHits, newPrecision, bestScore, avgScore, player.id]);
   }
 
-  // Update attributes progression for the associated player
   if (player && !skipStats) {
     await ensurePlayerAttributes(player.id);
   }
@@ -297,7 +287,6 @@ async function registerHit({
     gameMode
   }) : [];
 
-  // Check achievements
   const unlockedAchievements = await checkAchievements({
     totalShots: newTotalShots,
     totalHits: newTotalHits,
@@ -441,7 +430,6 @@ async function checkAchievements({ totalShots, totalHits, precision, isBullseye,
   return newlyUnlocked;
 }
 
-// Generate realistic simulated hit with coordinates based on wall geometry and 6 fixed targets
 function generateSimulatedSensorHit(activeTargetSensorId = null, availableSensors = null, preset = 'medium') {
   return generateSimulatedImpact(preset, activeTargetSensorId, availableSensors);
 }

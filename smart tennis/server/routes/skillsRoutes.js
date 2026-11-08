@@ -30,7 +30,6 @@ async function resolvePlayerAndUser(req) {
   return { userId, player };
 }
 
-// GET /api/skills/attributes - All 6 player attributes
 router.get('/attributes', async (req, res) => {
   try {
     const { player } = await resolvePlayerAndUser(req);
@@ -43,7 +42,6 @@ router.get('/attributes', async (req, res) => {
   }
 });
 
-// GET /api/skills/attribute/:key - Specific skill details
 router.get('/attribute/:key', async (req, res) => {
   try {
     const { userId, player } = await resolvePlayerAndUser(req);
@@ -70,7 +68,6 @@ router.get('/attribute/:key', async (req, res) => {
   }
 });
 
-// GET /api/skills/tree - Skill Tree nodes and graph
 router.get('/tree', async (req, res) => {
   try {
     const nodes = await all(`SELECT * FROM skill_tree ORDER BY tier ASC, pos_y ASC`);
@@ -80,7 +77,6 @@ router.get('/tree', async (req, res) => {
   }
 });
 
-// POST /api/skills/tree/:id/unlock - Unlock node in skill tree
 router.post('/tree/:id/unlock', async (req, res) => {
   try {
     const node = await get(`SELECT * FROM skill_tree WHERE id = ?`, [req.params.id]);

@@ -20,30 +20,24 @@ import { isWebDemoMode, isEquipmentMode, isCloudOnlyMode } from '../services/app
 import ThemeToggle from '../components/ui/ThemeToggle';
 
 export default function LoginPage() {
-  // Navigation tabs: 'login' | 'signup' | 'guest'
   const [activeTab, setActiveTab] = useState('login');
   
-  // Login form state
   const [emailOrUser, setEmailOrUser] = useState('');
   const [password, setPassword] = useState('');
   
-  // Signup form state
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   
-  // Password recovery state
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoverySuccess, setRecoverySuccess] = useState(null);
 
-  // Email confirmation state
   const [unconfirmedEmail, setUnconfirmedEmail] = useState(null);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [resendStatus, setResendStatus] = useState(null);
 
-  // Status & messages
   const [error, setError] = useState(null);
   const [infoMessage, setInfoMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -54,8 +48,6 @@ export default function LoginPage() {
   const { login, loginCloud, signupCloud, recoverPasswordCloud, resendConfirmationEmail, startGuest } = useAuth();
   const navigate = useNavigate();
 
-  // O modo visitante só é permitido no equipamento físico da quadra (notebook local com SQLite)
-  // Na Vercel (web demo), no app Android nativo (Capacitor) e em dispositivos móveis, fica desabilitado.
   const canShowGuest = isEquipmentMode() && !isNativeMobile() && !isMobileDevice();
 
   const handleResendConfirmation = async () => {
@@ -113,7 +105,6 @@ export default function LoginPage() {
     const isMobile = isMobileDevice() || isNativeMobile();
     const isCloudMode = isCloudOnlyMode() || isMobile;
 
-    // Se estiver no celular, app Android ou na Vercel (sem servidor local SQLite) e não digitou e-mail
     if (isCloudMode && !isEmail) {
       setError('No celular ou acesso online, utilize o seu e-mail cadastrado (ex: atleta@exemplo.com).');
       return;
@@ -123,7 +114,6 @@ export default function LoginPage() {
 
     try {
       if (isEmail) {
-        // Tentativa de login Cloud via Supabase Auth
         try {
           const authUser = await loginCloud(rawInput.toLowerCase(), password);
           setInfoMessage('Login validado! Redirecionando...');
@@ -138,14 +128,12 @@ export default function LoginPage() {
           }, 350);
           return;
         } catch (cloudErr) {
-          // Se for erro específico de confirmação de e-mail, guarda o e-mail para permitir reenvio
           if (cloudErr.requiresConfirmation || (cloudErr.message && cloudErr.message.includes('confirmado'))) {
             setUnconfirmedEmail(rawInput.toLowerCase());
           }
           throw cloudErr;
         }
       } else {
-        // Login local via identificador de atleta SQLite
         const localUser = await login(rawInput, password);
         setInfoMessage('Login validado! Redirecionando...');
         setTimeout(() => {
@@ -245,11 +233,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col justify-between p-4 sm:p-8 relative selection:bg-[#B8F044] selection:text-[#101820] font-sans transition-colors duration-200">
-      {/* Background athletic accent gradients */}
+      
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#B8C6D0]/30 dark:bg-[#18242E]/50 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#B8F044]/15 dark:bg-[#B8F044]/5 rounded-full blur-[140px] pointer-events-none"></div>
 
-      {/* Top bar */}
+      
       <div className="max-w-md w-full mx-auto flex items-center justify-between z-10">
         <Link
           to="/"
@@ -261,11 +249,11 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
 
-      {/* Main Card Sport Premium — Dual Theme (#F4F6F8 / #22313D) */}
+      
       <div className="max-w-md w-full mx-auto my-auto z-10 py-6">
         <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-[0_12px_32px_-4px_rgba(16,24,32,0.18),0_4px_12px_-2px_rgba(16,24,32,0.08)] space-y-6">
           
-          {/* Logo Motion Tennis */}
+          
           <div className="text-center space-y-2">
             <div className="w-12 h-12 mx-auto rounded-2xl bg-[#142B3D] dark:bg-[#0D1B2A] border border-[#B8F044]/50 flex items-center justify-center text-[#B8F044] shadow-sm">
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -280,7 +268,7 @@ export default function LoginPage() {
             <p className="text-xs text-[#475569] dark:text-[#A8BAC8] font-medium">Plataforma Esportiva e Tecnológica</p>
           </div>
 
-          {/* Abas Principais: Entrar | Criar Conta | Visitante (se canShowGuest) */}
+          
           <div className={`grid ${canShowGuest ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 p-1 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]`}>
             <button
               type="button"
@@ -342,7 +330,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Mensagens de Feedback */}
+          
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-100 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-500/40 text-rose-900 dark:text-rose-200 text-xs flex items-start space-x-2.5">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-700 dark:text-rose-400" />
@@ -361,7 +349,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Alerta de Confirmação de E-mail Pendente */}
+          
           {unconfirmedEmail && (
             <div
               data-testid="unconfirmed-email-banner"
@@ -403,7 +391,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ABA 1: ENTRAR */}
+          
           {activeTab === 'login' && !showRecovery && (
             <form onSubmit={handleLogin} className="space-y-4 pt-1">
               <div>
@@ -466,7 +454,7 @@ export default function LoginPage() {
                 <span>{loading ? 'Entrando...' : 'Entrar'}</span>
               </button>
 
-              {/* Acessos Rápidos de Desenvolvimento (exclusivo para ambiente local da quadra) */}
+              
               {import.meta.env.DEV && canShowGuest && (
                 <div data-testid="dev-shortcuts-panel" className="pt-3 border-t border-[#B8C6D0] dark:border-[#344653] space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-[#475569] dark:text-[#A8BAC8]">
@@ -504,7 +492,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* RECUPERAÇÃO DE SENHA */}
+          
           {activeTab === 'login' && showRecovery && (
             <form onSubmit={handleRecoverPassword} className="space-y-4 pt-1">
               <div className="flex items-center justify-between pb-1">
@@ -561,7 +549,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ABA 2: CRIAR CONTA */}
+          
           {activeTab === 'signup' && (
             <form onSubmit={handleSignup} className="space-y-3.5 pt-1">
               <div>
@@ -644,7 +632,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ABA 3: VISITANTE (Apenas no equipamento físico da quadra) */}
+          
           {canShowGuest && activeTab === 'guest' && (
             <div className="space-y-4 pt-1">
               <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs space-y-2 text-[#475569] dark:text-[#A8BAC8]">
@@ -674,7 +662,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Footer */}
+      
       <div className="max-w-md w-full mx-auto text-center text-xs font-semibold text-[#64748B] dark:text-[#A8BAC8] z-10">
         MOTION TENNIS © 2026
       </div>

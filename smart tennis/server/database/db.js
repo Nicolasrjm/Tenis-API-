@@ -2,8 +2,6 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// SMART_TENNIS_DB_PATH existe apenas para testes automatizados isolados (cópia do banco).
-// Em produção a variável não é definida e o banco continua sendo smart_tennis.db.
 const DB_PATH = process.env.SMART_TENNIS_DB_PATH || path.join(__dirname, 'smart_tennis.db');
 
 let db = null;

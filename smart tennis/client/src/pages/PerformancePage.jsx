@@ -14,7 +14,7 @@ import { api } from '../services/api';
 
 export default function PerformancePage() {
   const [data, setData] = useState({ shots: [], zoneDistribution: {}, totalCount: 0, totalHits: 0, bullseyes: 0 });
-  const [filter, setFilter] = useState('all'); // all, bullseye, hits, misses
+  const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,13 +42,12 @@ export default function PerformancePage() {
   const precisionRate = data.totalCount > 0 ? Math.round((data.totalHits / data.totalCount) * 100) : 0;
   const bullseyeRate = data.totalCount > 0 ? Math.round((data.bullseyes / data.totalCount) * 100) : 0;
 
-  // Sorted zone distribution
   const sortedZones = Object.entries(data.zoneDistribution || {}).sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
@@ -60,7 +59,7 @@ export default function PerformancePage() {
           </p>
         </div>
 
-        {/* Filter buttons */}
+        
         <div className="flex items-center space-x-2 bg-[#07110B] p-1 rounded-xl border border-[#1B3624] text-xs font-mono">
           <button
             onClick={() => setFilter('all')}
@@ -89,7 +88,7 @@ export default function PerformancePage() {
         </div>
       </div>
 
-      {/* Top 3 Metric Cards */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-[#0C1A11] border border-[#1B3624]">
           <span className="text-xs font-mono text-[#8C9891]">TAXA DE PRECISÃO GLOBAL</span>
@@ -112,10 +111,10 @@ export default function PerformancePage() {
         </div>
       </div>
 
-      {/* Main Grid: Full Hit Map + Zone Distribution List */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Hit Map Canvas */}
+        
         <div className="lg:col-span-7 p-6 sm:p-8 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[#F5F7F5] flex items-center space-x-2">
@@ -143,7 +142,7 @@ export default function PerformancePage() {
           </div>
         </div>
 
-        {/* Zone Distribution Breakdown */}
+        
         <div className="lg:col-span-5 p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-4">
           <h2 className="text-base font-bold text-[#F5F7F5] flex items-center space-x-2">
             <Layers className="w-5 h-5 text-[#39FF88]" />

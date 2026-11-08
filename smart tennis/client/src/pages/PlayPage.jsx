@@ -103,17 +103,15 @@ function PersonalPlay({ isWebDemo = false }) {
 
   const arenaContainerRef = useRef(null);
 
-  // Modos de jogo: 'free', 'single', 'clear_all'
   const initialMode = searchParams.get('mode') || 'free';
   const [mode, setMode] = useState(['free', 'single', 'clear_all'].includes(initialMode) ? initialMode : 'free');
 
-  // Ciclo de vida da partida: 'IDLE' (aguardando JOGAR), 'PREPARING' (contagem 5s), 'PLAYING' (05:00 ativo), 'FINISHED' (encerrada)
   const [plannedSeconds, setPlannedSeconds] = useState(300);
   const [matchId, setMatchId] = useState(null);
   const matchIdRef = useRef(null);
   const [matchStatus, setMatchStatus] = useState('IDLE');
-  const [matchStartedAt, setMatchStartedAt] = useState(null); // Timestamp em que PREPARING termina e ACTIVE começa
-  const [matchEndsAt, setMatchEndsAt] = useState(null);       // Timestamp em que ACTIVE (300s) termina
+  const [matchStartedAt, setMatchStartedAt] = useState(null);
+  const [matchEndsAt, setMatchEndsAt] = useState(null);
   const [usedDurationSeconds, setUsedDurationSeconds] = useState(0);
   const [nowTick, setNowTick] = useState(Date.now());
   const [startingMatch, setStartingMatch] = useState(false);
@@ -205,7 +203,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   };
 
-  // 1. Carrega a configuração da parede na inicialização
   useEffect(() => {
     if (isWebDemo) return;
     let isMounted = true;
@@ -260,7 +257,6 @@ function PersonalPlay({ isWebDemo = false }) {
     };
   }, [isGuest, user?.id]);
 
-  // Altera o tamanho físico da parede (exclusivo para a conta do Nicolas antes de iniciar a partida)
   const handleSelectNicolasWallPreset = async (newPreset) => {
     if (!wallConfig.canConfigureWall || savingWall) return;
     if (matchStatus === 'PREPARING' || matchStatus === 'PLAYING') {
@@ -300,7 +296,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   };
 
-  // 2. Sincroniza query parameter 'mode'
   useEffect(() => {
     const qMode = searchParams.get('mode');
     if (qMode && ['free', 'single', 'clear_all'].includes(qMode) && qMode !== mode) {
@@ -308,11 +303,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   }, [searchParams]);
 
-  // 3. Consulta o backend na inicialização / F5 / troca de modo:
-  //    IMPORTANTE (PARTE A - ITEM 1):
-  //    - Se já houver partida PREPARING ou ACTIVE para este modo (ex.: F5), recupera sem reiniciar o cronômetro.
-  //    - Se NÃO houver partida em andamento para este modo, permanece em IDLE com o cronômetro parado em 05:00
-  //      aguardando o jogador clicar no botão JOGAR!
   useEffect(() => {
     if (isWebDemo) {
       prepareIdleGame(mode, 300);
@@ -339,7 +329,6 @@ function PersonalPlay({ isWebDemo = false }) {
           return;
         }
 
-        // Permanece em IDLE aguardando o botão JOGAR (NÃO inicia automaticamente!)
         prepareIdleGame(mode, pSec);
       } catch (err) {
         if (alive) prepareIdleGame(mode, 300);
@@ -348,7 +337,6 @@ function PersonalPlay({ isWebDemo = false }) {
     return () => { alive = false; };
   }, [mode]);
 
-  // 4. Relógio visual contínuo (100ms para precisão da contagem 5,4,3,2,1,JÁ!) + sincronização com o backend
   useEffect(() => {
     const tick = setInterval(() => {
       setNowTick(Date.now());
@@ -378,12 +366,10 @@ function PersonalPlay({ isWebDemo = false }) {
 
   const serverNow = nowTick + serverOffsetRef.current;
 
-  // Cálculo da preparação de 5 segundos controlada pelo servidor
   const prepRemainingMs = matchStartedAt ? Math.max(0, matchStartedAt - serverNow) : 0;
   const prepRemainingSeconds = Math.ceil(prepRemainingMs / 1000);
   const msSinceOfficialStart = matchStartedAt ? serverNow - matchStartedAt : -1;
 
-  // Transição local imediata quando prepRemainingMs zera, enquanto o poll de 500ms confirma ACTIVE no servidor
   useEffect(() => {
     if (matchStatus === 'PREPARING' && matchStartedAt && prepRemainingMs <= 0) {
       setMatchStatus('PLAYING');
@@ -402,7 +388,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   }, [matchStatus, matchStartedAt, prepRemainingMs, mode, activeSectorId]);
 
-  // Exibe "JÁ!" brevemente (700ms) no exato instante em que a contagem de 5s chega a zero
   const showGoBanner = (matchStatus === 'PLAYING' || matchStatus === 'PREPARING') &&
     matchStartedAt !== null &&
     msSinceOfficialStart >= 0 &&
@@ -413,7 +398,6 @@ function PersonalPlay({ isWebDemo = false }) {
     ? 'JÁ!'
     : String(Math.max(1, Math.min(5, prepRemainingSeconds)));
 
-  // Durante IDLE ou PREPARING, o cronômetro de 5 minutos fica parado em 05:00 (plannedSeconds)
   const remainingMs = matchStatus === 'PLAYING' && matchEndsAt
     ? Math.max(0, Math.min(plannedSeconds * 1000, matchEndsAt - serverNow))
     : (matchStatus === 'IDLE' || matchStatus === 'PREPARING')
@@ -425,7 +409,6 @@ function PersonalPlay({ isWebDemo = false }) {
     ? Math.min(100, Math.max(0, ((plannedSeconds - remainingSeconds) / plannedSeconds) * 100))
     : 0;
 
-  // Quando o cronômetro de 05:00 chega a 00:00, sincroniza e finaliza
   useEffect(() => {
     if (matchStatus === 'PLAYING' && matchEndsAt && remainingSeconds <= 0) {
       api.personalMatch.getCurrent(mode)
@@ -448,7 +431,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   }, [matchStatus, matchEndsAt, remainingSeconds, mode, plannedSeconds]);
 
-  // 5. Escuta de impactos externos de hardware
   useEffect(() => {
     const unsubHit = wsClient.on('HIT_REGISTERED', (payload) => {
       if (!payload || !payload.hit || isGuest) return;
@@ -500,7 +482,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   };
 
-  // Clicar no botão JOGAR: inicia estado PREPARING (5s) no backend
   const handleStartMatch = async (forceNew = false) => {
     if (startingMatch) return;
     if (!forceNew && (matchStatus === 'PREPARING' || matchStatus === 'PLAYING')) return;
@@ -550,7 +531,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   };
 
-  // Cancelar durante PREPARING ou encerrar manualmente durante PLAYING
   const handleEndOrCancelMatch = async () => {
     const wasPreparing = matchStatus === 'PREPARING';
 
@@ -594,7 +574,6 @@ function PersonalPlay({ isWebDemo = false }) {
     }
   };
 
-  // Trocar de modo de jogo: NUNCA inicia cronômetro nem cria partida ACTIVE
   const handleModeChange = async (newMode) => {
     if (newMode === mode) return;
     if ((matchStatus === 'PREPARING' || matchStatus === 'PLAYING') && matchIdRef.current) {
@@ -642,9 +621,6 @@ function PersonalPlay({ isWebDemo = false }) {
     navigate('/login');
   };
 
-  // =========================================================================
-  // PROCESSAMENTO CENTRAL DE IMPACTO (BLOQUEADO EM IDLE, PREPARING E FINISHED)
-  // =========================================================================
   const sendImpactToBackend = async ({ sectorId, x, y, isNeutral = false }) => {
     if (matchStatus !== 'PLAYING' || showCountdownOverlay || gameWon || remainingSeconds <= 0) {
       return;
@@ -846,17 +822,17 @@ function PersonalPlay({ isWebDemo = false }) {
   return (
     <div ref={arenaContainerRef} className="space-y-4 max-w-6xl mx-auto">
 
-      {/* ========================================================================= */}
-      {/* ETAPA 2 — MODO FOCO (TELA CHEIA IMERSIVA DE JOGO QUANDO EM ANDAMENTO)     */}
-      {/* ========================================================================= */}
+      
+      
+      
       {(matchStatus === 'PREPARING' || matchStatus === 'PLAYING') && (
         <div
           data-testid="focus-game-viewport"
           className="fixed inset-0 z-50 bg-[#050D07] flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none"
         >
-          {/* HUD SUPERIOR COMPACTO */}
+          
           <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#09150E]/90 border border-[#16C96B]/30 shadow-xl backdrop-blur-md">
-            {/* Esquerda: Modo e Status */}
+            
             <div className="flex items-center space-x-2.5">
               <span className="px-3 py-1 rounded-xl bg-[#102216] border border-[#39FF88]/40 text-xs font-mono font-bold text-[#39FF88] shadow-sm">
                 {currentInfo.title}
@@ -869,7 +845,7 @@ function PersonalPlay({ isWebDemo = false }) {
               </div>
             </div>
 
-            {/* Centro: Cronômetro, Pontos, Golpes, Precisão */}
+            
             <div className="flex items-center gap-4 sm:gap-6 font-mono">
               <div className="text-center">
                 <div className="text-[10px] text-[#8C9891] uppercase">Tempo</div>
@@ -907,7 +883,7 @@ function PersonalPlay({ isWebDemo = false }) {
               </div>
             </div>
 
-            {/* Direita: Som, Tela Cheia e Botão SAIR com Confirmação */}
+            
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleSound}
@@ -947,7 +923,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          {/* ÁREA CENTRAL MAXIMIZADA DA PAREDE (6 SETORES) */}
+          
           <div className="flex-1 w-full max-w-7xl mx-auto relative flex items-center justify-center my-auto min-h-0">
             <CourtTarget
               gameMode={mode}
@@ -966,7 +942,7 @@ function PersonalPlay({ isWebDemo = false }) {
               isFullscreen={true}
             />
 
-            {/* CONTAGEM REGRESSIVA CENTRAL 5, 4, 3, 2, 1, JÁ! */}
+            
             {showCountdownOverlay && (
               <div
                 data-testid="countdown-overlay"
@@ -988,7 +964,7 @@ function PersonalPlay({ isWebDemo = false }) {
             )}
           </div>
 
-          {/* MODAL DE CONFIRMAÇÃO DE SAÍDA */}
+          
           {showExitModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
               <div className="max-w-sm w-full p-6 rounded-3xl bg-[#0C1A11] border-2 border-rose-500/50 shadow-2xl text-center space-y-4">
@@ -1026,9 +1002,9 @@ function PersonalPlay({ isWebDemo = false }) {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* ETAPA 3 — TELA DE RESULTADO (SUMMARY APÓS TÉRMINO DA PARTIDA)             */}
-      {/* ========================================================================= */}
+      
+      
+      
       {(matchStatus === 'FINISHED' || gameWon) && (
         <div
           data-testid="personal-summary-panel"
@@ -1051,7 +1027,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </p>
           </div>
 
-          {/* Métricas Principais */}
+          
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
             <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
               <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Pontuação</div>
@@ -1088,7 +1064,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          {/* Status Discreto e Fidedigno de Sincronização */}
+          
           <div className="p-3.5 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono flex items-center justify-center gap-2">
             {isWebDemo ? (
               <>
@@ -1114,7 +1090,7 @@ function PersonalPlay({ isWebDemo = false }) {
             )}
           </div>
 
-          {/* Ações */}
+          
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               data-testid="btn-play-again"
@@ -1150,12 +1126,12 @@ function PersonalPlay({ isWebDemo = false }) {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* ETAPA 1 — TELA JOGAR CLEAN (LOBBY PRÉ-JOGO QUANDO matchStatus === 'IDLE')  */}
-      {/* ========================================================================= */}
+      
+      
+      
       {matchStatus === 'IDLE' && (
         <div className="space-y-4">
-          {/* BANNER DE DEMONSTRAÇÃO WEB */}
+          
           {isWebDemo && (
             <div
               data-testid="web-demo-discreet-badge"
@@ -1171,7 +1147,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          {/* BANNER DE VISITANTE */}
+          
           {isGuest && (
             <div
               data-testid="guest-play-banner"
@@ -1190,7 +1166,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          {/* SELEÇÃO LIMPA DE MODOS */}
+          
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <button
@@ -1244,7 +1220,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          {/* HERO PLAY CARD: RESUMO CURTO + BOTÃO JOGAR EM GRANDE DESTAQUE */}
+          
           <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div className="space-y-1.5">
@@ -1262,7 +1238,7 @@ function PersonalPlay({ isWebDemo = false }) {
                 </p>
               </div>
 
-              {/* AÇÃO PRINCIPAL: BOTÃO JOGAR */}
+              
               <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-end">
                 <button
                   data-testid="btn-play-start"
@@ -1285,7 +1261,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          {/* PAINEL RECOLHÍVEL: DIMENSÕES DA PAREDE E DIAGNÓSTICO IoT */}
+          
           {!isWebDemo && !isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
             <div className="rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden transition-all shadow-sm">
               <button
@@ -1377,7 +1353,7 @@ function PersonalPlay({ isWebDemo = false }) {
                     )}
                   </div>
 
-                  {/* Botão Diagnóstico IoT */}
+                  
                   <div className="flex items-center justify-between pt-1">
                     <button
                       data-testid="btn-toggle-iot-panel"
@@ -1411,7 +1387,7 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          {/* PRÉ-VISUALIZAÇÃO DA PAREDE EM MODO PRÉ-JOGO */}
+          
           <div className="w-full flex justify-center py-2 relative">
             <div className="w-full relative flex justify-center">
               <CourtTarget

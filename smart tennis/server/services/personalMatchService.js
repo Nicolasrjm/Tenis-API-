@@ -313,7 +313,7 @@ async function finalizePersonalMatch(match, nextState, endReason, endedAt = Date
       ]
     );
 
-    // ETAPA C: Enfileiramento automático na cloud_outbox (Offline-First)
+    // Enfileiramento automático na cloud_outbox (Offline-First)
     try {
       await cloudOutboxService.createMatchFinishedEvent({
         match,

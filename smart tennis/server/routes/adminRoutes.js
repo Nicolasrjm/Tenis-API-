@@ -4,12 +4,8 @@ const { get, all, run } = require('../database/db');
 const { requireAuth, requireAdmin, hashPassword } = require('../services/authService');
 const { FIXED_SENSORS } = require('../services/gameEngine');
 
-// Apply protection to all admin routes
 router.use(requireAuth, requireAdmin);
 
-// ================= USERS MANAGEMENT ================= //
-
-// GET /api/admin/users
 router.get('/users', async (req, res) => {
   try {
     try {
@@ -35,7 +31,6 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// POST /api/admin/users
 router.post('/users', async (req, res) => {
   try {
     const { username, name, password, role = 'player', equipment_id } = req.body;
@@ -58,7 +53,6 @@ router.post('/users', async (req, res) => {
 
     const newUserId = result.lastID;
 
-    // Create initial player profile if role is player
     if (role === 'player') {
       const { ensurePlayerAttributes } = require('../services/gameEngine');
       const pRes = await run(`
@@ -68,7 +62,6 @@ router.post('/users', async (req, res) => {
       await ensurePlayerAttributes(pRes.lastID);
     }
 
-    // Link to equipment if specified
     if (equipment_id) {
       await run(`
         INSERT OR REPLACE INTO equipment_users (equipment_id, user_id)
@@ -86,7 +79,6 @@ router.post('/users', async (req, res) => {
   }
 });
 
-// PUT /api/admin/users/:id
 router.put('/users/:id', async (req, res) => {
   try {
     const { name, role, status, avatar, equipment_id } = req.body;
@@ -97,7 +89,6 @@ router.put('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'Usuário não encontrado.' });
     }
 
-    // Prevent deactivating own admin account
     if (req.user.id === userId && status === 'inactive') {
       return res.status(400).json({ error: 'Você não pode desativar sua própria conta de administrador.' });
     }
@@ -112,7 +103,6 @@ router.put('/users/:id', async (req, res) => {
       WHERE id = ?
     `, [name, role, status, avatar, userId]);
 
-    // Update equipment association
     if (equipment_id !== undefined) {
       await run('DELETE FROM equipment_users WHERE user_id = ?', [userId]);
       if (equipment_id) {
@@ -126,7 +116,6 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/users/:id
 router.delete('/users/:id', async (req, res) => {
   try {
     const userId = Number(req.params.id);
@@ -144,7 +133,6 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-// POST /api/admin/users/:id/reset-password
 router.post('/users/:id/reset-password', async (req, res) => {
   try {
     const { newPassword } = req.body;
@@ -165,9 +153,6 @@ router.post('/users/:id/reset-password', async (req, res) => {
   }
 });
 
-// ================= EQUIPMENTS MANAGEMENT ================= //
-
-// GET /api/admin/equipments
 router.get('/equipments', async (req, res) => {
   try {
     const equipments = await all(`
@@ -184,7 +169,6 @@ router.get('/equipments', async (req, res) => {
   }
 });
 
-// POST /api/admin/equipments
 router.post('/equipments', async (req, res) => {
   try {
     const { name, code, location = 'Quadra Principal', status = 'online' } = req.body;
@@ -207,7 +191,6 @@ router.post('/equipments', async (req, res) => {
   }
 });
 
-// PUT /api/admin/equipments/:id
 router.put('/equipments/:id', async (req, res) => {
   try {
     const { name, code, status, location } = req.body;
@@ -227,7 +210,6 @@ router.put('/equipments/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/equipments/:id
 router.delete('/equipments/:id', async (req, res) => {
   try {
     await run('DELETE FROM equipment_users WHERE equipment_id = ?', [req.params.id]);
@@ -238,7 +220,6 @@ router.delete('/equipments/:id', async (req, res) => {
   }
 });
 
-// GET /api/admin/equipments/:id/users
 router.get('/equipments/:id/users', async (req, res) => {
   try {
     const users = await all(`
@@ -253,7 +234,6 @@ router.get('/equipments/:id/users', async (req, res) => {
   }
 });
 
-// POST /api/admin/equipments/:id/users
 router.post('/equipments/:id/users', async (req, res) => {
   try {
     const { userId } = req.body;
@@ -267,7 +247,6 @@ router.post('/equipments/:id/users', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/equipments/:id/users/:userId
 router.delete('/equipments/:id/users/:userId', async (req, res) => {
   try {
     await run(`
@@ -280,9 +259,6 @@ router.delete('/equipments/:id/users/:userId', async (req, res) => {
   }
 });
 
-// ================= SENSORS & SESSIONS ================= //
-
-// GET /api/admin/sensors
 router.get('/sensors', async (req, res) => {
   try {
     const sensors = await all(`SELECT * FROM sensors ORDER BY id ASC`);
@@ -309,7 +285,6 @@ router.get('/sensors', async (req, res) => {
   }
 });
 
-// GET /api/admin/sessions
 router.get('/sessions', async (req, res) => {
   try {
     const sessions = await all(`
@@ -326,7 +301,6 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
-// GET /api/admin/reports
 router.get('/reports', async (req, res) => {
   try {
     const [totalUsers, totalEquipments, totalSessions, totalHits, avgPrecision] = await Promise.all([
@@ -356,7 +330,6 @@ router.get('/reports', async (req, res) => {
   }
 });
 
-// GET /api/admin/wall-config
 router.get('/wall-config', async (req, res) => {
   try {
     const { WALL_PRESETS, PHYSICAL_CONSTANTS, calculateWallGeometry, getActiveWallPreset } = require('../services/gameEngine');
@@ -373,7 +346,6 @@ router.get('/wall-config', async (req, res) => {
   }
 });
 
-// POST /api/admin/wall-config
 router.post('/wall-config', async (req, res) => {
   try {
     const { WALL_PRESETS, calculateWallGeometry } = require('../services/gameEngine');
@@ -395,7 +367,6 @@ router.post('/wall-config', async (req, res) => {
   }
 });
 
-// ================= ACADEMY MANAGEMENT (/api/admin/academy/*) ================= //
 const academyService = require('../services/academyService');
 
 router.get('/academy/lessons', async (req, res) => {

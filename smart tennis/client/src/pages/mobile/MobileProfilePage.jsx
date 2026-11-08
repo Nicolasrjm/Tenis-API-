@@ -67,7 +67,6 @@ export default function MobileProfilePage() {
       }
     }
 
-    // Fallback local somente se estiver no equipamento físico
     if (!loadedFromCloud && isEquipmentMode() && !isNativeMobile()) {
       try {
         const playerData = await api.getPlayer().catch(() => user);
@@ -122,7 +121,7 @@ export default function MobileProfilePage() {
   return (
     <div className="p-4 sm:p-5 space-y-4 animate-fadeIn">
       
-      {/* 1. Card de Identidade do Atleta — Sport Premium */}
+      
       <div className="p-5 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm flex items-center space-x-4">
         <div className="relative shrink-0">
           <div className="w-16 h-16 rounded-2xl bg-[#142B3D] dark:bg-[#0D1B2A] border-2 border-[#B8F044] flex items-center justify-center text-3xl shadow-sm">
@@ -162,7 +161,7 @@ export default function MobileProfilePage() {
         </div>
       </div>
 
-      {/* 2. Informações de Desempenho do Atleta */}
+      
       <div className="p-4 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-3">
         <div className="flex items-center space-x-2 pb-1 border-b border-[#B8C6D0] dark:border-[#344653]">
           <Award className="w-4 h-4 text-[#2563EB] dark:text-[#60A5FA]" />
@@ -195,7 +194,7 @@ export default function MobileProfilePage() {
         </div>
       </div>
 
-      {/* 3. Preferência de Aparência (Tema Claro / Escuro) */}
+      
       <div className="p-4 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#2563EB] dark:text-[#B8F044]">
@@ -213,7 +212,7 @@ export default function MobileProfilePage() {
         <ThemeToggle />
       </div>
 
-      {/* 4. Sair da Conta */}
+      
       <button
         onClick={handleLogout}
         data-testid="btn-profile-logout"

@@ -42,10 +42,10 @@ export default function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
       
-      {/* CABEÇALHO DO ATLETA — Dual Theme (#F4F6F8 / #22313D) */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-6 shadow-sm relative overflow-hidden transition-colors">
         
-        {/* Glow sutil */}
+        
         <div className="absolute top-0 right-0 w-72 h-72 bg-[#2563EB]/5 dark:bg-[#B8F044]/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
@@ -71,7 +71,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Barra de XP */}
+        
         <div className="space-y-2 pt-2 relative z-10">
           <div className="flex items-center justify-between text-xs font-mono">
             <span className="text-[#475569] dark:text-[#A8BAC8] font-bold">PROGRESSO DE EXPERIÊNCIA</span>
@@ -87,7 +87,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 3 Métricas Centrais */}
+        
         <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-[#B8C6D0] dark:border-[#344653] font-mono text-center relative z-10">
           <div className="p-3 sm:p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
             <span className="text-[10px] sm:text-[11px] text-[#475569] dark:text-[#A8BAC8] block uppercase">Precisão</span>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* CONTINUAR TREINANDO — 3 BOTÕES PRINCIPAIS DE JOGO COM DESTAQUE */}
+      
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs sm:text-sm font-mono font-bold tracking-widest text-[#2563EB] dark:text-[#B8F044] uppercase">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
-          {/* Treino Livre */}
+          
           <Link
             to="/app/play?mode=free"
             className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
@@ -146,7 +146,7 @@ export default function DashboardPage() {
             </p>
           </Link>
 
-          {/* Alvo Único */}
+          
           <Link
             to="/app/play?mode=single"
             className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
@@ -162,7 +162,7 @@ export default function DashboardPage() {
             </p>
           </Link>
 
-          {/* Apague Todos */}
+          
           <Link
             to="/app/play?mode=clear_all"
             className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] hover:border-[#B8F044] transition-all hover:-translate-y-1 group shadow-sm hover:shadow-md"
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* LINKS RÁPIDOS PARA ESTATÍSTICAS, EVOLUÇÃO E HISTÓRICO */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-4 shadow-sm">
         <h3 className="text-xs font-mono font-bold tracking-widest text-[#475569] dark:text-[#A8BAC8] uppercase">
           ÁREAS DE ACOMPANHAMENTO DO ATLETA

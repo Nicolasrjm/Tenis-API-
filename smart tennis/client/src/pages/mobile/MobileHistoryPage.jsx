@@ -158,7 +158,6 @@ export default function MobileHistoryPage() {
     return <MobileVisitorGuard featureName="o Histórico de Partidas" />;
   }
 
-  // Modos de filtro
   const filterOptions = [
     { id: 'all', label: 'Todos' },
     { id: 'free', label: 'Treino Livre' },
@@ -169,7 +168,7 @@ export default function MobileHistoryPage() {
   return (
     <div className="p-4 sm:p-5 space-y-4 animate-fadeIn">
       
-      {/* Top Title & Refresh */}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-white uppercase tracking-tight flex items-center space-x-2">
@@ -191,7 +190,7 @@ export default function MobileHistoryPage() {
         </button>
       </div>
 
-      {/* Mode Filter Pills */}
+      
       <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
         {filterOptions.map((opt) => (
           <button
@@ -208,7 +207,7 @@ export default function MobileHistoryPage() {
         ))}
       </div>
 
-      {/* Loading state */}
+      
       {loading && (
         <div className="py-12 flex flex-col items-center justify-center space-y-2">
           <RefreshCw className="w-6 h-6 text-[#39FF88] animate-spin" />
@@ -216,7 +215,7 @@ export default function MobileHistoryPage() {
         </div>
       )}
 
-      {/* Error state */}
+      
       {error && !loading && (
         <div className="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-center space-y-2">
           <p className="text-xs text-rose-200">{error}</p>
@@ -229,7 +228,7 @@ export default function MobileHistoryPage() {
         </div>
       )}
 
-      {/* Empty State */}
+      
       {!loading && !error && sessions.length === 0 && (
         <div className="p-8 rounded-3xl bg-[#0A140E] border border-[#142A1B] text-center space-y-3 my-6">
           <Trophy className="w-10 h-10 text-[#8C9891] mx-auto opacity-30" />
@@ -242,7 +241,7 @@ export default function MobileHistoryPage() {
         </div>
       )}
 
-      {/* Match Cards List */}
+      
       <div className="space-y-3">
         {sessions.map((sess) => {
           return (
@@ -252,7 +251,7 @@ export default function MobileHistoryPage() {
               data-testid={`match-card-${sess.id}`}
               className="p-4 rounded-2xl bg-[#0A140E] hover:bg-[#0F1F16] border border-[#163020] hover:border-[#39FF88]/40 transition cursor-pointer space-y-3 shadow-sm group"
             >
-              {/* Header: Mode & Date */}
+              
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center space-x-2">
@@ -273,7 +272,7 @@ export default function MobileHistoryPage() {
                   </span>
                 </div>
 
-                {/* Score */}
+                
                 <div className="text-right">
                   <span className="text-lg font-black font-mono text-[#39FF88]">
                     {sess.total_score || 0}
@@ -282,7 +281,7 @@ export default function MobileHistoryPage() {
                 </div>
               </div>
 
-              {/* Metrics Pill Row */}
+              
               <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-[#A2C7AE]">
                 <div className="flex items-center space-x-3">
                   <span className="flex items-center space-x-1">
@@ -305,7 +304,7 @@ export default function MobileHistoryPage() {
         })}
       </div>
 
-      {/* Paginação: Carregar mais */}
+      
       {sessions.length < totalCount && (
         <div className="pt-2 text-center">
           <button
@@ -325,7 +324,7 @@ export default function MobileHistoryPage() {
         </div>
       )}
 
-      {/* Modal / Detalhes da Partida Selecionada */}
+      
       {selectedSession && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
           <div className="w-full max-w-lg bg-[#0C1A11] border-t sm:border border-[#1E3B26] rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -344,7 +343,7 @@ export default function MobileHistoryPage() {
               </button>
             </div>
 
-            {/* Informações Gerais */}
+            
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
               <div className="p-3 rounded-xl bg-[#07110B] border border-[#163020] space-y-0.5">
                 <span className="text-[#8C9891] text-[10px] uppercase">Modo de Jogo</span>
@@ -372,7 +371,7 @@ export default function MobileHistoryPage() {
               </div>
             </div>
 
-            {/* Impactos Detalhados (synced_shots) */}
+            
             <div className="space-y-2 pt-2">
               <span className="text-xs font-bold text-[#39FF88] uppercase tracking-wider block flex items-center space-x-1.5">
                 <Crosshair className="w-3.5 h-3.5" />

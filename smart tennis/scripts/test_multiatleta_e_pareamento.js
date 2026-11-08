@@ -1,19 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — SUÍTE DE TESTES: MULTI-ATLETA E PAREAMENTO SEGURO
- * ==============================================================================
- * Valida de forma não-destrutiva e isolada (usando banco temporário):
- * 1. Nicolas (c5627902...) autentica com sucesso pelo notebook.
- * 2. Outro atleta cloud (Beatriz) utiliza o mesmo equipamento após autorização.
- * 3. Cada atleta possui UUID próprio e imutável.
- * 4. Prevenção estrita de duplicações de perfis.
- * 5. Histórico de partidas e XP separados por atleta.
- * 6. Fluxo de pareamento autorizado sem SQL manual (challenge + claim).
- * 7. Cloud Outbox mantém idempotência (sem duplicar partidas/sessões).
- * 8. Vercel e APK continuam em modo exclusivo de consulta.
- * 9. Jogo demonstrativo público na Vercel permanece sem persistência.
- * ==============================================================================
- */
+
 
 const crypto = require('crypto');
 const path = require('path');
@@ -21,7 +6,6 @@ const fs = require('fs');
 const http = require('http');
 const express = require('express');
 
-// 1. ISOLAMENTO E BANCO TEMPORÁRIO
 const originalDbPath = path.resolve(__dirname, '..', 'server', 'database', 'smart_tennis.db');
 const tempDbPath = path.resolve(__dirname, '..', 'server', 'database', `test_multiatleta_${Date.now()}.db`);
 
@@ -83,7 +67,6 @@ async function runAllTests() {
   let serverUrl;
 
   try {
-    // Inicialização da infraestrutura de teste
     await ensureCloudIdentityTables();
     await ensureOutboxTable();
 
@@ -99,9 +82,6 @@ async function runAllTests() {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // TESTE 1: NICOLAS (IDENTIDADE DEFINITIVA) NO NOTEBOOK
-    // -------------------------------------------------------------------------
     console.log('\x1b[36m[GRUPO 1] Autenticação e Identidade Definitiva de Nicolas\x1b[0m');
 
     const nicolasCloudUuid = 'c5627902-5831-4a0e-97d1-1bc0fa1c284c';
@@ -131,9 +111,6 @@ async function runAllTests() {
     assert(nicolasData.user?.cloudUserId === nicolasCloudUuid, 'UUID cloud de Nicolas corresponde à identidade definitiva');
     assert(nicolasData.user?.username === 'nicolas', 'Username local de Nicolas recuperado corretamente');
 
-    // -------------------------------------------------------------------------
-    // TESTE 2: OUTRO ATLETA CLOUD NO MESMO EQUIPAMENTO (BEATRIZ)
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 2] Multi-Atleta: Segundo Atleta Cloud no Mesmo Notebook\x1b[0m');
 
     const beatrizCloudUuid = 'b2222222-3333-4444-5555-666666666666';
@@ -164,15 +141,11 @@ async function runAllTests() {
     assert(beatrizData.user?.cloudUserId === beatrizCloudUuid, 'Beatriz possui seu próprio UUID Supabase');
     assert(beatrizData.user?.id !== nicolasData.user?.id, 'Beatriz recebe ID local no SQLite diferente de Nicolas');
 
-    // -------------------------------------------------------------------------
-    // TESTE 3: PREVENÇÃO DE DUPLICAÇÕES DE PERFIL
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 3] Idempotência de Perfis (Sem Duplicações)\x1b[0m');
 
     const totalUsersBefore = (await get('SELECT COUNT(*) as c FROM users')).c;
     const totalIdentitiesBefore = (await get('SELECT COUNT(*) as c FROM user_cloud_identities')).c;
 
-    // Repete login de Beatriz
     const reloginBeatriz = await fetch(`${serverUrl}/api/auth/cloud/login-with-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -187,12 +160,8 @@ async function runAllTests() {
     assert(totalUsersBefore === totalUsersAfter, 'Nenhum usuário duplicado inserido no SQLite');
     assert(totalIdentitiesBefore === totalIdentitiesAfter, 'Nenhum vínculo duplicado em user_cloud_identities');
 
-    // -------------------------------------------------------------------------
-    // TESTE 4: SEPARAÇÃO ESTRITA DE HISTÓRICO E XP
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 4] Isolamento Rigoroso de Partidas, XP e Histórico\x1b[0m');
 
-    // Simula partida de Nicolas
     const nicolasMatchId = `pm_test_nicolas_${Date.now()}`;
     await run(
       `INSERT INTO personal_matches (id, user_id, equipment_id, mode, state, started_at, ends_at, ended_at, planned_seconds, duration_seconds, score, shots_count, hits_count, errors_count, neutral_count, won, end_reason, created_at)
@@ -204,7 +173,6 @@ async function runAllTests() {
       durationSeconds: 30
     });
 
-    // Simula partida de Beatriz
     const beatrizMatchId = `pm_test_beatriz_${Date.now()}`;
     await run(
       `INSERT INTO personal_matches (id, user_id, equipment_id, mode, state, started_at, ends_at, ended_at, planned_seconds, duration_seconds, score, shots_count, hits_count, errors_count, neutral_count, won, end_reason, created_at)
@@ -220,16 +188,12 @@ async function runAllTests() {
     assert(beatrizEv.cloud_user_id === beatrizCloudUuid, 'Evento na outbox de Beatriz possui cloud_user_id de Beatriz');
     assert(nicolasEv.user_id !== beatrizEv.user_id, 'Eventos associados a IDs locais distintos');
 
-    // -------------------------------------------------------------------------
-    // TESTE 5: APERTO DE MÃO DE PAREAMENTO AUTORIZADO (CHALLENGE + CLAIM)
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 5] Fluxo Criptográfico de Pareamento sem SQL Manual\x1b[0m');
 
     let issuedChallenge = null;
     let claimedPairing = null;
 
     const mockFetchForPairing = async (url, options = {}) => {
-      // 1. Chamada de emissão no gateway
       if (url.includes('/functions/v1/equipment-gateway')) {
         const body = JSON.parse(options.body || '{}');
         if (body.op === 'issue_pairing_challenge') {
@@ -258,7 +222,6 @@ async function runAllTests() {
         }
       }
 
-      // 2. Chamada de consumo na RPC
       if (url.includes('/rest/v1/rpc/claim_equipment_pairing_v1')) {
         const body = JSON.parse(options.body || '{}');
         const authHeader = options.headers['Authorization'] || '';
@@ -285,7 +248,6 @@ async function runAllTests() {
         };
       }
 
-      // 3. Consulta de equipamentos
       if (url.includes('/rest/v1/equipments')) {
         return {
           ok: true,
@@ -308,7 +270,6 @@ async function runAllTests() {
     assert(claimedPairing?.pairing_code === issuedChallenge, 'Desafio emitido consumido rigorosamente pela RPC com hash SHA-256');
     assert(claimedPairing?.user_id === nicolasCloudUuid, 'Vínculo na nuvem associado exclusivamente ao UUID autenticado de Nicolas');
 
-    // Pareamento para Beatriz
     const pairingBeatrizResult = await pairAthleteWithEquipment({
       accessToken: beatrizToken,
       cloudUserId: beatrizCloudUuid,
@@ -318,9 +279,6 @@ async function runAllTests() {
     assert(pairingBeatrizResult.success === true, 'Aperto de mão de pareamento autorizado executado com sucesso para Beatriz');
     assert(claimedPairing?.user_id === beatrizCloudUuid, 'Vínculo na nuvem de Beatriz associado exclusivamente ao seu UUID');
 
-    // -------------------------------------------------------------------------
-    // TESTE 6: IDEMPOTÊNCIA DA CLOUD OUTBOX
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 6] Idempotência da Cloud Outbox\x1b[0m');
 
     const duplicateNicolasEv = await createMatchFinishedEvent({
@@ -331,39 +289,28 @@ async function runAllTests() {
     assert(duplicateNicolasEv.id === nicolasEv.id, 'Tentativa de reinserir a mesma partida retorna o evento original sem duplicar');
     assert(duplicateNicolasEv.event_id === nicolasEv.event_id, 'event_id imutável preservado rigorosamente');
 
-    // -------------------------------------------------------------------------
-    // TESTE 7: AMBIENTES VERCEL E APK ANDROID (READ-ONLY)
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 7] Garantia Arquitetural de Ambientes (Vercel e Android)\x1b[0m');
 
     const appEnv = await import('../client/src/services/appEnvironment.js');
     const { getAppMode, isWebDemoMode, isAndroidCloudMode, isEquipmentMode, isCloudOnlyMode, APP_MODES } = appEnv;
 
-    // Em ambiente de teste do notebook (sem Vercel nem Android flags):
     assert(isEquipmentMode() === true, 'Notebook permanece em APP_MODES.EQUIPMENT por padrão');
     assert(isWebDemoMode() === false, 'Notebook não entra indevidamente em modo WEB_DEMO');
     assert(isAndroidCloudMode() === false, 'Notebook não entra indevidamente em modo ANDROID_CLOUD');
 
-    // Simula ambiente Vercel
     const savedAppMode = process.env.VITE_APP_MODE;
     process.env.VITE_APP_MODE = 'web_demo';
     assert(getAppMode() === APP_MODES.WEB_DEMO, 'Vercel ativa exclusivamente APP_MODES.WEB_DEMO');
     assert(isCloudOnlyMode() === true, 'Modo Vercel é classificado como isCloudOnlyMode()');
 
-    // Simula ambiente Android APK
     process.env.VITE_APP_MODE = 'android_cloud';
     assert(getAppMode() === APP_MODES.ANDROID_CLOUD, 'APK ativa exclusivamente APP_MODES.ANDROID_CLOUD');
     assert(isCloudOnlyMode() === true, 'Modo Android APK é classificado como isCloudOnlyMode()');
     process.env.VITE_APP_MODE = savedAppMode;
 
-    // -------------------------------------------------------------------------
-    // TESTE 8: JOGO DEMONSTRATIVO NA VERCEL NÃO PERSISTE
-    // -------------------------------------------------------------------------
     console.log('\n\x1b[36m[GRUPO 8] Jogo Demonstrativo Público (Zero Persistência)\x1b[0m');
 
     const outboxCountBefore = (await get('SELECT COUNT(*) as c FROM cloud_outbox')).c;
-    // No modo web_demo, a chamada à API personalMatch.start / finish resolve em memória
-    // e rejeita qualquer gravação física no SQLite
     assert(true, 'Partidas demonstrativas na Vercel operam exclusivamente em memória React');
     const outboxCountAfter = (await get('SELECT COUNT(*) as c FROM cloud_outbox')).c;
     assert(outboxCountBefore === outboxCountAfter, 'Zero eventos inseridos na outbox por partidas web demo');

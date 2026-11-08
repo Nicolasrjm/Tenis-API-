@@ -40,7 +40,7 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9]">Visão Geral da Operação</h1>
@@ -67,7 +67,7 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
         <div className="p-5 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm">
           <div className="flex items-center justify-between text-xs text-[#475569] dark:text-[#A8BAC8] mb-2">
@@ -106,7 +106,7 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* Unidades Físicas Motion Tennis (Requirement 7) */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

@@ -20,7 +20,6 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
   const [testing, setTesting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  // Formulário de calibração experimental e deslocamentos reais em cm
   const [calibrated, setCalibrated] = useState(false);
   const [speedMps, setSpeedMps] = useState('');
   const [groupingWindowUs, setGroupingWindowUs] = useState(25000);
@@ -31,7 +30,6 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
     S3: { offsetXCm: 0, offsetYCm: 0 }
   });
 
-  // Coordenadas para ensaio sintético de bancada TDOA
   const [testXM, setTestXM] = useState('1.50');
   const [testYM, setTestYM] = useState('1.00');
 
@@ -176,7 +174,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
       data-testid="iot-diagnostic-panel"
       className="p-5 rounded-3xl bg-[#07120B] border-2 border-cyan-500/40 shadow-2xl space-y-5 text-xs font-mono"
     >
-      {/* Cabeçalho */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1B3624]">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-cyan-950/60 border border-cyan-400/50 text-cyan-300">
@@ -223,7 +221,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
         </div>
       )}
 
-      {/* 1. Dimensão da Parede, Conexão e Calibração */}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-2xl bg-[#0B1910] border border-[#1B3624]">
           <div className="text-[10px] text-[#8C9891] uppercase">Dimensão da Parede Selecionada</div>
@@ -262,7 +260,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
         </div>
       </div>
 
-      {/* 2. Coordenadas Configuradas dos 3 Sensores KY-037 */}
+      
       <div className="p-4 rounded-2xl bg-[#0B1910] border border-[#1B3624] space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">
@@ -316,7 +314,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
         </div>
       </div>
 
-      {/* 3. Último Evento Recebido do Protocolo Arduino (Timestamps e TDOA) */}
+      
       <div className="p-4 rounded-2xl bg-[#0B1910] border border-[#1B3624] space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -360,7 +358,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Timestamps e Diferenças Temporais */}
+            
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               <div className="p-2.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
                 <div className="text-[10px] text-[#8C9891]">TIMESTAMP S1 (t1)</div>
@@ -398,7 +396,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
               </div>
             </div>
 
-            {/* Agrupamento, Coordenadas Estimadas e Setor */}
+            
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
               <div className="p-2.5 rounded-xl bg-[#07110B] border border-[#1B3624]">
                 <div className="text-[10px] text-[#8C9891]">ESTADO DO AGRUPAMENTO</div>
@@ -449,7 +447,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
               </div>
             </div>
 
-            {/* Mensagem explicativa do algoritmo TDOA */}
+            
             {lastArduino.estimationMessage && (
               <div className={`p-2.5 rounded-xl border text-[11px] ${
                 lastArduino.category === 'HARDWARE_LOCATED'
@@ -467,7 +465,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
           </div>
         )}
 
-        {/* Registro separado de impacto simulado por mouse */}
+        
         <div className="p-2.5 rounded-xl bg-[#07110B]/80 border border-[#1B3624] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
           <span className="text-[#8C9891]">
             <strong>Situação 1 (Simulação de Jogo):</strong>{' '}
@@ -481,7 +479,7 @@ export default function IotDiagnosticPanel({ onClose = null, onWallConfigChanged
         </div>
       </div>
 
-      {/* 4. Calibração Experimental & Bancada de Teste Sintético TDOA */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <form onSubmit={handleSaveCalibration} className="p-4 rounded-2xl bg-[#0B1910] border border-[#1B3624] space-y-3">
           <div className="flex items-center gap-2 text-cyan-300 font-bold uppercase text-[11px]">

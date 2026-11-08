@@ -9,9 +9,6 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { playBallHit, playBullseye, playMiss, isSoundEnabled, setSoundEnabled } from '../services/sound';
 
-// MODO SHOPPING — O tempo oficial (incluindo os 5 segundos de PREPARING antes da 1ª rodada) e as regras
-// dos 3 jogos ficam no BACKEND. Recarregar a página (F5) não reinicia nem preparação nem rodadas.
-
 const DISMISS_KEY = 'smart_tennis_dismissed_experience';
 
 const FEEDBACK = {
@@ -208,11 +205,9 @@ export default function ShoppingExperience() {
   const serverNow = now + offsetRef.current;
   const isPreparing = exp?.state === 'PREPARING' || exp?.stage?.type === 'preparing';
 
-  // Durante PREPARING, prepRemainingMs conta os 5s regressivos e o cronômetro da Rodada 1 permanece em 02:00
   const prepRemainingMs = isPreparing && exp ? Math.max(0, exp.stage.endsAt - serverNow) : 0;
   const prepRemainingSeconds = Math.ceil(prepRemainingMs / 1000);
 
-  // Na Rodada 1 (stage.index === 0 e type === 'round'), nos primeiros 700ms após o fim da preparação mostramos "JÁ!"
   const msSinceRound1Start = exp && exp.stage.index === 0 && exp.stage.type === 'round'
     ? serverNow - exp.stage.startedAt
     : -1;
@@ -339,7 +334,7 @@ export default function ShoppingExperience() {
         </div>
       )}
 
-      {/* ===== EXPERIÊNCIA EM PREPARAÇÃO OU ATIVA ===== */}
+      
       {exp && (
         <>
           <div className="p-4 rounded-2xl bg-[#09150E] border border-[#16C96B]/30 shadow-lg space-y-3">
@@ -430,7 +425,7 @@ export default function ShoppingExperience() {
                     isFullscreen={isFullscreen}
                   />
 
-                  {/* SOBREPOSIÇÃO GIGANTE DE CONTAGEM REGRESSIVA (5, 4, 3, 2, 1, JÁ!) ANTES DA EXPERIÊNCIA SHOPPING */}
+                  
                   {showCountdownOverlay && (
                     <div
                       data-testid="countdown-overlay"
@@ -481,7 +476,7 @@ export default function ShoppingExperience() {
         </>
       )}
 
-      {/* ===== SEM EXPERIÊNCIA ATIVA ===== */}
+      
       {!exp && busyElsewhere && (
         <div className="max-w-xl mx-auto p-8 rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] text-center space-y-3">
           <Store className="w-10 h-10 mx-auto text-amber-400" />

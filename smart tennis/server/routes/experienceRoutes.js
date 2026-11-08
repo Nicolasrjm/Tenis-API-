@@ -14,10 +14,6 @@ function handle(fn) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// /api/installation — tipo de instalação (Shopping | Pessoal)
-// Leitura: pública. Escrita: somente administrador.
-// ---------------------------------------------------------------------------
 const installationRouter = express.Router();
 
 installationRouter.get('/', handle(async (req, res) => {
@@ -30,10 +26,6 @@ installationRouter.put('/', requireAuth, requireAdmin, handle(async (req, res) =
   res.json({ success: true, ...updated });
 }));
 
-// ---------------------------------------------------------------------------
-// /api/experience — experiência comercial (Modo Shopping)
-// Permite tanto usuários autenticados quanto sessões temporárias de visitante.
-// ---------------------------------------------------------------------------
 const experienceRouter = express.Router();
 experienceRouter.use(requireUserOrGuest);
 

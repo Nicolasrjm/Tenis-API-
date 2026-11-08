@@ -6,7 +6,6 @@ const { broadcastEvent } = require('../services/eventHub');
 const { requireAuth } = require('../services/authService');
 const { ensurePlayerAttributes } = require('../services/gameEngine');
 
-// Todas as rotas de perfil do jogador exigem usuário autenticado (bloqueia visitantes e acesso anônimo)
 router.use(requireAuth);
 
 async function resolvePlayerForRequest(req) {
@@ -30,7 +29,6 @@ async function resolvePlayerForRequest(req) {
   return player;
 }
 
-// GET /api/player
 router.get('/', async (req, res) => {
   try {
     const player = await resolvePlayerForRequest(req);
@@ -43,7 +41,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/player
 router.put('/', async (req, res) => {
   try {
     const { name, avatar } = req.body;
@@ -66,7 +63,6 @@ router.put('/', async (req, res) => {
   }
 });
 
-// POST /api/player/reset - Reset to default demo data (Nicolas LV. 12)
 router.post('/reset', async (req, res) => {
   try {
     await initializeDatabase(true);
@@ -78,7 +74,6 @@ router.post('/reset', async (req, res) => {
   }
 });
 
-// POST /api/player/clean - Clear all demo records and start fresh
 router.post('/clear', async (req, res) => {
   try {
     const targetPlayer = await resolvePlayerForRequest(req);

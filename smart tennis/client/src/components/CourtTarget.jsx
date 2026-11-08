@@ -23,14 +23,13 @@ export {
   FIXED_SENSORS
 };
 
-// Aliases de compatibilidade
 export const DETECTION_RADIUS = 30.0;
 export const VISUAL_RADIUS = 20.0;
 export const detectSector = (x, y, preset = '3x2') => classifyImpact(x, y, preset);
 export const detectNearestTarget = detectSector;
 
 export default function CourtTarget({
-  gameMode = 'free', // 'free', 'single', 'clear_all'
+  gameMode = 'free',
   activeTargetId = null,
   activeSectorId = null,
   targetStates = {},
@@ -49,9 +48,8 @@ export default function CourtTarget({
 }) {
   const containerRef = useRef(null);
   const [impactEffects, setImpactEffects] = useState([]);
-  const [hitPulses, setHitPulses] = useState({}); // { [sectorId]: timestamp }
+  const [hitPulses, setHitPulses] = useState({});
 
-  // Geometria dinâmica proporcional às dimensões físicas da parede (4x3m, 3x3m, 3x2m)
   const geometry = useMemo(
     () => calculateWallGeometry(wallPreset, sensorOffsetsCm || {}),
     [wallPreset, sensorOffsetsCm]
@@ -61,7 +59,6 @@ export default function CourtTarget({
   const effectiveSectorStates = Object.keys(sectorStates).length > 0 ? sectorStates : targetStates;
   const effectiveLastHitId = lastHitSectorId || lastHitTargetId;
 
-  // Efeito de pulso rápido no setor atingido
   useEffect(() => {
     if (effectiveLastHitId) {
       setHitPulses((prev) => ({ ...prev, [effectiveLastHitId]: Date.now() }));
@@ -76,7 +73,6 @@ export default function CourtTarget({
     }
   }, [effectiveLastHitId]);
 
-  // Efeito de onda de impacto no ponto exato do clique
   useEffect(() => {
     if (lastImpactCoords && lastImpactCoords.x !== undefined && lastImpactCoords.y !== undefined) {
       const effectId = Date.now() + Math.random();
@@ -94,7 +90,6 @@ export default function CourtTarget({
     }
   }, [lastImpactCoords]);
 
-  // Processa o clique no contêiner da parede e classifica geometricamente
   const handleWallClick = (e) => {
     if (!interactive || !containerRef.current) return;
     const notifyFn = onSectorHit || onTargetHit;
@@ -106,7 +101,6 @@ export default function CourtTarget({
     const clickX = Number((((e.clientX - rect.left) / rect.width) * 100).toFixed(2));
     const clickY = Number((((e.clientY - rect.top) / rect.height) * 100).toFixed(2));
 
-    // Classificação geométrica unificada (Alvo Válido vs Espaçamento/Margem vs Fora)
     const result = classifyImpact(clickX, clickY, wallPreset);
 
     if (result.classification === 'TARGET_HIT') {
@@ -121,7 +115,6 @@ export default function CourtTarget({
         classification: 'TARGET_HIT'
       });
     } else {
-      // Impacto no corredor entre alvos ou margem externa (Área Neutra)
       notifyFn({
         hit: false,
         sectorId: null,
@@ -151,7 +144,7 @@ export default function CourtTarget({
         isFullscreen ? 'h-full max-h-[92vh] max-w-full' : 'max-w-5xl'
       }`}
     >
-      {/* Contêiner da Parede Projeção proporcional à dimensão física selecionada */}
+      
       <div
         ref={containerRef}
         onClick={handleWallClick}
@@ -166,10 +159,8 @@ export default function CourtTarget({
           interactive ? 'cursor-crosshair' : 'cursor-default'
         }`}
       >
-        {/* POSICIONAMENTO FÍSICO REAL DOS 3 SENSORES KY-037 NOS CANTOS DA PAREDE */}
         {showSensors && (
           <>
-            {/* S1: Canto Inferior Esquerdo = (0, 0) [Origem Cartesiana] */}
             <div
               data-testid="wall-sensor-S1"
               data-sensor-corner="bottom_left"
@@ -182,7 +173,6 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* S2: Canto Superior Esquerdo = (0, altura) */}
             <div
               data-testid="wall-sensor-S2"
               data-sensor-corner="top_left"
@@ -195,7 +185,6 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* S3: Canto Inferior Direito = (largura, 0) */}
             <div
               data-testid="wall-sensor-S3"
               data-sensor-corner="bottom_right"
@@ -208,7 +197,6 @@ export default function CourtTarget({
               </span>
             </div>
 
-            {/* Canto Superior Direito NÃO possui sensor — apenas indicador discreto da dimensão da parede */}
             <div
               data-testid="wall-corner-top-right-empty"
               data-has-sensor="false"
@@ -219,7 +207,6 @@ export default function CourtTarget({
           </>
         )}
 
-        {/* 6 ALVOS RETANGULARES INDEPENDENTES COM ESPAÇAMENTO FÍSICO DE 30 CM E MARGENS DE 10 CM */}
         {geometry.sectors.map((sector) => {
           const isPulse = Boolean(hitPulses[sector.id]);
           let isTarget = false;
@@ -304,17 +291,17 @@ export default function CourtTarget({
               }}
               className={`flex flex-col items-center justify-center p-3 select-none transition-all duration-150 ${borderStyle} ${sectorBgClass}`}
             >
-              {/* Identificação do Alvo */}
+              
               <div className={`absolute top-2.5 left-3.5 font-mono font-bold text-[10px] sm:text-xs tracking-wider uppercase ${badgeColor}`}>
                 ALVO {sector.id}
               </div>
 
-              {/* Dimensão física em cm */}
+              
               <div className={`absolute top-2.5 right-3.5 font-mono text-[9px] sm:text-[10px] ${dimColor}`}>
                 {Math.round(sector.widthM * 100)}×{Math.round(sector.heightM * 100)}cm
               </div>
 
-              {/* Número Grande Visível no Projetor */}
+              
               <div
                 className={`font-mono font-black text-5xl sm:text-6xl md:text-7xl leading-none transition-transform duration-100 ${
                   isLit || isTarget ? 'scale-105' : 'scale-100'
@@ -323,7 +310,7 @@ export default function CourtTarget({
                 {sector.id}
               </div>
 
-              {/* Status do Alvo */}
+              
               <div className={`absolute bottom-2.5 font-mono font-bold text-[10px] sm:text-[11px] tracking-widest uppercase ${statusColor}`}>
                 {statusText}
               </div>
@@ -331,7 +318,7 @@ export default function CourtTarget({
           );
         })}
 
-        {/* Efeito de onda visual no ponto exato do golpe com mouse */}
+        
         {impactEffects.map((eff) => (
           <div
             key={eff.id}

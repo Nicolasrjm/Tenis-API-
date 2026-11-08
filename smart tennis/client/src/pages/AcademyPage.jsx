@@ -54,7 +54,7 @@ export default function AcademyPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto animate-fadeIn">
       
-      {/* HEADER DA MOTION TENNIS ACADEMY */}
+      
       <div className="p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] text-center space-y-3 relative overflow-hidden shadow-sm transition-colors">
         <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#2563EB] dark:text-[#B8F044] mb-2 shadow-xs">
           <GraduationCap className="w-8 h-8" />
@@ -67,7 +67,7 @@ export default function AcademyPage() {
         </p>
       </div>
 
-      {/* OS 6 BLOCOS DE HABILIDADES */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {data?.skills && Object.values(data.skills).map((skill) => {
           const Icon = skillIcons[skill.key] || Target;
@@ -79,7 +79,7 @@ export default function AcademyPage() {
             >
               <div className="space-y-3">
                 
-                {/* Header do Bloco */}
+                
                 <div className="flex items-center justify-between">
                   <div className="w-10 h-10 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#2563EB] dark:text-[#B8F044] group-hover:scale-110 transition-transform">
                     <Icon className="w-5 h-5" />
@@ -105,7 +105,7 @@ export default function AcademyPage() {
 
               </div>
 
-              {/* Botão Ver Conteúdo -> Leva para /app/academy/:skill */}
+              
               <div className="pt-2">
                 <button
                   onClick={() => navigate(`/app/academy/${skill.key}`)}

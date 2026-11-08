@@ -59,7 +59,6 @@ export default function AdminLayout() {
     navigate('/login');
   };
 
-  // Estrutura oficial simplificada com exatamente as 6 áreas principais
   const navItems = [
     { to: '/admin/sensors', label: 'Sensores e Parede', icon: Radio },
     { to: '/admin/users', label: 'Contas', icon: Users },
@@ -69,7 +68,6 @@ export default function AdminLayout() {
     { to: '/admin/diagnostic', label: 'Diagnóstico IoT', icon: Activity },
   ];
 
-  // Fecha menu mobile ao mudar de rota
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
@@ -77,12 +75,12 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col font-sans transition-colors duration-200">
       
-      {/* Top Admin Bar */}
+      
       <header className="sticky top-0 z-50 bg-[#142B3D]/95 dark:bg-[#0D1B2A]/98 backdrop-blur border-b border-[#1C3A52] dark:border-[#344653] text-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16 gap-2">
             
-            {/* Admin Brand */}
+            
             <div className="flex items-center space-x-2.5 shrink-0">
               <div className="w-8 h-8 rounded-lg bg-amber-400/10 border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
@@ -98,7 +96,7 @@ export default function AdminLayout() {
               </div>
             </div>
 
-            {/* Desktop Admin Nav: As 6 Áreas Principais */}
+            
             <nav className="hidden lg:flex items-center space-x-1 font-mono">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -121,7 +119,7 @@ export default function AdminLayout() {
               })}
             </nav>
 
-            {/* Right Tools */}
+            
             <div className="flex items-center space-x-2 shrink-0">
               <ThemeToggle />
 
@@ -146,7 +144,7 @@ export default function AdminLayout() {
                 <span>Sair</span>
               </button>
 
-              {/* Botão Hambúrguer Mobile / Tablet (< 1024px) */}
+              
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -160,7 +158,7 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        {/* Mobile / Tablet Drawer Menu (< 1024px) */}
+        
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-[#1B3624] bg-[#07110B] px-4 py-3 space-y-1 font-mono animate-fadeIn">
             <div className="text-[10px] text-[#8C9891] uppercase px-2 py-1 font-bold">Menu Administrativo</div>
@@ -207,7 +205,7 @@ export default function AdminLayout() {
         )}
       </header>
 
-      {/* Main Admin Content */}
+      
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminErrorBoundary key={location.pathname}>
           <Outlet />

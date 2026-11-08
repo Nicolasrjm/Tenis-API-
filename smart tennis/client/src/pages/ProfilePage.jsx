@@ -66,7 +66,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex items-center space-x-3 shadow-sm transition-colors">
         <User className="w-6 h-6 text-[#2563EB] dark:text-[#B8F044]" />
         <div>
@@ -85,11 +85,11 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
         </div>
       )}
 
-      {/* Main Profile Form */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-6 shadow-sm">
         <form onSubmit={handleSave} className="space-y-6">
           
-          {/* Avatar selector */}
+          
           <div>
             <label className="block text-xs font-mono text-[#475569] dark:text-[#A8BAC8] mb-2 uppercase">
               Escolha seu Avatar Esportivo
@@ -112,7 +112,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
             </div>
           </div>
 
-          {/* Player Name */}
+          
           <div>
             <label className="block text-xs font-mono text-[#475569] dark:text-[#A8BAC8] mb-2 uppercase">
               Nome do Jogador
@@ -127,7 +127,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
             />
           </div>
 
-          {/* Stats Summary Grid */}
+          
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
               <span className="text-[10px] font-mono text-[#475569] dark:text-[#A8BAC8]">NÍVEL ATUAL</span>
@@ -155,7 +155,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
             </div>
           </div>
 
-          {/* Save Button */}
+          
           <button
             type="submit"
             disabled={saving}
@@ -167,7 +167,7 @@ export default function ProfilePage({ player: propPlayer, onPlayerUpdate }) {
         </form>
       </div>
 
-      {/* Cloud & Supabase Identity Section (exclusivo para o equipamento da quadra) */}
+      
       {isEquipmentMode() && !isNativeMobile() && <CloudLinkCard />}
 
     </div>

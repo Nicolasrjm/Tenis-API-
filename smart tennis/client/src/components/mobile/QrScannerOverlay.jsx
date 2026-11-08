@@ -42,7 +42,6 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
         try {
           track.stop();
         } catch (e) {
-          // ignore
         }
       });
       streamRef.current = null;
@@ -130,7 +129,6 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
     const targetUrl = validation.normalizedUrl;
 
     try {
-      // Testa a conexão antes de aprovar
       const testResult = await testServerConnection(targetUrl);
       if (testResult.success) {
         saveServerUrl(targetUrl);
@@ -140,7 +138,6 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
           latency: testResult.latency
         });
 
-        // Aguarda breve feedback visual de sucesso antes de fechar
         setTimeout(() => {
           stopCamera();
           if (onScanSuccess) {
@@ -192,7 +189,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 animate-fadeIn select-none">
-      {/* Top Header */}
+      
       <div className="flex items-center justify-between pt-6 px-2">
         <div className="flex items-center space-x-2 text-[#39FF88]">
           <Camera className="w-5 h-5" />
@@ -210,7 +207,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
         </button>
       </div>
 
-      {/* Camera Viewfinder */}
+      
       <div className="relative flex-1 my-4 flex items-center justify-center overflow-hidden rounded-3xl bg-black border border-slate-800">
         <video
           ref={videoRef}
@@ -220,23 +217,23 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Reticle Overlay */}
+        
         {!permissionError && !isInitializing && !scanSuccessData && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative w-64 h-64 border-2 border-dashed border-[#39FF88]/40 rounded-2xl flex items-center justify-center">
-              {/* Corner brackets */}
+              
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#39FF88] rounded-tl-lg" />
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#39FF88] rounded-tr-lg" />
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#39FF88] rounded-bl-lg" />
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#39FF88] rounded-br-lg" />
 
-              {/* Scanning light animation */}
+              
               <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-[#39FF88] to-transparent shadow-[0_0_12px_#39FF88] animate-pulse" />
             </div>
           </div>
         )}
 
-        {/* Loading Spinner during camera init */}
+        
         {isInitializing && (
           <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center space-y-3">
             <RefreshCw className="w-8 h-8 text-[#39FF88] animate-spin" />
@@ -244,7 +241,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
           </div>
         )}
 
-        {/* Validating QR code spinner */}
+        
         {isValidating && !scanSuccessData && (
           <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center space-y-3 z-10">
             <RefreshCw className="w-10 h-10 text-[#39FF88] animate-spin" />
@@ -253,7 +250,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
           </div>
         )}
 
-        {/* Success confirmation card */}
+        
         {scanSuccessData && (
           <div className="absolute inset-x-6 p-6 rounded-3xl bg-[#091A10] border-2 border-[#39FF88] text-center space-y-3 z-20 shadow-[0_0_30px_rgba(57,255,136,0.3)] animate-fadeIn">
             <CheckCircle2 className="w-12 h-12 text-[#39FF88] mx-auto animate-bounce" />
@@ -267,7 +264,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
           </div>
         )}
 
-        {/* Permission Denied or Camera Error Card */}
+        
         {permissionError && (
           <div className="absolute inset-x-6 p-6 rounded-2xl bg-slate-900 border border-rose-500/40 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
@@ -294,7 +291,7 @@ export default function QrScannerOverlay({ isOpen, onClose, onScanSuccess }) {
         )}
       </div>
 
-      {/* Bottom hint or scan error */}
+      
       <div className="pb-6 text-center px-4 space-y-2">
         {scanError ? (
           <div className="p-3 rounded-xl bg-amber-950/80 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-center space-x-2">

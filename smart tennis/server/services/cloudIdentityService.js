@@ -1,19 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — SERVIÇO DE IDENTIDADE E AUTENTICAÇÃO CLOUD (ETAPA B)
- * ==============================================================================
- * Conecta e valida identidades do Supabase Auth com o banco SQLite local.
- *
- * PRINCÍPIOS FUNDAMENTAIS:
- * 1. PRESERVAÇÃO TOTAL: Usuários locais, senhas PBKDF2 e sessões existentes
- *    permanecem intactos no SQLite e continuam funcionando normalmente.
- * 2. ZERO SERVICE_ROLE: Nenhuma chave administrativa é utilizada ou exigida.
- * 3. VALIDAÇÃO ESTREITA DE TOKENS: Verificação de expiração, claims (aud='authenticated',
- *    sub=UUID), emissor e assinatura criptográfica (HMAC-SHA256 ou endpoint oficial).
- * 4. ASSOCIAÇÃO 1:1 SEGURA: Um atleta local associa-se a no máximo 1 conta cloud,
- *    e um UUID cloud associa-se a no máximo 1 atleta local.
- * ==============================================================================
- */
+
 
 const crypto = require('crypto');
 const { get, run, all, exec } = require('../database/db');
@@ -25,9 +10,6 @@ const {
 
 let tablesEnsured = false;
 
-/**
- * Garante que a tabela user_cloud_identities e suas colunas estejam criadas de forma idempotente.
- */
 async function ensureCloudIdentityTables() {
   if (tablesEnsured) return;
   try {
@@ -51,7 +33,6 @@ async function ensureCloudIdentityTables() {
     try {
       await run('ALTER TABLE users ADD COLUMN supabase_user_id TEXT');
     } catch (_) {
-      // Coluna já existente
     }
 
     tablesEnsured = true;
@@ -74,10 +55,6 @@ function decodeBase64UrlJson(str) {
   }
 }
 
-/**
- * Realiza a validação estrutural e de claims de um token Supabase Auth.
- * Retorna { valid: boolean, payload?: object, error?: string, code?: string }
- */
 async function verifySupabaseToken(token, options = {}) {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Token não fornecido ou em formato inválido.', code: 'INVALID_TOKEN_FORMAT' };
@@ -96,23 +73,19 @@ async function verifySupabaseToken(token, options = {}) {
     return { valid: false, error: 'Falha ao decodificar cabeçalho ou payload do JWT.', code: 'MALFORMED_JWT_PAYLOAD' };
   }
 
-  // 1. Validação de Algoritmo (rejeita ausente, 'none' ou não suportado)
   if (!header.alg || header.alg === 'none' || (header.alg !== 'HS256' && header.alg !== 'RS256' && header.alg !== 'ES256')) {
     return { valid: false, error: `Algoritmo não suportado ou ausente: ${header.alg || 'none'}`, code: 'UNSUPPORTED_ALGORITHM' };
   }
 
-  // 2. Validação da Claim 'sub' (UUID do atleta no Supabase Auth)
   const cloudUserId = payload.sub;
   if (!isValidUuid(cloudUserId)) {
     return { valid: false, error: 'A claim sub deve ser um UUID válido.', code: 'INVALID_SUB_UUID' };
   }
 
-  // 3. Validação da Claim 'aud' (Audiência oficial do Supabase: 'authenticated')
   if (payload.aud !== 'authenticated') {
     return { valid: false, error: "Audiência inválida. Esperado: 'authenticated'.", code: 'INVALID_AUDIENCE' };
   }
 
-  // 4. Validação da Claim 'exp' (Expiração do Token)
   const nowSec = Math.floor(Date.now() / 1000);
   if (!payload.exp || typeof payload.exp !== 'number') {
     return { valid: false, error: 'Token não possui claim de expiração (exp).', code: 'MISSING_EXPIRATION' };
@@ -121,12 +94,10 @@ async function verifySupabaseToken(token, options = {}) {
     return { valid: false, error: 'Token Supabase Auth expirado.', code: 'TOKEN_EXPIRED' };
   }
 
-  // 5. Validação da Claim 'nbf' (Not Before, se presente)
   if (payload.nbf && typeof payload.nbf === 'number' && payload.nbf > nowSec + 60) {
     return { valid: false, error: 'Token ainda não é válido (nbf futuro).', code: 'TOKEN_NOT_YET_VALID' };
   }
 
-  // 6. Validação da Claim 'iss' (Emissor do Supabase)
   const config = getSupabaseConfig();
   if (config.configured && config.url) {
     const expectedIss = `${config.url}/auth/v1`;
@@ -138,7 +109,6 @@ async function verifySupabaseToken(token, options = {}) {
     }
   }
 
-  // 7. Validação Criptográfica de Assinatura (Fail-Closed)
   const jwtSecret = options.jwtSecret || config.jwtSecret;
   if (jwtSecret) {
     if (header.alg !== 'HS256') {
@@ -160,7 +130,6 @@ async function verifySupabaseToken(token, options = {}) {
       return { valid: false, error: 'Falha na verificação da assinatura criptográfica.', code: 'SIGNATURE_CHECK_FAILED' };
     }
   } else if (config.configured && config.url && config.anonKey) {
-    // Verificação oficial via API REST do Supabase Auth usando a anonKey pública
     try {
       const verifyRes = await fetch(`${config.url}/auth/v1/user`, {
         method: 'GET',
@@ -186,7 +155,6 @@ async function verifySupabaseToken(token, options = {}) {
       };
     }
   } else {
-    // Sem chave local de verificação e sem Supabase online configurado: FAIL CLOSED
     return {
       valid: false,
       error: 'Assinatura não pôde ser verificada: Supabase não está configurado e nenhum JWT Secret está presente.',
@@ -202,9 +170,6 @@ async function verifySupabaseToken(token, options = {}) {
   };
 }
 
-/**
- * Localiza um usuário local no SQLite através de seu UUID Supabase Auth.
- */
 async function getLinkedUserByCloudId(cloudUserId, provider = 'supabase') {
   if (!cloudUserId || !isValidUuid(cloudUserId)) return null;
   await ensureCloudIdentityTables();
@@ -222,9 +187,6 @@ async function getLinkedUserByCloudId(cloudUserId, provider = 'supabase') {
   return row || null;
 }
 
-/**
- * Retorna os dados da identidade cloud vinculada a um usuário local.
- */
 async function getCloudIdentityForUser(userId, provider = 'supabase') {
   if (!userId) return null;
   await ensureCloudIdentityTables();
@@ -253,13 +215,11 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
   }
   await ensureCloudIdentityTables();
 
-  // 1. Verifica se o usuário local existe no SQLite
   const localUser = await get('SELECT id, username FROM users WHERE id = ?', [userId]);
   if (!localUser) {
     throw new Error('Usuário local não encontrado no SQLite.');
   }
 
-  // 2. Verifica se este usuário local já está vinculado a outra identidade deste provedor
   const existingForUser = await get(
     'SELECT cloud_user_id FROM user_cloud_identities WHERE user_id = ? AND provider = ?',
     [userId, provider]
@@ -268,7 +228,6 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
     throw new Error(`Este usuário local já está vinculado à identidade cloud ${existingForUser.cloud_user_id}. Desvincule primeiro.`);
   }
 
-  // 3. Verifica se o UUID cloud já está em uso por outro usuário local
   const existingForCloud = await get(
     'SELECT user_id FROM user_cloud_identities WHERE cloud_user_id = ? AND provider = ?',
     [cloudUserId, provider]
@@ -279,7 +238,6 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
 
   const metaStr = metadata ? JSON.stringify(metadata) : null;
 
-  // 4. Insere ou atualiza o registro na tabela de identidades
   await run(
     `INSERT INTO user_cloud_identities (user_id, provider, cloud_user_id, email, metadata_json, linked_at, last_seen_at)
      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -291,14 +249,11 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
     [userId, provider, cloudUserId, email, metaStr]
   );
 
-  // 5. Atualiza a coluna de conveniência em users (se existir)
   try {
     await run('UPDATE users SET supabase_user_id = ? WHERE id = ?', [cloudUserId, userId]);
   } catch (e) {
-    // Silencia se a coluna não tiver sido criada ainda
   }
 
-  // 6. ETAPA C: Associa partidas offline que estavam aguardando vinculação (pending_link)
   try {
     const pendingOutbox = await all(
       `SELECT id, payload_json FROM cloud_outbox WHERE user_id = ? AND status = 'pending_link'`,
@@ -338,9 +293,6 @@ async function linkLocalUserToCloud({ userId, cloudUserId, email = null, metadat
   };
 }
 
-/**
- * Remove a associação entre o usuário local e a identidade cloud.
- */
 async function unlinkLocalUserFromCloud(userId, provider = 'supabase') {
   if (!userId) return { success: false, error: 'ID de usuário não informado.' };
 
@@ -352,23 +304,17 @@ async function unlinkLocalUserFromCloud(userId, provider = 'supabase') {
   return { success: true, message: 'Vínculo com Supabase Auth removido com sucesso.' };
 }
 
-/**
- * Provisiona um atleta local próprio e isolado no SQLite para uma conta Supabase Auth legítima.
- * Garante que cada atleta cloud receba seu próprio registro e NUNCA sobrescreva ou se misture com Nicolas.
- */
 async function provisionLocalPlayerForCloud({ cloudUserId, email = null, name = null, metadata = null, password = null }) {
   if (!cloudUserId || !isValidUuid(cloudUserId)) {
     throw new Error('ID de usuário cloud (UUID) inválido para provisionamento.');
   }
   await ensureCloudIdentityTables();
 
-  // Se já existir vínculo anterior para este cloudUserId, retorna-o diretamente
   const existing = await getLinkedUserByCloudId(cloudUserId);
   if (existing) {
     return existing;
   }
 
-  // 1. Gera um username único no SQLite
   const rawBase = (name || (email ? email.split('@')[0] : 'atleta')).trim();
   const cleanBase = rawBase.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'atleta';
   let candidateUsername = cleanBase;
@@ -379,7 +325,6 @@ async function provisionLocalPlayerForCloud({ cloudUserId, email = null, name = 
 
   const displayName = name && name.trim() ? name.trim() : (cleanBase.charAt(0).toUpperCase() + cleanBase.slice(1));
 
-  // 2. Cria hash PBKDF2 local seguro (se senha informada, armazena para viabilizar login offline)
   const salt = crypto.randomBytes(16).toString('hex');
   const rawPass = password && typeof password === 'string' && password.length >= 6
     ? password
@@ -393,14 +338,12 @@ async function provisionLocalPlayerForCloud({ cloudUserId, email = null, name = 
   );
   const newUserId = userInsert.lastID;
 
-  // 3. Cria o perfil esportivo em players (nível 1, 0 XP, Iniciante)
   await run(
     `INSERT INTO players (user_id, name, avatar, level, title, xp, xp_next, precision, streak_days, created_at)
      VALUES (?, ?, '🎾', 1, 'Iniciante', 0, 250, 0, 1, CURRENT_TIMESTAMP)`,
     [newUserId, displayName]
   );
 
-  // 4. Cria os 6 atributos esportivos normalizados
   try {
     const { ensurePlayerAttributes } = require('./gameEngine');
     if (typeof ensurePlayerAttributes === 'function') {
@@ -408,12 +351,10 @@ async function provisionLocalPlayerForCloud({ cloudUserId, email = null, name = 
     }
   } catch (_) {}
 
-  // 5. Associa ao equipamento padrão da quadra
   try {
     await run(`INSERT OR IGNORE INTO equipment_users (equipment_id, user_id) VALUES (1, ?)`, [newUserId]);
   } catch (_) {}
 
-  // 6. Vincula 1:1 na tabela user_cloud_identities
   await linkLocalUserToCloud({
     userId: newUserId,
     cloudUserId,

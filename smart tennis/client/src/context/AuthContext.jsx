@@ -25,7 +25,6 @@ export function AuthProvider({ children }) {
     const token = getAuthToken();
     const guestToken = getGuestToken();
 
-    // 1. Em ambiente Vercel (web_demo), Android Cloud ou quando houver sessão Cloud ativa, restaura imediatamente
     if (cloudSession?.accessToken && (isWebDemoMode() || isCloudOnlyMode() || isNativeMobile() || !getSavedServerUrl() || !token)) {
       if (cloudSession.expiresAt && cloudSession.expiresAt < Date.now() + 60000 && cloudSession.refreshToken) {
         try {
@@ -63,7 +62,6 @@ export function AuthProvider({ children }) {
       }
     }
 
-    // 2. Validação local no notebook via SQLite (quando token local existe e não é web_demo)
     if (token && !isWebDemoMode()) {
       if (isEquipmentMode() && !isNativeMobile()) {
         try {
@@ -76,12 +74,10 @@ export function AuthProvider({ children }) {
             return;
           }
         } catch (e) {
-          // Se falhar ao conectar ao servidor local, tenta fallback para a sessão cloud
         }
       }
     }
 
-    // 3. Fallback adicional para sessão cloud caso a chamada local tenha falhado
     if (cloudSession?.accessToken) {
       if (cloudSession.expiresAt && cloudSession.expiresAt < Date.now() + 60000 && cloudSession.refreshToken) {
         try {
@@ -203,7 +199,6 @@ export function AuthProvider({ children }) {
   };
 
   const startGuest = async () => {
-    // Limpa qualquer sessão anterior antes de iniciar como visitante
     if (getAuthToken()) {
       setAuthToken(null);
       setUser(null);

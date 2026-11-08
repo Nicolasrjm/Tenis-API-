@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — SERVIÇO DE LEITURA SEGURA DA NUVEM SUPABASE (FASE D2)
+ * MOTION TENNIS — SERVIÇO DE LEITURA SEGURA DA NUVEM SUPABASE
  * ==============================================================================
  * Camada de consulta direta ao Supabase PostgREST para dispositivos móveis e web.
  *
@@ -17,9 +17,6 @@
 
 import { getCloudConfig } from './cloudAuthService.js';
 
-/**
- * Monta cabeçalhos autenticados para a REST API do Supabase (PostgREST).
- */
 function buildPostgrestHeaders({ anonKey, accessToken, preferCount = false }) {
   const headers = {
     'apikey': anonKey,
@@ -33,9 +30,6 @@ function buildPostgrestHeaders({ anonKey, accessToken, preferCount = false }) {
   return headers;
 }
 
-/**
- * Consulta o perfil oficial do atleta no Supabase (player_profiles).
- */
 export async function getCloudProfile({ supabaseUrl, anonKey, accessToken, fetchFn = globalThis.fetch }) {
   if (!accessToken) throw new Error('Token de acesso do atleta não fornecido.');
 
@@ -66,9 +60,6 @@ export async function getCloudProfile({ supabaseUrl, anonKey, accessToken, fetch
   return Array.isArray(profiles) && profiles.length > 0 ? profiles[0] : null;
 }
 
-/**
- * Consulta os 6 atributos esportivos do atleta no Supabase (player_attributes).
- */
 export async function getCloudAttributes({ supabaseUrl, anonKey, accessToken, fetchFn = globalThis.fetch }) {
   if (!accessToken) throw new Error('Token de acesso do atleta não fornecido.');
 
@@ -98,9 +89,6 @@ export async function getCloudAttributes({ supabaseUrl, anonKey, accessToken, fe
   return res.json();
 }
 
-/**
- * Consulta as sessões sincronizadas do atleta no Supabase (synced_sessions) com paginação.
- */
 export async function getCloudSessions({
   supabaseUrl,
   anonKey,
@@ -138,7 +126,6 @@ export async function getCloudSessions({
     throw err;
   }
 
-  // Extrai total de registros do header content-range (ex: "0-9/42")
   let totalCount = null;
   const contentRange = res.headers?.get ? res.headers.get('content-range') : (res.headers && res.headers['content-range']);
   if (contentRange && contentRange.includes('/')) {
@@ -156,9 +143,6 @@ export async function getCloudSessions({
   };
 }
 
-/**
- * Consulta os impactos detalhados de uma sessão específica (synced_shots).
- */
 export async function getCloudSessionShots({ supabaseUrl, anonKey, accessToken, sessionId, fetchFn = globalThis.fetch }) {
   if (!accessToken) throw new Error('Token de acesso do atleta não fornecido.');
   if (!sessionId) throw new Error('ID da sessão não informado.');
@@ -189,9 +173,6 @@ export async function getCloudSessionShots({ supabaseUrl, anonKey, accessToken, 
   return res.json();
 }
 
-/**
- * Consulta as conquistas desbloqueadas pelo atleta (player_achievements).
- */
 export async function getCloudAchievements({ supabaseUrl, anonKey, accessToken, fetchFn = globalThis.fetch }) {
   if (!accessToken) throw new Error('Token de acesso do atleta não fornecido.');
 
@@ -221,10 +202,6 @@ export async function getCloudAchievements({ supabaseUrl, anonKey, accessToken, 
   return res.json();
 }
 
-/**
- * Carrega a visão agregada completa do atleta (Perfil, Sessões Recentes, Atributos e Conquistas).
- * Utilizado para alimentar a tela Inicial e Evolução do site mobile em uma única chamada paralela.
- */
 export async function getCloudAthleteOverview({ supabaseUrl, anonKey, accessToken, fetchFn = globalThis.fetch }) {
   const [profile, attributes, sessionsResult, achievements] = await Promise.all([
     getCloudProfile({ supabaseUrl, anonKey, accessToken, fetchFn }).catch(() => null),
@@ -236,7 +213,6 @@ export async function getCloudAthleteOverview({ supabaseUrl, anonKey, accessToke
   const sessions = sessionsResult?.sessions || [];
   const latestSession = sessions.length > 0 ? sessions[0] : null;
 
-  // Calcula melhor pontuação das sessões recuperadas
   let bestScore = 0;
   for (const s of sessions) {
     if (s.total_score && s.total_score > bestScore) {
@@ -244,7 +220,6 @@ export async function getCloudAthleteOverview({ supabaseUrl, anonKey, accessToke
     }
   }
 
-  // Agrega evolução cronológica de precisão e pontuação
   const evolutionHistory = [...sessions]
     .reverse()
     .map((s) => ({
@@ -282,9 +257,6 @@ export async function getCloudAthleteOverview({ supabaseUrl, anonKey, accessToke
   };
 }
 
-/**
- * Atualiza o perfil visual do atleta autenticado no Supabase (display_name, avatar).
- */
 export async function updateCloudProfile({
   supabaseUrl,
   anonKey,
@@ -330,9 +302,6 @@ export async function updateCloudProfile({
   return Array.isArray(updatedRows) && updatedRows.length > 0 ? updatedRows[0] : body;
 }
 
-/**
- * Consulta os impactos recentes de todas as sessões do atleta autenticado (synced_shots).
- */
 export async function getCloudRecentShots({
   supabaseUrl,
   anonKey,

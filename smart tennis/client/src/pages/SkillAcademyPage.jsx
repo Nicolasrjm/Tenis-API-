@@ -58,7 +58,7 @@ export default function SkillAcademyPage() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto animate-fadeIn">
       
-      {/* Top Breadcrumb */}
+      
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/app/academy')}
@@ -76,7 +76,7 @@ export default function SkillAcademyPage() {
         </Link>
       </div>
 
-      {/* CABEÇALHO DA HABILIDADE */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-4 shadow-sm transition-colors">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -118,7 +118,7 @@ export default function SkillAcademyPage() {
         </p>
       </div>
 
-      {/* SEÇÃO: CONTEÚDOS PARA MELHORAR */}
+      
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
@@ -156,7 +156,7 @@ export default function SkillAcademyPage() {
                 </p>
               </div>
 
-              {/* Status Vídeo em Breve */}
+              
               <div className="shrink-0 self-end sm:self-center">
                 <div className="px-4 py-2.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-amber-500 font-mono text-xs font-bold tracking-wider uppercase flex items-center space-x-2">
                   <Video className="w-4 h-4 text-amber-500" />
@@ -169,7 +169,7 @@ export default function SkillAcademyPage() {
         </div>
       </div>
 
-      {/* Ciclo de Desenvolvimento do Atleta */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] text-center space-y-3 shadow-sm">
         <h4 className="text-sm font-bold text-[#142B3D] dark:text-[#F1F5F9]">
           Ciclo de Desenvolvimento do Atleta

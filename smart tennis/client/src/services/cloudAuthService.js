@@ -17,10 +17,6 @@ import { api } from './api.js';
 import { isWebDemoMode } from './appEnvironment.js';
 import { isMobileDevice } from './serverConfig.js';
 
-/**
- * Autentica o usuário diretamente no serviço oficial Supabase Auth com e-mail e senha,
- * obtendo um access_token criptográfico legítimo.
- */
 export async function authenticateSupabaseUser({ supabaseUrl, anonKey, email, password, fetchFn = globalThis.fetch }) {
   if (!supabaseUrl || !anonKey) {
     throw new Error('Configuração da nuvem Supabase incompleta no servidor.');
@@ -90,9 +86,6 @@ export async function authenticateSupabaseUser({ supabaseUrl, anonKey, email, pa
   return data;
 }
 
-/**
- * Gerenciamento seguro de sessão cloud no navegador (localStorage)
- */
 export function getStoredCloudSession() {
   try {
     const raw = localStorage.getItem('mt_cloud_session');
@@ -126,9 +119,6 @@ export function clearCloudSession() {
   } catch (_) {}
 }
 
-/**
- * Renova a sessão do atleta utilizando o refresh_token do Supabase Auth.
- */
 export async function refreshCloudSession({ supabaseUrl, anonKey, refreshToken, fetchFn = globalThis.fetch }) {
   let url = supabaseUrl;
   let key = anonKey;
@@ -167,11 +157,7 @@ export async function refreshCloudSession({ supabaseUrl, anonKey, refreshToken, 
   return refreshed;
 }
 
-/**
- * Consulta a configuração pública do Supabase configurada no notebook ou nas variáveis de ambiente.
- */
 export async function getCloudConfig() {
-  // 1. Tenta carregar das variáveis de ambiente públicas do Vite (Vercel / Netlify / Standalone Web)
   const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || '';
   const envKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY)) || '';
   if (envUrl && envKey) {
@@ -183,7 +169,6 @@ export async function getCloudConfig() {
     };
   }
 
-  // 2. Tenta carregar do cache local persistente
   try {
     const cached = localStorage.getItem('mt_cloud_config');
     if (cached) {
@@ -194,7 +179,6 @@ export async function getCloudConfig() {
     }
   } catch (_) {}
 
-  // 3. Tenta consultar o backend local do notebook (quando acessado via rede local)
   try {
     const remote = await api.getCloudConfig();
     if (remote?.configured && remote?.supabaseUrl && remote?.anonKey) {
@@ -209,7 +193,6 @@ export async function getCloudConfig() {
     }
   } catch (_) {}
 
-  // 4. Fallback público oficial Motion Tennis (garante autenticação mobile e Vercel)
   if (isWebDemoMode() || isMobileDevice()) {
     return {
       configured: true,
@@ -222,26 +205,16 @@ export async function getCloudConfig() {
   return { configured: false, supabaseUrl: '', anonKey: '' };
 }
 
-/**
- * Consulta o status atual de vinculação da conta do atleta logado.
- */
 export async function getCloudStatus() {
   return api.getCloudStatus();
 }
 
-/**
- * Executa o fluxo completo de vinculação:
- * 1. Obtém as configurações públicas de Supabase do backend;
- * 2. Autentica no Supabase Auth com e-mail/senha oficiais;
- * 3. Envia o access_token para a rota autenticada /api/auth/cloud/link do servidor local.
- */
 export async function linkOnlineAccount({ email, password, fetchFn }) {
   const config = await getCloudConfig();
   if (!config?.configured || !config?.supabaseUrl || !config?.anonKey) {
     throw new Error('Sincronização em nuvem não configurada no servidor local.');
   }
 
-  // 1. Autentica na nuvem para obter o access_token
   const authData = await authenticateSupabaseUser({
     supabaseUrl: config.supabaseUrl,
     anonKey: config.anonKey,
@@ -250,7 +223,6 @@ export async function linkOnlineAccount({ email, password, fetchFn }) {
     fetchFn
   });
 
-  // 2. Envia o access_token ao servidor local
   const linkResult = await api.linkCloudAccount({
     access_token: authData.access_token
   });
@@ -264,9 +236,6 @@ export async function linkOnlineAccount({ email, password, fetchFn }) {
   };
 }
 
-/**
- * Vincula diretamente utilizando um access_token já obtido previamente.
- */
 export async function linkWithAccessToken(accessToken) {
   if (!accessToken || typeof accessToken !== 'string') {
     throw new Error('Token de acesso não informado.');
@@ -274,16 +243,10 @@ export async function linkWithAccessToken(accessToken) {
   return api.linkCloudAccount({ access_token: accessToken });
 }
 
-/**
- * Desvincula a conta online do atleta local.
- */
 export async function unlinkOnlineAccount(password) {
   return api.unlinkCloudAccount(password ? { password } : undefined);
 }
 
-/**
- * Registra um novo usuário diretamente no Supabase Auth.
- */
 export async function signUpWithSupabase({ supabaseUrl, anonKey, email, password, name, fetchFn = globalThis.fetch }) {
   if (!supabaseUrl || !anonKey) {
     throw new Error('Configuração da nuvem Supabase incompleta no servidor.');
@@ -359,9 +322,6 @@ export async function signUpWithSupabase({ supabaseUrl, anonKey, email, password
   };
 }
 
-/**
- * Solicita recuperação de senha no Supabase Auth.
- */
 export async function recoverPasswordWithSupabase({ supabaseUrl, anonKey, email, fetchFn = globalThis.fetch }) {
   if (!supabaseUrl || !anonKey) {
     throw new Error('Configuração da nuvem Supabase incompleta no servidor.');
@@ -395,7 +355,6 @@ export async function recoverPasswordWithSupabase({ supabaseUrl, anonKey, email,
   try {
     data = await response.json();
   } catch (e) {
-    // Endpoints recover podem retornar corpo vazio com 200 OK
   }
 
   if (!response.ok) {
@@ -411,9 +370,6 @@ export async function recoverPasswordWithSupabase({ supabaseUrl, anonKey, email,
   };
 }
 
-/**
- * Reenvia o e-mail de confirmação de cadastro no Supabase Auth.
- */
 export async function resendConfirmationEmail({ email, fetchFn = globalThis.fetch }) {
   const config = await getCloudConfig();
   if (!config?.configured || !config?.supabaseUrl || !config?.anonKey) {
@@ -451,7 +407,6 @@ export async function resendConfirmationEmail({ email, fetchFn = globalThis.fetc
   try {
     data = await response.json();
   } catch (e) {
-    // Endpoints resend podem retornar corpo vazio com 200 OK
   }
 
   if (!response.ok) {
@@ -468,9 +423,6 @@ export async function resendConfirmationEmail({ email, fetchFn = globalThis.fetc
   };
 }
 
-/**
- * Realiza login completo via Supabase Auth e conecta ao servidor local.
- */
 export async function loginWithCloudAccount({ email, password, fetchFn }) {
   const config = await getCloudConfig();
   if (!config?.configured || !config?.supabaseUrl || !config?.anonKey) {
@@ -485,7 +437,6 @@ export async function loginWithCloudAccount({ email, password, fetchFn }) {
     fetchFn
   });
 
-  // Salva a sessão cloud no localStorage para acesso mobile standalone
   saveCloudSession({
     accessToken: authData.access_token,
     refreshToken: authData.refresh_token,
@@ -493,17 +444,14 @@ export async function loginWithCloudAccount({ email, password, fetchFn }) {
     user: authData.user
   });
 
-  // Tenta autenticar no backend local do notebook (quando acessível)
   try {
     const res = await api.loginWithSupabaseToken(authData.access_token, {
       create_if_missing: true,
       name: authData.user?.user_metadata?.name || authData.user?.email?.split('@')[0],
-      password // Cache local offline no SQLite
+      password
     });
     return { ...res, cloudSession: authData };
   } catch (localErr) {
-    // Notebook desligado ou atleta remoto no celular com internet:
-    // Retorna autenticação direta pelo Supabase sem depender do SQLite!
     return {
       success: true,
       token: authData.access_token,
@@ -524,9 +472,6 @@ export async function loginWithCloudAccount({ email, password, fetchFn }) {
   }
 }
 
-/**
- * Realiza cadastro completo no Supabase Auth e provisiona atleta localmente se confirmado.
- */
 export async function registerWithCloudAccount({ name, email, password, fetchFn }) {
   const config = await getCloudConfig();
   if (!config?.configured || !config?.supabaseUrl || !config?.anonKey) {
@@ -546,7 +491,7 @@ export async function registerWithCloudAccount({ name, email, password, fetchFn 
     const res = await api.loginWithSupabaseToken(signupRes.session.access_token, {
       create_if_missing: true,
       name,
-      password // Cache offline da senha
+      password
     });
     return { ...signupRes, localLogin: res };
   }
@@ -554,9 +499,6 @@ export async function registerWithCloudAccount({ name, email, password, fetchFn 
   return signupRes;
 }
 
-/**
- * Envia e-mail de recuperação de senha utilizando a configuração atual.
- */
 export async function recoverPasswordForCloud({ email, fetchFn }) {
   const config = await getCloudConfig();
   if (!config?.configured || !config?.supabaseUrl || !config?.anonKey) {

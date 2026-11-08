@@ -45,7 +45,6 @@ function verifyToken(token) {
     if (!payload || payload.type === 'guest' || !Number.isInteger(Number(payload.id)) || Number(payload.id) <= 0) {
       return null;
     }
-    // Token valid for 7 days
     if (Date.now() - payload.timestamp > 7 * 24 * 60 * 60 * 1000) {
       return null;
     }
@@ -55,15 +54,10 @@ function verifyToken(token) {
   }
 }
 
-/**
- * Resolve o usuário autenticado a partir de um token local clássico (2 partes)
- * ou de um token JWT do Supabase Auth (3 partes).
- */
 async function resolveTokenUser(token) {
   if (!token || typeof token !== 'string') return null;
   const parts = token.trim().split('.');
 
-  // 1. Token local clássico do Motion Tennis (2 partes: payloadBase64.hmacSignature)
   if (parts.length === 2) {
     const payload = verifyToken(token);
     if (!payload) return null;
@@ -72,7 +66,6 @@ async function resolveTokenUser(token) {
     return { user, authType: 'local' };
   }
 
-  // 2. Token Supabase Auth (3 partes: header.payload.signature)
   if (parts.length === 3) {
     const verifyRes = await verifySupabaseToken(token);
     if (!verifyRes.valid) {
@@ -105,7 +98,6 @@ async function resolveTokenUser(token) {
   return null;
 }
 
-// Middleware: Require valid authenticated user login (rejects guests and unauthenticated requests)
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -114,7 +106,6 @@ async function requireAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
-  // Se for um token de visitante tentando acessar rota privada/administrativa, bloqueia com 403
   const guestDecoded = guestSessionService.decodeGuestToken(token);
   if (guestDecoded) {
     return res.status(403).json({
@@ -133,7 +124,6 @@ async function requireAuth(req, res, next) {
 
   const user = resolved.user;
 
-  // Impede que um jogador não-admin consulte/modifique dados de outro user_id via query ou body
   const requestedUserId = req.query?.user_id !== undefined ? req.query.user_id : req.body?.user_id;
   if (
     requestedUserId !== undefined &&
@@ -152,7 +142,6 @@ async function requireAuth(req, res, next) {
   next();
 }
 
-// Middleware: Require valid User token OR valid Guest session token (for game play endpoints)
 async function requireUserOrGuest(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -163,7 +152,6 @@ async function requireUserOrGuest(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
-  // 1. Tenta validar como sessão de visitante
   const guestDecoded = guestSessionService.decodeGuestToken(token);
   if (guestDecoded) {
     const guestSess = await guestSessionService.verifyGuestSession(token);
@@ -171,7 +159,6 @@ async function requireUserOrGuest(req, res, next) {
       return res.status(401).json({ error: 'Sessão de visitante inválida, encerrada ou expirada.' });
     }
 
-    // Bloqueia tentativa de falsificar user_id em sessão visitante
     const bodyUserId = req.body?.user_id;
     const queryUserId = req.query?.user_id;
     if (
@@ -192,7 +179,6 @@ async function requireUserOrGuest(req, res, next) {
     return next();
   }
 
-  // 2. Tenta validar como usuário cadastrado (local ou Supabase)
   const resolved = await resolveTokenUser(token);
   if (!resolved || resolved.error) {
     const status = resolved?.status || 401;
@@ -204,7 +190,6 @@ async function requireUserOrGuest(req, res, next) {
 
   const user = resolved.user;
 
-  // Bloqueia tentativa de falsificação de user_id por jogador comum
   const requestedUserId = req.body?.user_id !== undefined ? req.body.user_id : req.query?.user_id;
   if (
     requestedUserId !== undefined &&
@@ -229,7 +214,6 @@ async function requireUserOrGuest(req, res, next) {
   return next();
 }
 
-// Middleware: Require Admin role
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Acesso negado. Esta área requer privilégios de Administrador.' });

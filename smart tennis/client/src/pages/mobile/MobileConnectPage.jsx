@@ -35,14 +35,12 @@ export default function MobileConnectPage() {
   const [showManualForm, setShowManualForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
-  // Connection states: 'idle' | 'testing' | 'connected' | 'error'
   const [connectionStatus, setConnectionStatus] = useState('idle');
   const [serverDetails, setServerDetails] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [inputError, setInputError] = useState(null);
 
   useEffect(() => {
-    // No app Android nativo ou Vercel (modo cloud), o pareamento local não é exigido
     if (isNativeMobile() || isCloudOnlyMode()) {
       navigate('/mobile/dashboard', { replace: true });
       return;
@@ -54,7 +52,6 @@ export default function MobileConnectPage() {
       setManualInput(saved);
       handleTestConnection(saved);
     } else {
-      // Padrão visual inicial caso ainda não haja configuração
       const defaultHost = isNativeMobile() ? '' : window.location.origin;
       if (defaultHost) {
         setConfiguredUrl(defaultHost);
@@ -158,7 +155,7 @@ export default function MobileConnectPage() {
   return (
     <div className="min-h-screen bg-[#060D09] text-[#F5F7F5] flex flex-col justify-between p-4 sm:p-6 pb-24 select-none">
       
-      {/* Top Brand Header */}
+      
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -181,7 +178,7 @@ export default function MobileConnectPage() {
             </div>
           </div>
 
-          {/* Quick status pill */}
+          
           <div className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border flex items-center space-x-1.5 ${
             connectionStatus === 'connected'
               ? 'bg-[#122A1A] border-[#39FF88]/50 text-[#39FF88]'
@@ -206,7 +203,7 @@ export default function MobileConnectPage() {
           </div>
         </div>
 
-        {/* Screen Title */}
+        
         <div className="pt-2">
           <h1 className="text-2xl font-black uppercase tracking-tight text-white">
             Conectar ao Motion Tennis
@@ -217,7 +214,7 @@ export default function MobileConnectPage() {
         </div>
       </div>
 
-      {/* Main Connection Status Card */}
+      
       <div className="my-5 space-y-4">
         <div className={`p-5 rounded-3xl border transition-all duration-300 ${
           connectionStatus === 'connected'
@@ -257,7 +254,7 @@ export default function MobileConnectPage() {
               </div>
             </div>
 
-            {/* Retest Button */}
+            
             <button
               onClick={() => handleTestConnection()}
               disabled={connectionStatus === 'testing'}
@@ -268,7 +265,7 @@ export default function MobileConnectPage() {
             </button>
           </div>
 
-          {/* Configured Address Row */}
+          
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono">
             <div className="truncate mr-2">
               <span className="text-[#8C9891]">Endereço: </span>
@@ -283,7 +280,7 @@ export default function MobileConnectPage() {
             )}
           </div>
 
-          {/* Error Message if Disconnected */}
+          
           {errorMessage && connectionStatus === 'error' && (
             <div className="mt-3 p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-start space-x-2">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -294,7 +291,7 @@ export default function MobileConnectPage() {
             </div>
           )}
 
-          {/* Success details if connected */}
+          
           {connectionStatus === 'connected' && (
             <div className="mt-3 p-2.5 rounded-xl bg-[#0F2617] border border-[#39FF88]/20 text-[11px] text-[#A2C7AE] flex items-center justify-between">
               <span className="flex items-center space-x-1.5">
@@ -306,13 +303,13 @@ export default function MobileConnectPage() {
           )}
         </div>
 
-        {/* Options to Connect */}
+        
         <div className="space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-[#8C9891] block px-1">
             Opções de Conexão
           </span>
 
-          {/* Option A: Scan QR Code */}
+          
           <button
             onClick={() => setShowScanner(true)}
             data-testid="btn-scan-qr"
@@ -334,7 +331,7 @@ export default function MobileConnectPage() {
             <ArrowRight className="w-5 h-5 text-[#8C9891] group-hover:text-[#39FF88] transition" />
           </button>
 
-          {/* Option B: Manual IP */}
+          
           <div className="rounded-2xl bg-[#0D1E13] border border-[#1E3B26] overflow-hidden">
             <button
               onClick={() => setShowManualForm(!showManualForm)}
@@ -350,7 +347,7 @@ export default function MobileConnectPage() {
                     Opção B — Informar Endereço Manualmente
                   </h3>
                   <p className="text-[11px] text-[#8C9891]">
-                    Digite o IP local (ex: http://192.168.0.27:3000)
+                    Digite o IP local (ex: http:
                   </p>
                 </div>
               </div>
@@ -359,7 +356,7 @@ export default function MobileConnectPage() {
               </span>
             </button>
 
-            {/* Manual Form Accordion */}
+            
             {showManualForm && (
               <form onSubmit={handleSaveManualUrl} className="p-4 pt-1 bg-[#09140D] border-t border-[#162E1D] space-y-3">
                 <div>
@@ -409,9 +406,9 @@ export default function MobileConnectPage() {
         </div>
       </div>
 
-      {/* Bottom Action Area: Enter as Registered Player or Free Guest Academy */}
+      
       <div className="space-y-3 pt-2">
-        {/* Se já estiver autenticado e conectado, oferece atalho direto ao Dashboard */}
+        
         {user && connectionStatus === 'connected' && (
           <Link
             to="/mobile/dashboard"
@@ -424,7 +421,7 @@ export default function MobileConnectPage() {
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          {/* Academy Gratuita / Visitante */}
+          
           <button
             onClick={handleGuestAccess}
             data-testid="btn-mobile-academy"
@@ -437,7 +434,7 @@ export default function MobileConnectPage() {
             </div>
           </button>
 
-          {/* Login de Jogador */}
+          
           <Link
             to="/login"
             data-testid="btn-mobile-login"
@@ -457,7 +454,7 @@ export default function MobileConnectPage() {
         </div>
       </div>
 
-      {/* Camera QR Scanner Overlay Modal */}
+      
       <QrScannerOverlay
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}

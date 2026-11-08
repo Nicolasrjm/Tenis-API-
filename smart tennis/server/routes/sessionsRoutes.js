@@ -4,10 +4,8 @@ const { all, run } = require('../database/db');
 const { requireAuth } = require('../services/authService');
 const iotLocalizationService = require('../services/iotLocalizationService');
 
-// Exige autenticação de usuário cadastrado (visitantes recebem 403 e anônimos 401)
 router.use(requireAuth);
 
-// GET /api/sessions
 router.get('/', async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 100);
@@ -25,7 +23,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/sessions - Save finished play session for authenticated user
 router.post('/', async (req, res) => {
   try {
     const {

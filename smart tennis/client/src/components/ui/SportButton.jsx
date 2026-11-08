@@ -1,10 +1,5 @@
 import React from 'react';
 
-/**
- * SportButton - Sport Premium + Sport Play Button Component
- * Variants: 'lime' (primary athletic CTA) | 'navy' (brand solid) | 'blue' (interactive) | 'outline' (clean surface/border) | 'ghost'
- * Sizes: 'sm' | 'md' | 'lg'
- */
 export default function SportButton({
   children,
   variant = 'lime',

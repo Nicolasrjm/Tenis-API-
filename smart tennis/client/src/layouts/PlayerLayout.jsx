@@ -35,14 +35,12 @@ export default function PlayerLayout() {
   const [desempenhoOpen, setDesempenhoOpen] = useState(false);
   const desempenhoRef = useRef(null);
 
-  // Redireciona dispositivo móvel para a experiência mobile dedicada caso acesse /app ou /app/dashboard
   useEffect(() => {
     if (isMobileDevice() && (location.pathname === '/app' || location.pathname === '/app/dashboard')) {
       navigate('/mobile/dashboard', { replace: true });
     }
   }, [location.pathname]);
 
-  // Fecha dropdown ao clicar fora ou pressionar ESC
   useEffect(() => {
     function handleClickOutside(event) {
       if (desempenhoRef.current && !desempenhoRef.current.contains(event.target)) {
@@ -64,7 +62,6 @@ export default function PlayerLayout() {
     };
   }, [desempenhoOpen]);
 
-  // Fecha dropdown ao mudar de rota
   useEffect(() => {
     setDesempenhoOpen(false);
     setMobileOpen(false);
@@ -84,7 +81,6 @@ export default function PlayerLayout() {
     location.pathname.startsWith('/app/evolution') ||
     location.pathname.startsWith('/app/achievements');
 
-  // Visitantes veem apenas Jogar e Academy gratuita
   const navItems = isGuest
     ? [
         { to: '/app/play', label: 'Jogar', icon: PlayCircle, highlight: true },
@@ -101,12 +97,12 @@ export default function PlayerLayout() {
 
   return (
     <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col font-sans transition-colors duration-200">
-      {/* Top Navbar — Sport Premium Navy / Dark */}
+      
       <header className="sticky top-0 z-50 bg-[#142B3D]/95 dark:bg-[#0D1B2A]/95 backdrop-blur border-b border-[#1C3A52] dark:border-[#344653] text-white shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
             
-            {/* Logo Sport Premium */}
+            
             <Link to={isGuest ? '/app/play' : '/app/dashboard'} className="flex items-center space-x-2.5 group shrink-0">
               <div className="w-8 h-8 rounded-xl bg-[#0D1C28] border border-[#B8F044]/50 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
                 <svg className="w-5 h-5 text-[#B8F044]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -127,9 +123,9 @@ export default function PlayerLayout() {
               </div>
             </Link>
 
-            {/* Desktop Navigation (Otimizada para notebooks 1280x720 e 1366x768) */}
+            
             <nav className="hidden lg:flex items-center space-x-1">
-              {/* Dashboard */}
+              
               {!isGuest && (
                 <NavLink
                   to="/app/dashboard"
@@ -146,7 +142,7 @@ export default function PlayerLayout() {
                 </NavLink>
               )}
 
-              {/* Jogar */}
+              
               <NavLink
                 to="/app/play"
                 className={({ isActive }) =>
@@ -161,7 +157,7 @@ export default function PlayerLayout() {
                 <span>Jogar</span>
               </NavLink>
 
-              {/* Dropdown Desempenho (Agrupa Estatísticas e Evolução) */}
+              
               {!isGuest && (
                 <div className="relative" ref={desempenhoRef}>
                   <button
@@ -188,7 +184,7 @@ export default function PlayerLayout() {
                     />
                   </button>
 
-                  {/* Dropdown Menu com Estatísticas e Evolução uma abaixo da outra */}
+                  
                   {desempenhoOpen && (
                     <div
                       id="dropdown-desempenho"
@@ -266,7 +262,7 @@ export default function PlayerLayout() {
                 </div>
               )}
 
-              {/* Academy */}
+              
               <NavLink
                 to="/app/academy"
                 className={({ isActive }) =>
@@ -281,7 +277,7 @@ export default function PlayerLayout() {
                 <span>Academy</span>
               </NavLink>
 
-              {/* Histórico */}
+              
               {!isGuest && (
                 <NavLink
                   to="/app/history"
@@ -298,7 +294,7 @@ export default function PlayerLayout() {
                 </NavLink>
               )}
 
-              {/* Perfil */}
+              
               {!isGuest && (
                 <NavLink
                   to="/app/profile"
@@ -316,7 +312,7 @@ export default function PlayerLayout() {
               )}
             </nav>
 
-            {/* Right side: Perfil/Logout & Contextual Actions */}
+            
             <div className="hidden sm:flex items-center space-x-2 lg:space-x-2.5 shrink-0">
               <ThemeToggle />
 
@@ -384,7 +380,7 @@ export default function PlayerLayout() {
               )}
             </div>
 
-            {/* Mobile menu trigger */}
+            
             <div className="flex lg:hidden items-center space-x-2">
               <ThemeToggle />
               <button
@@ -398,10 +394,10 @@ export default function PlayerLayout() {
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
+        
         {mobileOpen && (
           <div className="lg:hidden border-b border-[#1C3A52] bg-[#142B3D] p-4 space-y-2 animate-fadeIn">
-            {/* Dashboard */}
+            
             {!isGuest && (
               <NavLink
                 to="/app/dashboard"
@@ -417,7 +413,7 @@ export default function PlayerLayout() {
               </NavLink>
             )}
 
-            {/* Jogar */}
+            
             <NavLink
               to="/app/play"
               onClick={() => setMobileOpen(false)}
@@ -431,7 +427,7 @@ export default function PlayerLayout() {
               <span>Jogar</span>
             </NavLink>
 
-            {/* Desempenho no Menu Mobile (com Estatísticas e Evolução) */}
+            
             {!isGuest && (
               <div className="space-y-1 pt-1 pb-1">
                 <div className="px-3 py-1 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
@@ -467,7 +463,7 @@ export default function PlayerLayout() {
               </div>
             )}
 
-            {/* Academy */}
+            
             <NavLink
               to="/app/academy"
               onClick={() => setMobileOpen(false)}
@@ -481,7 +477,7 @@ export default function PlayerLayout() {
               <span>Academy</span>
             </NavLink>
 
-            {/* Histórico */}
+            
             {!isGuest && (
               <NavLink
                 to="/app/history"
@@ -497,7 +493,7 @@ export default function PlayerLayout() {
               </NavLink>
             )}
 
-            {/* Conquistas */}
+            
             {!isGuest && (
               <NavLink
                 to="/app/achievements"
@@ -513,7 +509,7 @@ export default function PlayerLayout() {
               </NavLink>
             )}
 
-            {/* Perfil */}
+            
             {!isGuest && (
               <NavLink
                 to="/app/profile"
@@ -541,17 +537,17 @@ export default function PlayerLayout() {
         )}
       </header>
 
-      {/* Main Content Area */}
+      
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
 
-      {/* Footer */}
+      
       <footer className="border-t border-[#B8C6D0] dark:border-[#344653] py-4 text-center text-xs text-[#475569] dark:text-[#A8BAC8]">
         MOTION TENNIS © 2026 • Plataforma de Treinamento Esportivo e Gamificação
       </footer>
 
-      {/* Modal Conectar Celular via QR Code */}
+      
       <ConnectMobileModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
     </div>
   );

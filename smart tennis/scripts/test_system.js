@@ -48,7 +48,6 @@ async function runTests() {
   console.log('====================================================\n');
 
   try {
-    // 1. Status API
     console.log('[TESTE 1] Testando status do sistema e banco...');
     const statusRes = await makeRequest('/api/status');
     if (statusRes.status !== 200 || statusRes.data.status !== 'online') {
@@ -56,7 +55,6 @@ async function runTests() {
     }
     console.log('✓ Status OK: Servidor Online, Banco SQLite Conectado');
 
-    // 2. Auth: Player Login (Nicolas)
     console.log('\n[TESTE 2] Testando login de Jogador (Nicolas)...');
     const playerLogin = await makeRequest('/api/auth/login', 'POST', {
       username: 'nicolas',
@@ -68,7 +66,6 @@ async function runTests() {
     const playerToken = playerLogin.data.token;
     console.log(`✓ Jogador autenticado com sucesso: ${playerLogin.data.user.name} (Role: ${playerLogin.data.user.role})`);
 
-    // 3. Auth: Admin Login
     console.log('\n[TESTE 3] Testando login de Administrador (Admin)...');
     const adminLogin = await makeRequest('/api/auth/login', 'POST', {
       username: 'admin',
@@ -80,7 +77,6 @@ async function runTests() {
     const adminToken = adminLogin.data.token;
     console.log(`✓ Administrador autenticado com sucesso: ${adminLogin.data.user.name} (Role: ${adminLogin.data.user.role})`);
 
-    // 4. Route Protection
     console.log('\n[TESTE 4] Testando proteção de rotas administrativas...');
     const unauthRes = await makeRequest('/api/admin/users');
     if (unauthRes.status !== 401) {
@@ -96,7 +92,6 @@ async function runTests() {
     }
     console.log(`✓ Proteção de rotas validada: Sem token = 401, Jogador = 403, Admin = 200 OK (${adminAllowedRes.data.length} usuários)`);
 
-    // 5. Sensors & Targets API (EXATAMENTE 6 ALVOS)
     console.log('\n[TESTE 5] Testando API de alvos físicos (TARGET COUNT = 6)...');
     const sensorsRes = await makeRequest('/api/sensors');
     if (sensorsRes.status !== 200 || !Array.isArray(sensorsRes.data) || sensorsRes.data.length !== 6) {
@@ -107,10 +102,8 @@ async function runTests() {
       console.log(`  - ${t.name}: Centro em (${t.x}%, ${t.y}%), Raio Detecção: ${t.detection_radius}%`);
     });
 
-    // 6. Detecção por Aproximação & Impacto
     console.log('\n[TESTE 6] Testando detecção por aproximação euclidiana...');
     
-    // 6a. Impacto dentro da tolerância (37, 27) -> deve associar ao Alvo 1 (35, 25)
     const hitNearRes = await makeRequest('/api/hardware/hit', 'POST', {
       x: 37.0,
       y: 27.0,
@@ -126,7 +119,6 @@ async function runTests() {
     }
     console.log(`✓ Coordenada (37, 27) associada com sucesso ao Alvo 1 (Distância: ${hitNear.distance}%) — Pontos: ${hitNear.score}, XP: +${hitNear.xp}`);
 
-    // 6b. Impacto fora da tolerância (50, 50) -> deve registrar ERRO / FORA DO ALVO
     const missRes = await makeRequest('/api/hardware/hit', 'POST', {
       x: 50.0,
       y: 50.0,
@@ -139,7 +131,6 @@ async function runTests() {
     }
     console.log(`✓ Coordenada (50, 50) detectada como FORA DO ALVO (Distância: ${missData.distance}% > 12.0%) — is_hit=0, sensor_id=null`);
 
-    // 7. Academy API
     console.log('\n[TESTE 7] Testando Smart Tennis Academy (/api/academy)...');
     const academyRes = await makeRequest('/api/academy');
     if (academyRes.status !== 200 || !academyRes.data.skills || Object.keys(academyRes.data.skills).length < 6) {
@@ -152,7 +143,6 @@ async function runTests() {
     const skillCount = Object.keys(academyRes.data.skills).length;
     console.log(`✓ Academy carregada com ${skillCount} habilidades. Habilidade "${precisionSkill.data.skillName}" possui ${precisionSkill.data.cards.length} aulas preparadas`);
 
-    // 8. Admin Equipments
     console.log('\n[TESTE 8] Testando gestão administrativa de equipamentos...');
     const eqRes = await makeRequest('/api/admin/equipments', 'GET', null, adminToken);
     if (eqRes.status !== 200 || !Array.isArray(eqRes.data)) {
@@ -160,7 +150,6 @@ async function runTests() {
     }
     console.log(`✓ ${eqRes.data.length} Equipamentos gerenciados pelo Admin (Ex: ${eqRes.data[0]?.name} - Status: ${eqRes.data[0]?.status})`);
 
-    // 9. Static Frontend Serving & React Router Catch-all
     console.log('\n[TESTE 9] Testando entrega estática do frontend e rotas SPA...');
     const frontRes = await makeRequest('/');
     if (frontRes.status !== 200 || typeof frontRes.text !== 'string' || !frontRes.text.includes('<html')) {

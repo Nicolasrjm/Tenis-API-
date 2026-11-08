@@ -1,10 +1,3 @@
-// SMART TENNIS — GEOMETRIA FÍSICA DOS 6 ALVOS E POSICIONAMENTO DOS 3 SENSORES KY-037 (CLIENTE)
-// Origem cartesiana física: canto inferior esquerdo da parede = (0, 0).
-//   S1 = (0, altura)        -> Canto superior esquerdo
-//   S2 = (largura, altura)  -> Canto superior direito
-//   S3 = (0, 0)             -> Canto inferior esquerdo
-//   Canto inferior direito NÃO possui sensor.
-
 export const WALL_PRESETS = {
   '4x3': {
     id: '4x3',
@@ -87,10 +80,10 @@ export const NICOLAS_WALL_OPTIONS = [
 ];
 
 export const PHYSICAL_CONSTANTS = {
-  MARGIN_X_M: 0.10, // Margem externa horizontal: 10 cm
-  MARGIN_Y_M: 0.10, // Margem externa vertical: 10 cm
-  GAP_X_M: 0.30,    // Espaçamento físico horizontal entre alvos: 30 cm
-  GAP_Y_M: 0.30,    // Espaçamento físico vertical entre alvos: 30 cm
+  MARGIN_X_M: 0.10,
+  MARGIN_Y_M: 0.10,
+  GAP_X_M: 0.30,
+  GAP_Y_M: 0.30,
   COLUMNS: 3,
   ROWS: 2,
   TOTAL_TARGETS: 6

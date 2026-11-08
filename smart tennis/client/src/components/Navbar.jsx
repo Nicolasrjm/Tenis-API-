@@ -37,11 +37,11 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo & Brand */}
+          
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onOpenLanding ? onOpenLanding() : setTab('dashboard')}>
             <div className="relative w-9 h-9 rounded-lg bg-[#0C1A11] border border-[#39FF88]/40 flex items-center justify-center shadow-neon-sm overflow-hidden group">
               <div className="absolute inset-0 bg-[#39FF88]/10 group-hover:bg-[#39FF88]/20 transition-colors"></div>
-              {/* Tennis ball icon with target crosshairs */}
+              
               <svg className="w-6 h-6 text-[#39FF88]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 3v18" strokeDasharray="2 2" strokeOpacity="0.6" />
@@ -61,7 +61,7 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
             </div>
           </div>
 
-          {/* Desktop Navigation */}
+          
           <nav className="hidden lg:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -85,10 +85,10 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
             })}
           </nav>
 
-          {/* Status & Player Widget */}
+          
           <div className="hidden sm:flex items-center space-x-4">
             
-            {/* Status Badge (Requirement 9) */}
+            
             <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border ${
               isSimulated 
                 ? 'bg-[#122419] border-[#295437] text-[#8C9891]'
@@ -100,7 +100,7 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
               <span>{isSimulated ? 'Modo simulação' : 'Sistema conectado'}</span>
             </div>
 
-            {/* Player Mini Widget */}
+            
             {player && (
               <div 
                 onClick={() => setTab('profile')}
@@ -127,7 +127,7 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
             )}
           </div>
 
-          {/* Mobile menu button */}
+          
           <div className="flex lg:hidden items-center space-x-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -140,7 +140,7 @@ export default function Navbar({ currentTab, setTab, player, systemStatus, onOpe
         </div>
       </div>
 
-      {/* Mobile menu dropdown */}
+      
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-[#1B3624] bg-[#07110B]/98 px-4 pt-2 pb-4 space-y-1">
           {navItems.map((item) => {

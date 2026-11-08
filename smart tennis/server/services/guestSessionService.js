@@ -1,19 +1,11 @@
-// MOTION TENNIS — SERVIÇO DE SESSÕES TEMPORÁRIAS DE VISITANTE (FASE 3)
-//
 // Regras de segurança e isolamento:
-// - Sessão própria criada apenas pelo backend com ID aleatório criptográfico e token assinado.
-// - Validade limitada (TTL) e destruição explícita no encerramento/logout.
-// - Nunca cria ou altera registros em users, players, sessions, hits, shots, attributes ou achievements.
-// - Mantém estado efêmero isolado para sobreviver a reinício do processo sem conceder tempo extra,
-//   eliminando todos os dados temporários ao encerrar ou expirar.
 
 const crypto = require('crypto');
 const { run, get, all, exec } = require('../database/db');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'smart-tennis-secret-key-2026';
-const DEFAULT_GUEST_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
+const DEFAULT_GUEST_TTL_MS = 2 * 60 * 60 * 1000;
 
-// Cache em memória das sessões ativas de visitantes
 const memorySessions = new Map();
 
 function isTestMode() {
@@ -82,13 +74,11 @@ async function cleanupGuestCommercialData(guestId) {
       [guestId]
     );
     for (const exp of exps) {
-      // Remove dados temporários de experiências comerciais do visitante
       await run(`DELETE FROM commercial_impacts WHERE experience_id = ?`, [exp.id]);
       await run(`DELETE FROM commercial_rounds WHERE experience_id = ?`, [exp.id]);
       await run(`DELETE FROM commercial_experiences WHERE id = ?`, [exp.id]);
     }
   } catch (err) {
-    // Tabela commercial_experiences pode ainda não ter coluna guest_id na primeira migração
   }
 }
 
@@ -202,7 +192,6 @@ async function verifyGuestSession(token, now = Date.now()) {
   let sess = memorySessions.get(payload.guestId);
 
   if (!sess) {
-    // Tenta recuperar do armazenamento efêmero (ex.: após reinício do servidor)
     try {
       const row = await get(
         `SELECT * FROM ephemeral_guest_sessions WHERE guest_id = ?`,

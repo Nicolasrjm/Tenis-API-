@@ -4,9 +4,9 @@ const PRESETS = {
   large: { id: 'large', label: 'Grande', width: 4.0, height: 3.0, aspectRatio: '4/3' }
 };
 
-const Mx = 0.10; // 10 cm margem externa
+const Mx = 0.10;
 const My = 0.10;
-const Gx = 0.30; // 30 cm entre alvos vizinhos
+const Gx = 0.30;
 const Gy = 0.30;
 
 function calculateWallGeometry(presetKey = 'medium') {
@@ -14,7 +14,6 @@ function calculateWallGeometry(presetKey = 'medium') {
   const W = preset.width;
   const H = preset.height;
 
-  // Largura e altura em metros de cada alvo
   const wt = (W - 2 * Mx - 2 * Gx) / 3;
   const ht = (H - 2 * My - 1 * Gy) / 2;
 
@@ -38,14 +37,12 @@ function calculateWallGeometry(presetKey = 'medium') {
         label: `${id}`,
         col: c,
         row: r,
-        // Metros
         xStartM: Number(xStartM.toFixed(4)),
         xEndM: Number(xEndM.toFixed(4)),
         yStartM: Number(yStartM.toFixed(4)),
         yEndM: Number(yEndM.toFixed(4)),
         widthM: Number(wt.toFixed(4)),
         heightM: Number(ht.toFixed(4)),
-        // Percentual para rendering e normalização (0 a 100%)
         xMin: Number(xMin.toFixed(3)),
         xMax: Number(xMax.toFixed(3)),
         yMin: Number(yMin.toFixed(3)),
@@ -87,7 +84,6 @@ function classifyImpact(x, y, presetKey = 'medium') {
   const numX = Number(x);
   const numY = Number(y);
 
-  // 1. Fora da parede projetada
   if (numX < 0 || numX > 100 || numY < 0 || numY > 100) {
     return {
       classification: 'OUT_OF_BOUNDS',
@@ -103,7 +99,6 @@ function classifyImpact(x, y, presetKey = 'medium') {
 
   const geometry = calculateWallGeometry(presetKey);
 
-  // 2. Verifica se o ponto está dentro de algum dos 6 alvos
   for (const s of geometry.sectors) {
     if (numX >= s.xMin && numX <= s.xMax && numY >= s.yMin && numY <= s.yMax) {
       return {
@@ -120,7 +115,6 @@ function classifyImpact(x, y, presetKey = 'medium') {
     }
   }
 
-  // 3. Dentro da parede mas fora de qualquer alvo (espaçamento entre alvos de 30cm ou margem de 10cm)
   return {
     classification: 'NEUTRAL_AREA',
     hit: false,
@@ -142,19 +136,11 @@ for (const key of ['small', 'medium', 'large']) {
   }
 }
 
-// Testes de detecção no preset Médio (3x2m)
 console.log('\n--- Testes de Classificação de Impacto (Médio) ---');
-// Centro do alvo 1: (15.556%, 23.75%)
 console.log('Centro Alvo 1:', classifyImpact(15.556, 23.75, 'medium').classification);
-// Centro do alvo 2: (50%, 23.75%)
 console.log('Centro Alvo 2:', classifyImpact(50.0, 23.75, 'medium').classification);
-// Centro do alvo 6: (84.444%, 76.25%)
 console.log('Centro Alvo 6:', classifyImpact(84.444, 76.25, 'medium').classification);
-// Corredor horizontal entre Alvo 1 e Alvo 2: x = 32% (Alvo 1 acaba em 27.778%, Alvo 2 começa em 37.778%)
 console.log('Corredor H entre Alvo 1 e 2 (X=32%, Y=23.75%):', classifyImpact(32.0, 23.75, 'medium').classification);
-// Corredor vertical entre Alvo 2 e Alvo 5: y = 50% (Alvo 2 acaba em 42.5%, Alvo 5 começa em 57.5%)
 console.log('Corredor V entre Alvo 2 e 5 (X=50%, Y=50%):', classifyImpact(50.0, 50.0, 'medium').classification);
-// Margem esquerda: x = 1.5% (Margem de 10cm é 3.333%)
 console.log('Margem Esquerda (X=1.5%, Y=23.75%):', classifyImpact(1.5, 23.75, 'medium').classification);
-// Fora da parede: x = 105%
 console.log('Fora da Parede (X=105%, Y=50%):', classifyImpact(105.0, 50.0, 'medium').classification);

@@ -6,7 +6,7 @@ export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
     try {
       const saved = localStorage.getItem('motion_theme');
-      return saved === 'light' ? 'light' : 'dark'; // Dark is default
+      return saved === 'light' ? 'light' : 'dark';
     } catch (e) {
       return 'dark';
     }

@@ -5,14 +5,6 @@ const { requireAuth, requireAdmin, verifyToken } = require('../services/authServ
 const guestSessionService = require('../services/guestSessionService');
 const academyService = require('../services/academyService');
 
-/**
- * Middleware de autenticação opcional para a Motion Tennis Academy.
- * Permite acesso 100% gratuito a:
- *  - Visitantes sem login (anônimos)
- *  - Visitantes em Modo Visitante (sessão guest)
- *  - Jogadores autenticados (enriquece resposta com progresso pessoal)
- *  - Administradores
- */
 async function optionalAcademyAuth(req, res, next) {
   req.user = null;
   req.guest = null;
@@ -51,7 +43,6 @@ async function optionalAcademyAuth(req, res, next) {
       }
     }
   } catch (err) {
-    // Em rotas públicas de leitura, falha de token opcional não bloqueia o visitante
   }
 
   return next();
@@ -62,9 +53,6 @@ function handleAcademyError(res, error) {
   return res.status(status).json({ error: error.message || 'Erro na Motion Tennis Academy.' });
 }
 
-// ================= ROTAS PÚBLICAS & GRATUITAS (CATÁLOGO E REPRODUÇÃO) ================= //
-
-// GET /api/academy/catalog — Catálogo completo da Motion Tennis Academy (gratuito e sem exigir login)
 router.get('/catalog', optionalAcademyAuth, async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
@@ -81,7 +69,6 @@ router.get('/catalog', optionalAcademyAuth, async (req, res) => {
   }
 });
 
-// GET /api/academy/lessons — Lista de aulas publicadas (compatível com Web e futuro App Android)
 router.get('/lessons', optionalAcademyAuth, async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
@@ -107,7 +94,6 @@ router.get('/lessons', optionalAcademyAuth, async (req, res) => {
   }
 });
 
-// GET /api/academy/categories — Lista de categorias/módulos e progresso (compatível com Web e Android)
 router.get('/categories', optionalAcademyAuth, async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
@@ -123,7 +109,6 @@ router.get('/categories', optionalAcademyAuth, async (req, res) => {
   }
 });
 
-// GET /api/academy/lessons/:id — Detalhe de aula publicada + reprodução embed YouTube + aulas relacionadas
 router.get('/lessons/:id', optionalAcademyAuth, async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
@@ -135,9 +120,6 @@ router.get('/lessons/:id', optionalAcademyAuth, async (req, res) => {
   }
 });
 
-// ================= ROTAS DE PROGRESSO DO ALUNO AUTENTICADO ================= //
-
-// GET /api/academy/progress — Progresso individual do jogador autenticado
 router.get('/progress', requireAuth, async (req, res) => {
   try {
     const progress = await academyService.getUserProgress({ userId: req.user.id });
@@ -147,10 +129,8 @@ router.get('/progress', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/academy/lessons/:id/progress — Marca ou desmarca aula como concluída (apenas conta autenticada)
 router.post('/lessons/:id/progress', requireAuth, async (req, res) => {
   try {
-    // Bloqueia tentativa de alterar progresso de outra conta
     if (
       req.body?.user_id !== undefined &&
       req.body?.user_id !== null &&
@@ -171,7 +151,6 @@ router.post('/lessons/:id/progress', requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/academy/lessons/:id/progress — Alias REST para atualizar conclusão de aula
 router.put('/lessons/:id/progress', requireAuth, async (req, res) => {
   try {
     if (
@@ -194,9 +173,6 @@ router.put('/lessons/:id/progress', requireAuth, async (req, res) => {
   }
 });
 
-// ================= ROTAS ADMINISTRATIVAS (GERENCIAR ACADEMY) ================= //
-
-// GET /api/academy/admin/lessons — Lista todas as aulas (publicadas e rascunhos/em breve) para o Admin
 router.get('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
   try {
     const data = await academyService.listAdminLessons();
@@ -206,7 +182,6 @@ router.get('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/academy/admin/lessons — Cria nova videoaula
 router.post('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
   try {
     const created = await academyService.createAdminLesson(req.body);
@@ -216,7 +191,6 @@ router.post('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/academy/admin/lessons/:id — Edita videoaula existente
 router.put('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const updated = await academyService.updateAdminLesson(req.params.id, req.body);
@@ -226,7 +200,6 @@ router.put('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) => 
   }
 });
 
-// PATCH /api/academy/admin/lessons/:id/publish — Publica ou despublica videoaula
 router.patch('/admin/lessons/:id/publish', requireAuth, requireAdmin, async (req, res) => {
   try {
     const published = Boolean(req.body?.published);
@@ -237,7 +210,6 @@ router.patch('/admin/lessons/:id/publish', requireAuth, requireAdmin, async (req
   }
 });
 
-// DELETE /api/academy/admin/lessons/:id — Exclui videoaula
 router.delete('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const result = await academyService.deleteAdminLesson(req.params.id);
@@ -247,7 +219,6 @@ router.delete('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) 
   }
 });
 
-// PUT /api/academy/admin/settings — Atualiza configurações de exibição do catálogo
 router.put('/admin/settings', requireAuth, requireAdmin, async (req, res) => {
   try {
     const showComingSoon = Boolean(req.body?.showComingSoon);
@@ -258,7 +229,6 @@ router.put('/admin/settings', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/academy/admin/validate-youtube — Valida URL do YouTube em tempo real no painel Admin
 router.post('/admin/validate-youtube', requireAuth, requireAdmin, async (req, res) => {
   try {
     const parsed = academyService.validateAndParseYouTubeUrl(req.body?.url, { allowEmpty: false });
@@ -268,9 +238,6 @@ router.post('/admin/validate-youtube', requireAuth, requireAdmin, async (req, re
   }
 });
 
-// ================= ROTAS LEGADAS DE COMPATIBILIDADE (/api/academy e /api/academy/:skill) ================= //
-
-// GET /api/academy — Visão geral por módulos + catálogo público (acessível sem login!)
 router.get('/', optionalAcademyAuth, async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
@@ -344,7 +311,6 @@ router.get('/', optionalAcademyAuth, async (req, res) => {
   }
 });
 
-// GET /api/academy/:skill — Conteúdos de uma habilidade/módulo específico (acessível sem login!)
 router.get('/:skill', optionalAcademyAuth, async (req, res) => {
   try {
     const { skill } = req.params;
@@ -403,8 +369,6 @@ router.get('/:skill', optionalAcademyAuth, async (req, res) => {
 
     relatedTrainings = await all('SELECT * FROM trainings WHERE attribute_key = ?', [skill]);
 
-    // Para visitantes/jogadores comuns, `lessons` retorna apenas aulas publicadas desse módulo;
-    // os slots planejados "Em breve" ficam em `plannedSlots`.
     const plannedSlots = catalog.initialModulesPreview.filter(
       (s) => s.category === academyService.SKILL_TO_CATEGORY[skill]
     );

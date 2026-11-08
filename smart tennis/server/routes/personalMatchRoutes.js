@@ -3,10 +3,8 @@ const router = express.Router();
 const { requireUserOrGuest } = require('../services/authService');
 const personalMatchService = require('../services/personalMatchService');
 
-// Exige sessão autenticada (usuário cadastrado ou sessão oficial de visitante)
 router.use(requireUserOrGuest);
 
-// GET /api/personal-match/current?mode=free|single|clear_all
 router.get('/current', async (req, res) => {
   try {
     const mode = req.query.mode || null;
@@ -20,7 +18,6 @@ router.get('/current', async (req, res) => {
   }
 });
 
-// POST /api/personal-match/start
 router.post('/start', async (req, res) => {
   try {
     const { mode = 'free', forceNew = false, equipment_id = 1 } = req.body || {};
@@ -39,7 +36,6 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// POST /api/personal-match/finish
 router.post('/finish', async (req, res) => {
   try {
     const { match_id = null } = req.body || {};
@@ -56,7 +52,6 @@ router.post('/finish', async (req, res) => {
   }
 });
 
-// POST /api/personal-match/impact
 router.post('/impact', async (req, res) => {
   try {
     const {

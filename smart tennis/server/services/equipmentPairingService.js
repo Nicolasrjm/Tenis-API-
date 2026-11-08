@@ -5,7 +5,7 @@
  * Gerencia o aperto de mão criptográfico de autorização entre atletas autenticados
  * e o notebook da quadra física, sem depender de comandos SQL manuais.
  *
- * DIRETRIZES DE SEGURANÇA E CONTRATOS (FASE 7B / FASE 8):
+ * DIRETRIZES DE SEGURANÇA E CONTRATOS:
  * 1. ZERO SERVICE_ROLE: Opera estritamente com as credenciais individuais do equipamento
  *    (EQUIPMENT_ID e EQUIPMENT_API_KEY via Edge Function equipment-gateway) e o token
  *    JWT do atleta autenticado (auth.uid()).

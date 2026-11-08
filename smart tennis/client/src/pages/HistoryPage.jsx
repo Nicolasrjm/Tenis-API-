@@ -5,7 +5,7 @@ import { api } from '../services/api';
 export default function HistoryPage() {
   const [sessions, setSessions] = useState([]);
   const [shots, setShots] = useState([]);
-  const [viewMode, setViewMode] = useState('sessions'); // 'sessions' or 'shots'
+  const [viewMode, setViewMode] = useState('sessions');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function HistoryPage() {
   return (
     <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-colors">
         <div>
           <h1 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] flex items-center space-x-2">
@@ -49,7 +49,7 @@ export default function HistoryPage() {
           </p>
         </div>
 
-        {/* Tab switch */}
+        
         <div className="flex items-center space-x-2 bg-[#E8EDF1] dark:bg-[#18242E] p-1 rounded-xl border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono">
           <button
             onClick={() => setViewMode('sessions')}
@@ -74,7 +74,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Content View */}
+      
       {viewMode === 'sessions' ? (
         <div className="space-y-3">
           {sessions.length === 0 ? (

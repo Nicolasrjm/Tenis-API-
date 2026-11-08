@@ -1,5 +1,3 @@
-// Executa um script de teste legado contra uma CÓPIA descartável do banco (nunca o banco real).
-// Uso: node scripts/run_on_copy.js scripts/test_complete_gameplay_scenarios.js
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');

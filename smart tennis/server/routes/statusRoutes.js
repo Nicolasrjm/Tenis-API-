@@ -15,7 +15,6 @@ function getLocalIpAddresses() {
     }
   }
 
-  // Prioriza interfaces Wi-Fi e redes locais privadas (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
   addresses.sort((a, b) => {
     const isWiFiA = /wi-?fi|wlan|sem fio/i.test(a.interface);
     const isWiFiB = /wi-?fi|wlan|sem fio/i.test(b.interface);
@@ -38,7 +37,6 @@ function getLocalIpAddresses() {
   return addresses;
 }
 
-// GET /api/status - Health, LAN network and system readiness check
 router.get('/', async (req, res) => {
   let dbStatus = 'error';
   try {
@@ -76,7 +74,7 @@ router.get('/', async (req, res) => {
       exists: dbExists
     },
     sensors: {
-      status: 'simulation', // or 'connected'
+      status: 'simulation',
       label: 'Modo simulação ativo',
       hardwareReady: true
     },

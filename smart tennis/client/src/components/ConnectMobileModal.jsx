@@ -30,7 +30,6 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
       await generateQr(url);
     } catch (err) {
       console.error('Erro ao carregar dados de rede do servidor:', err);
-      // Fallback para hostname atual
       const fallbackUrl = `http://${window.location.hostname || '192.168.0.27'}:3000`;
       setLanUrl(fallbackUrl);
       setLanAddresses([fallbackUrl]);
@@ -75,7 +74,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-lg bg-[#0A120E] border border-[#1B3624] rounded-3xl p-6 sm:p-8 shadow-2xl text-[#F5F7F5] space-y-6">
         
-        {/* Close Button */}
+        
         <button
           onClick={onClose}
           className="absolute top-5 right-5 p-2 rounded-full bg-[#122418] hover:bg-[#1B3624] text-[#8C9891] hover:text-[#F5F7F5] transition"
@@ -84,7 +83,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Header */}
+        
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-2xl bg-[#122418] border border-[#39FF88]/30 flex items-center justify-center text-[#39FF88]">
             <Smartphone className="w-6 h-6" />
@@ -99,7 +98,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* QR Code Card */}
+        
         <div className="flex flex-col items-center justify-center p-6 bg-[#0E1B13] rounded-2xl border border-[#1B3624] space-y-4">
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center space-y-3">
@@ -129,7 +128,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* URL & Copy Bar */}
+          
           <div className="w-full">
             <div className="flex items-center justify-between p-3 bg-[#070E0A] border border-[#1B3624] rounded-xl text-xs font-mono">
               <span className="text-[#39FF88] truncate mr-2 font-semibold">
@@ -154,7 +153,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Alternative IP interfaces if more than one */}
+          
           {lanAddresses.length > 1 && (
             <div className="w-full text-left space-y-1">
               <span className="text-[11px] text-[#8C9891]">Outras interfaces de rede:</span>
@@ -177,7 +176,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
           )}
         </div>
 
-        {/* Instructions */}
+        
         <div className="space-y-2.5 text-xs text-[#8C9891] bg-[#070E0A] p-4 rounded-xl border border-[#16271D]">
           <h4 className="font-bold text-[#F5F7F5] uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
             <QrCode className="w-3.5 h-3.5 text-[#39FF88]" />
@@ -193,7 +192,7 @@ export default function ConnectMobileModal({ isOpen, onClose }) {
           </ol>
         </div>
 
-        {/* Security disclaimer */}
+        
         <div className="flex items-center space-x-2 text-[11px] text-[#8C9891]">
           <ShieldCheck className="w-4 h-4 text-[#39FF88] shrink-0" />
           <span>

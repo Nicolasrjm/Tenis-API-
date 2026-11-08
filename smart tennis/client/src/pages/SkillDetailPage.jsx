@@ -48,7 +48,7 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       
-      {/* Back Button */}
+      
       <button
         onClick={onBack}
         className="flex items-center space-x-2 text-xs font-bold text-[#8C9891] hover:text-[#39FF88] transition-colors font-mono"
@@ -57,10 +57,10 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
         <span>VOLTAR PARA EVOLUÇÃO</span>
       </button>
 
-      {/* Main Skill Card (Requirement 16) */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-6">
         
-        {/* Header */}
+        
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#1B3624]">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 rounded-2xl bg-[#102216] border border-[#39FF88] flex items-center justify-center text-2xl shadow-neon">
@@ -84,7 +84,7 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
           </div>
         </div>
 
-        {/* Progress Bar & XP */}
+        
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-mono">
             <span className="text-[#8C9891]">EXPERIÊNCIA DE {attr.name.toUpperCase()}</span>
@@ -98,7 +98,7 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
           </div>
         </div>
 
-        {/* Objetivo Atual */}
+        
         <div className="p-4 rounded-2xl bg-[#07110B] border border-[#1B3624] space-y-1">
           <span className="text-[10px] font-mono text-[#39FF88] uppercase font-bold tracking-wider">
             OBJETIVO ATUAL DO TREINADOR
@@ -108,7 +108,7 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
           </p>
         </div>
 
-        {/* Pontos Fortes & Pontos a Melhorar */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           
           <div className="p-5 rounded-2xl bg-[#07110B]/80 border border-[#1B3624] space-y-2">
@@ -133,7 +133,7 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
 
         </div>
 
-        {/* DICA DO TREINADOR (Requirement 16) */}
+        
         <div className="p-6 rounded-2xl bg-gradient-to-r from-[#102216] to-[#0A170F] border border-[#39FF88]/40 space-y-3 relative overflow-hidden shadow-neon-sm">
           <div className="flex items-center space-x-2">
             <span className="text-xs font-mono font-bold text-[#39FF88] uppercase tracking-wider bg-[#39FF88]/15 px-2.5 py-1 rounded">
@@ -145,14 +145,14 @@ export default function SkillDetailPage({ skillKey, onBack, onStartTraining }) {
             "{attr.coach_tip}"
           </p>
 
-          {/* Prepared container for future video integration (Requirement 16) */}
+          
           <div className="pt-3 border-t border-[#1B3624] flex items-center space-x-2 text-[11px] font-mono text-[#8C9891]">
             <Video className="w-4 h-4 text-[#39FF88]" />
             <span>Módulo de Vídeo: {data.videoIntegration?.placeholderText}</span>
           </div>
         </div>
 
-        {/* INICIAR TREINO Action Button */}
+        
         <div className="pt-2">
           <button
             onClick={() => onStartTraining(attr.key)}

@@ -14,7 +14,6 @@ const {
   provisionLocalPlayerForCloud
 } = require('../services/cloudIdentityService');
 
-// POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
     const { username, password, guest_token } = req.body || {};
@@ -22,7 +21,6 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Informe usuário e senha.' });
     }
 
-    // Se havia sessão visitante anterior no header ou body, encerra-a imediatamente (Teste 20)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const prevGuest = guestSessionService.decodeGuestToken(authHeader.split(' ')[1]);
@@ -60,7 +58,6 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuário ou senha incorretos.' });
     }
 
-    // Get linked equipment
     const eqUser = await get(`
       SELECT e.id, e.code, e.name, e.status, e.location 
       FROM equipments e
@@ -89,10 +86,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/guest — Inicia sessão temporária segura de visitante (Fase 3)
 router.post('/guest', async (req, res) => {
   try {
-    // Se já havia uma sessão visitante anterior no header, destrói antes de criar a nova
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const prev = guestSessionService.decodeGuestToken(authHeader.split(' ')[1]);
@@ -114,7 +109,6 @@ router.post('/guest', async (req, res) => {
   }
 });
 
-// GET /api/auth/guest/me — Verifica validade da sessão temporária de visitante
 router.get('/guest/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -143,7 +137,6 @@ router.get('/guest/me', async (req, res) => {
   }
 });
 
-// POST /api/auth/guest/logout — Encerra sessão de visitante e elimina todos os resultados temporários
 router.post('/guest/logout', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -160,7 +153,6 @@ router.post('/guest/logout', async (req, res) => {
   }
 });
 
-// GET /api/auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = req.user;
@@ -188,7 +180,6 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/auth/logout
 router.post('/logout', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -203,11 +194,6 @@ router.post('/logout', async (req, res) => {
   res.json({ success: true, message: 'Logout realizado com sucesso.' });
 });
 
-// ==============================================================================
-// ENDPOINTS SUPABASE CLOUD & IDENTIDADE (ETAPA B)
-// ==============================================================================
-
-// GET /api/auth/cloud/config — Configuração pública segura para o aplicativo / frontend
 router.get('/cloud/config', (req, res) => {
   try {
     const config = getPublicClientConfig();
@@ -217,7 +203,6 @@ router.get('/cloud/config', (req, res) => {
   }
 });
 
-// GET /api/auth/cloud/status — Consulta se o usuário local logado possui identidade Supabase associada
 router.get('/cloud/status', requireAuth, async (req, res) => {
   try {
     const identity = await getCloudIdentityForUser(req.user.id);
@@ -243,7 +228,6 @@ router.post('/cloud/link', requireAuth, async (req, res) => {
     const { supabase_token, access_token } = req.body || {};
     const token = supabase_token || access_token;
 
-    // DEFESA ESTATUTÁRIA: Rejeita vinculação por simples UUID ou sem token criptográfico
     if (!token || typeof token !== 'string') {
       return res.status(400).json({
         error: 'É obrigatório fornecer um token Supabase válido (supabase_token ou access_token) para comprovar a identidade cloud.',
@@ -256,7 +240,6 @@ router.post('/cloud/link', requireAuth, async (req, res) => {
       return res.status(401).json({ error: verifyRes.error || 'Token Supabase inválido.', code: verifyRes.code });
     }
 
-    // A identidade cloud e o email são derivados EXCLUSIVAMENTE do token validado
     const result = await linkLocalUserToCloud({
       userId: req.user.id,
       cloudUserId: verifyRes.cloudUserId,
@@ -264,7 +247,6 @@ router.post('/cloud/link', requireAuth, async (req, res) => {
       metadata: { verifiedVia: 'supabase_jwt', verifiedAt: new Date().toISOString() }
     });
 
-    // Realiza o aperto de mão de pareamento autorizado com o equipamento físico
     let pairingResult = null;
     try {
       const { pairAthleteWithEquipment } = require('../services/equipmentPairingService');
@@ -287,7 +269,6 @@ router.post('/cloud/link', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/auth/cloud/unlink — Desvincula a conta Supabase do atleta local
 router.post('/cloud/unlink', requireAuth, async (req, res) => {
   try {
     // Se senha fornecida para confirmação de segurança, valida contra o hash PBKDF2 local
@@ -305,7 +286,6 @@ router.post('/cloud/unlink', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/auth/cloud/login-with-token — Autentica atleta no notebook utilizando seu token Supabase Auth
 router.post('/cloud/login-with-token', async (req, res) => {
   try {
     const { access_token } = req.body || {};
@@ -327,7 +307,6 @@ router.post('/cloud/login-with-token', async (req, res) => {
         password: req.body?.password
       });
     } else if (linkedUser && req.body?.password && typeof req.body.password === 'string' && req.body.password.length >= 6) {
-      // Atualiza o hash local PBKDF2 para que o atleta possa fazer login offline no equipamento
       const crypto = require('crypto');
       const salt = crypto.randomBytes(16).toString('hex');
       const passwordHash = crypto.pbkdf2Sync(req.body.password, salt, 10000, 64, 'sha512').toString('hex');
@@ -350,7 +329,6 @@ router.post('/cloud/login-with-token', async (req, res) => {
       return res.status(403).json({ error: 'Esta conta de usuário está desativada. Contate o administrador.' });
     }
 
-    // Carrega equipamento associado ao usuário
     const eqUser = await get(`
       SELECT e.id, e.code, e.name, e.status, e.location 
       FROM equipments e
@@ -359,7 +337,6 @@ router.post('/cloud/login-with-token', async (req, res) => {
       LIMIT 1
     `, [linkedUser.id]);
 
-    // Realiza o aperto de mão de pareamento autorizado com o equipamento físico
     let pairingResult = null;
     try {
       const { pairAthleteWithEquipment } = require('../services/equipmentPairingService');
@@ -394,7 +371,6 @@ router.post('/cloud/login-with-token', async (req, res) => {
   }
 });
 
-// POST /api/auth/cloud/authorize-pairing — Autoriza explicitamente o pareamento do atleta autenticado com o equipamento
 router.post('/cloud/authorize-pairing', requireAuth, async (req, res) => {
   try {
     const { access_token } = req.body || {};
@@ -431,7 +407,6 @@ router.post('/cloud/authorize-pairing', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/auth/cloud/pairing-status — Verifica se o atleta atual tem pareamento ativo com o equipamento
 router.post('/cloud/pairing-status', requireAuth, async (req, res) => {
   try {
     const { access_token } = req.body || {};

@@ -49,7 +49,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       
-      {/* Header */}
+      
       <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] flex items-center space-x-3">
         <Settings className="w-6 h-6 text-[#39FF88]" />
         <div>
@@ -58,10 +58,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* System Status Cards */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
-        {/* Servidor Local */}
+        
         <div className="p-5 rounded-2xl bg-[#0C1A11] border border-[#1B3624]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono text-[#8C9891]">SERVIDOR LOCAL</span>
@@ -75,7 +75,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Banco de Dados SQLite */}
+        
         <div className="p-5 rounded-2xl bg-[#0C1A11] border border-[#1B3624]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono text-[#8C9891]">BANCO DE DADOS</span>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Sensores / Hardware */}
+        
         <div className="p-5 rounded-2xl bg-[#0C1A11] border border-[#1B3624]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono text-[#8C9891]">SENSORES</span>
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
       </div>
 
-      {/* Mobile App Connection & QR Code */}
+      
       <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 rounded-2xl bg-[#122418] border border-[#39FF88]/40 flex items-center justify-center text-[#39FF88]">
@@ -131,7 +131,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      {/* HARDWARE SIMULATOR & TEST SENDER (Requirement 21) */}
+      
       <div className="p-6 sm:p-8 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-6">
         <div>
           <h2 className="text-lg font-bold text-[#F5F7F5] flex items-center space-x-2">
@@ -218,7 +218,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Integration Guide Box */}
+      
       <div className="p-6 rounded-3xl bg-[#0C1A11] border border-[#1B3624] space-y-3">
         <h3 className="text-sm font-bold text-[#F5F7F5]">Instruções para Conexão Física (Arduino / ESP32)</h3>
         <p className="text-xs text-[#8C9891] leading-relaxed">
@@ -226,7 +226,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* QR Code Modal */}
+      
       <ConnectMobileModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
     </div>
   );

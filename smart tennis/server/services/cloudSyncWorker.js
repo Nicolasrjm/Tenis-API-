@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — WORKER DE SINCRONIZAÇÃO CLOUD (ETAPA C: OFFLINE-FIRST)
+ * MOTION TENNIS — WORKER DE SINCRONIZAÇÃO CLOUD (OFFLINE-FIRST)
  * ==============================================================================
  * Processador em segundo plano de eventos da `cloud_outbox`.
  *

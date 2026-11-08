@@ -45,7 +45,6 @@ export default function SyncStatusBar() {
     try {
       await syncService.syncNow(api);
     } catch (e) {
-      // Já tratado no serviço
     } finally {
       setIsSyncingManual(false);
     }
@@ -68,7 +67,6 @@ export default function SyncStatusBar() {
     e.preventDefault();
     saveServerUrl(serverUrlInput);
     setIsModalOpen(false);
-    // Tenta sincronizar com o novo IP configurado
     handleSyncNow();
   };
 
@@ -126,7 +124,7 @@ export default function SyncStatusBar() {
       <div className="w-full bg-[#08130B]/90 backdrop-blur border-b border-[#1B3624] px-4 py-2 text-xs font-mono">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
-          {/* Lado Esquerdo: Status e Última Sincronização */}
+          
           <div className="flex items-center space-x-3">
             {renderStatusBadge()}
             <div className="flex items-center space-x-1 text-[#8C9891]">
@@ -140,7 +138,7 @@ export default function SyncStatusBar() {
             </div>
           </div>
 
-          {/* Lado Direito: Ações */}
+          
           <div className="flex items-center space-x-2">
             <button
               onClick={handleSyncNow}
@@ -167,7 +165,7 @@ export default function SyncStatusBar() {
         </div>
       </div>
 
-      {/* Modal de Configuração do Servidor / Notebook */}
+      
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-md rounded-3xl bg-[#0C1A11] border-2 border-[#1B3624] p-6 shadow-2xl relative space-y-6">
@@ -206,7 +204,7 @@ export default function SyncStatusBar() {
                 </p>
               </div>
 
-              {/* Resultado do Teste */}
+              
               {testResult && (
                 <div className={`p-3 rounded-xl border text-xs font-mono space-y-1 ${
                   testResult.success
@@ -230,7 +228,7 @@ export default function SyncStatusBar() {
                 </div>
               )}
 
-              {/* Botões do Modal */}
+              
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"

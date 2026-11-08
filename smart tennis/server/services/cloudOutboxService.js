@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — SERVIÇO DE OUTBOX CLOUD LOCAL (ETAPA C: OFFLINE-FIRST)
+ * MOTION TENNIS — SERVIÇO DE OUTBOX CLOUD LOCAL (OFFLINE-FIRST)
  * ==============================================================================
  * Gerencia a fila transacional local de eventos na tabela SQLite `cloud_outbox`.
  *

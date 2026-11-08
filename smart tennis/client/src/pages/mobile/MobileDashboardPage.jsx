@@ -51,7 +51,6 @@ export default function MobileDashboardPage() {
     const cloudSession = getStoredCloudSession();
     let loadedFromCloud = false;
 
-    // 1. Prioridade: Consulta direta à nuvem Supabase (Multidispositivo independente do notebook)
     if (cloudSession?.accessToken) {
       try {
         const overview = await cloudDataService.getCloudAthleteOverview({
@@ -84,7 +83,6 @@ export default function MobileDashboardPage() {
       }
     }
 
-    // 2. Fallback: Consulta ao servidor local do notebook (exclusivo para quando estiver na quadra física)
     if (!loadedFromCloud && isEquipmentMode() && !isNativeMobile()) {
       try {
         const [playerData, sessionsData] = await Promise.all([
@@ -182,7 +180,6 @@ export default function MobileDashboardPage() {
     );
   }
 
-  // Cálculo de progresso de XP
   const currentXp = player?.xp || 0;
   const nextXp = player?.xp_next || 250;
   const xpPct = Math.min(100, Math.max(0, Math.round((currentXp / nextXp) * 100)));
@@ -191,7 +188,7 @@ export default function MobileDashboardPage() {
   return (
     <div className="p-4 sm:p-5 space-y-5 animate-fadeIn">
       
-      {/* 1. Header: Saudação, Nome do Atleta e Status da Nuvem */}
+      
       <div className="flex items-start justify-between">
         <div>
           <span className="text-[11px] font-mono uppercase text-[#8C9891] tracking-wider block">
@@ -203,7 +200,7 @@ export default function MobileDashboardPage() {
           </h1>
         </div>
 
-        {/* Cloud Status Pill */}
+        
         <div
           data-testid="dashboard-cloud-pill"
           className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold border transition ${
@@ -226,7 +223,7 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Gamified Level & XP Card */}
+      
       <div className="p-5 rounded-3xl bg-gradient-to-br from-[#0D2215] to-[#08120C] border border-[#1C4229] shadow-[0_0_20px_rgba(57,255,136,0.12)] space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -251,7 +248,7 @@ export default function MobileDashboardPage() {
           </div>
         </div>
 
-        {/* Barra de Progresso */}
+        
         <div className="space-y-1.5">
           <div className="w-full bg-[#070F0A] h-2.5 rounded-full overflow-hidden border border-[#142A1B] p-0.5">
             <div
@@ -267,7 +264,7 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      {/* 3. Última Partida Sincronizada */}
+      
       {latestSession ? (
         <div
           data-testid="dashboard-latest-session"
@@ -311,9 +308,9 @@ export default function MobileDashboardPage() {
         </div>
       )}
 
-      {/* 4. Grid de Métricas Principais */}
+      
       <div className="grid grid-cols-2 gap-3">
-        {/* Total de Partidas */}
+        
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Partidas</span>
@@ -325,7 +322,7 @@ export default function MobileDashboardPage() {
           <span className="text-[10px] text-[#6E8175] block">sincronizadas</span>
         </div>
 
-        {/* Precisão Geral */}
+        
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Precisão</span>
@@ -337,7 +334,7 @@ export default function MobileDashboardPage() {
           <span className="text-[10px] text-[#6E8175] block">média da carreira</span>
         </div>
 
-        {/* Melhor Pontuação */}
+        
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Recorde</span>
@@ -349,7 +346,7 @@ export default function MobileDashboardPage() {
           <span className="text-[10px] text-[#6E8175] block">melhor pontuação</span>
         </div>
 
-        {/* Total de Impactos */}
+        
         <div className="p-4 rounded-2xl bg-[#0B1710] border border-[#163020] space-y-1">
           <div className="flex items-center justify-between text-[#8C9891]">
             <span className="text-[10px] font-mono uppercase">Impactos</span>
@@ -362,7 +359,7 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      {/* 5. Ações Rápidas de Navegação */}
+      
       <div className="grid grid-cols-2 gap-3 pt-1">
         <button
           onClick={() => navigate('/mobile/history')}

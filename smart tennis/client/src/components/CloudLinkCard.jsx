@@ -33,11 +33,9 @@ export default function CloudLinkCard({ onStatusChange }) {
   const [showForm, setShowForm] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
 
-  // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Feedback messages
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -77,10 +75,8 @@ export default function CloudLinkCard({ onStatusChange }) {
     try {
       const result = await linkOnlineAccount({ email, password });
       setSuccessMsg(result.message || 'Conta online vinculada com sucesso!');
-      // Limpa a senha imediatamente da memória de estado
       setPassword('');
       setShowForm(false);
-      // Atualiza o status
       await loadCloudData();
     } catch (err) {
       setErrorMsg(err.message || 'Falha ao vincular conta online com o servidor Supabase.');
@@ -151,7 +147,7 @@ export default function CloudLinkCard({ onStatusChange }) {
       data-testid="cloud-link-card"
       className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-5 transition-all shadow-sm"
     >
-      {/* Top Header */}
+      
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center space-x-3">
           <div
@@ -175,7 +171,7 @@ export default function CloudLinkCard({ onStatusChange }) {
           </div>
         </div>
 
-        {/* Refresh button */}
+        
         <button
           type="button"
           onClick={loadCloudData}
@@ -188,7 +184,7 @@ export default function CloudLinkCard({ onStatusChange }) {
         </button>
       </div>
 
-      {/* Status Badge & Summary */}
+      
       <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-2.5">
           <span
@@ -227,7 +223,7 @@ export default function CloudLinkCard({ onStatusChange }) {
         </div>
       </div>
 
-      {/* Messages */}
+      
       {errorMsg && (
         <div
           data-testid="cloud-link-error-msg"
@@ -248,7 +244,7 @@ export default function CloudLinkCard({ onStatusChange }) {
         </div>
       )}
 
-      {/* Linked Identity Card */}
+      
       {isLinked && (
         <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] space-y-3">
           <div className="flex items-center justify-between">
@@ -300,7 +296,7 @@ export default function CloudLinkCard({ onStatusChange }) {
             </div>
           )}
 
-          {/* Unlink Action */}
+          
           <div className="pt-2 border-t border-[#B8C6D0] dark:border-[#344653] flex items-center justify-between">
             {!showUnlinkConfirm ? (
               <button
@@ -338,7 +334,7 @@ export default function CloudLinkCard({ onStatusChange }) {
         </div>
       )}
 
-      {/* Not Linked Form / CTA */}
+      
       {!isLinked && config?.configured && (
         <div className="space-y-4">
           {!showForm ? (

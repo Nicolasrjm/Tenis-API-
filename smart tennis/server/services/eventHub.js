@@ -9,7 +9,6 @@ function initEventHub(server) {
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
-    // Send connection greeting
     ws.send(JSON.stringify({
       type: 'CONNECTED',
       message: 'Conectado ao Motion Tennis Real-time Hub',
@@ -23,12 +22,10 @@ function initEventHub(server) {
           ws.send(JSON.stringify({ type: 'PONG' }));
         }
       } catch (e) {
-        // ignore
       }
     });
   });
 
-  // Keep alive ping
   setInterval(() => {
     if (!wss) return;
     wss.clients.forEach((ws) => {

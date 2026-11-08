@@ -17,7 +17,6 @@ let hardwareStatus = {
   port: 'COM3 (Virtual)'
 };
 
-// Carrega o modo de hardware previamente persistido no SQLite
 (async function initHardwareMode() {
   try {
     const row = await get(`SELECT value FROM system_settings WHERE key = 'hardware_mode'`);
@@ -26,7 +25,6 @@ let hardwareStatus = {
       arduinoIngestService.setHardwareConnectionMode(row.value);
     }
   } catch (err) {
-    // Tabela system_settings pode ainda estar sendo inicializada
   }
 })();
 
@@ -44,7 +42,6 @@ async function requireNicolasOrAdmin(req, res, next) {
   return next();
 }
 
-// GET /api/hardware/status
 router.get('/status', (req, res) => {
   res.json({
     status: hardwareStatus.mode === 'connected' ? 'connected' : 'simulation',
@@ -52,7 +49,6 @@ router.get('/status', (req, res) => {
   });
 });
 
-// POST /api/hardware/mode
 router.post('/mode', async (req, res) => {
   const { mode, port, baudRate } = req.body || {};
   if (mode === 'simulation' || mode === 'connected') {
@@ -75,19 +71,12 @@ router.post('/mode', async (req, res) => {
   res.status(400).json({ error: 'Modo inválido. Use "simulation" ou "connected"' });
 });
 
-// ============================================================================
-// INTEGRAÇÃO ARDUINO E PAINEL DE DIAGNÓSTICO IoT (SEÇÕES 5, 6 E 7)
-// ============================================================================
-
-// POST /api/hardware/arduino/events e /api/hardware/arduino/reading
 async function handleArduinoEvents(req, res) {
   try {
     const payload = req.body || {};
     const result = await arduinoIngestService.ingestArduinoPayload(payload);
     hardwareStatus.lastSeen = new Date().toISOString();
 
-    // Se pacotes de hardware ou ponte serial estiverem chegando (sem tag de simulação),
-    // detecta e consolida automaticamente a conexão ativa
     if (!payload.is_simulation && !payload.isSimulation && payload.device_id && !String(payload.device_id).toUpperCase().includes('SIMULAT')) {
       if (hardwareStatus.mode !== 'connected') {
         hardwareStatus.mode = 'connected';
@@ -116,7 +105,6 @@ router.post('/arduino/reading', handleArduinoEvents);
 router.post('/arduino-events', handleArduinoEvents);
 router.post('/arduino-event', handleArduinoEvents);
 
-// GET /api/hardware/iot-diagnostics - Restrito a Nicolas ou Admin (bloqueia visitantes e terceiros)
 router.get('/iot-diagnostics', requireAuth, requireNicolasOrAdmin, async (req, res) => {
   try {
     const diag = await arduinoIngestService.getIotDiagnosticsState(req.actor);
@@ -126,7 +114,6 @@ router.get('/iot-diagnostics', requireAuth, requireNicolasOrAdmin, async (req, r
   }
 });
 
-// PUT / POST /api/hardware/iot-calibration - Atualiza calibração experimental e/ou offsets dos sensores
 async function handleUpdateIotCalibration(req, res) {
   try {
     const { calibration, sensorOffsetsCm, preset } = req.body || {};
@@ -158,7 +145,6 @@ async function handleUpdateIotCalibration(req, res) {
 router.put('/iot-calibration', requireAuth, requireNicolasOrAdmin, handleUpdateIotCalibration);
 router.post('/iot-calibration', requireAuth, requireNicolasOrAdmin, handleUpdateIotCalibration);
 
-// POST /api/hardware/iot-diagnostics/test-tdoa - Teste técnico de eventos sintéticos no painel de diagnóstico
 router.post('/iot-diagnostics/test-tdoa', requireAuth, requireNicolasOrAdmin, async (req, res) => {
   try {
     const {
@@ -222,11 +208,6 @@ router.post('/iot-diagnostics/test-tdoa', requireAuth, requireNicolasOrAdmin, as
   }
 });
 
-// ============================================================================
-// ROTAS DE JOGO E SIMULAÇÃO POR MOUSE (PRESERVADAS INTEGRALMENTE)
-// ============================================================================
-
-// POST /api/hardware/hit - Exige sessão válida de usuário ou visitante (requireUserOrGuest)
 router.post('/hit', requireUserOrGuest, async (req, res) => {
   try {
     const {
@@ -262,7 +243,6 @@ router.post('/hit', requireUserOrGuest, async (req, res) => {
 
     hardwareStatus.lastSeen = new Date().toISOString();
 
-    // MODO SHOPPING: impactos pertencem à experiência comercial ativa
     const installation = await experienceService.getInstallation();
     if (installation.mode === 'shopping') {
       try {
@@ -282,7 +262,6 @@ router.post('/hit', requireUserOrGuest, async (req, res) => {
       }
     }
 
-    // MODO PESSOAL: processa através do serviço oficial de partidas pessoais (5s PREPARING + 5min ACTIVE, isolando visitante)
     let result;
     try {
       result = await personalMatchService.registerPersonalImpact({
@@ -357,7 +336,6 @@ router.post('/hit', requireUserOrGuest, async (req, res) => {
   }
 });
 
-// POST /api/hardware/simulate - Simulation endpoint adapted for the 6 fixed targets
 router.post('/simulate', requireUserOrGuest, async (req, res) => {
   try {
     const { target_sensor_id, target_id, game_mode = 'free', active_sensors, active_targets, equipment_id = 1, session_id, match_id, client_event_id } = req.body || {};

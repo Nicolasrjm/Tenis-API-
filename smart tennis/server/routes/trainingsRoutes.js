@@ -6,7 +6,6 @@ const { requireAuth } = require('../services/authService');
 
 router.use(requireAuth);
 
-// GET /api/trainings - List all drills
 router.get('/', async (req, res) => {
   try {
     const trainings = await all(`SELECT * FROM trainings ORDER BY xp_reward ASC`);
@@ -16,7 +15,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/trainings/:id - Single drill detail
 router.get('/:id', async (req, res) => {
   try {
     const training = await get(`SELECT * FROM trainings WHERE id = ?`, [req.params.id]);
@@ -29,7 +27,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/trainings/:id/complete - Complete training drill and award XP
 router.post('/:id/complete', async (req, res) => {
   try {
     const { score, accuracy, shotsCount, hitsCount } = req.body || {};

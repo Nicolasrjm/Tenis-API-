@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MOTION TENNIS — CLIENTE SUPABASE DE EXEMPLO (FASE 7B.3 HARDENING FINAL)
+ * MOTION TENNIS — CLIENTE SUPABASE DE EXEMPLO
  * ==============================================================================
  * Demonstra a integração segura entre o ecossistema Motion Tennis e a nuvem:
  * 1. Visitante: Consulta o catálogo gratuito da Academy.
@@ -52,7 +52,7 @@ async function fetchPublishedAcademyLessons() {
 }
 
 /**
- * Exemplo 2: Notebook emite desafio de pareamento com TTL de 300 segundos (Fase 7B.3)
+ * Exemplo 2: Notebook emite desafio de pareamento com TTL de 300 segundos
  */
 async function issueCourtChallenge(challengeCode = 'MT7788') {
   console.log('\n--- 2. NOTEBOOK EMITE DESAFIO DE PAREAMENTO (RPC) ---');

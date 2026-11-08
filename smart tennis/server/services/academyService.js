@@ -36,7 +36,6 @@ const ALLOWED_YOUTUBE_HOSTS = new Set([
   'www.youtube-nocookie.com'
 ]);
 
-// Os 12 slots iniciais oficiais da Motion Tennis Academy (2 por módulo de aprendizagem)
 const INITIAL_12_SLOTS = [
   { id: 'prec_1', slotNumber: 1, displayOrder: 1, category: 'Precisão & Direção' },
   { id: 'prec_2', slotNumber: 2, displayOrder: 2, category: 'Precisão & Direção' },
@@ -52,9 +51,6 @@ const INITIAL_12_SLOTS = [
   { id: 'strat_2', slotNumber: 12, displayOrder: 12, category: 'Estratégia & Tática' }
 ];
 
-/**
- * Valida e normaliza estritamente URLs do YouTube para evitar XSS, links maliciosos ou domínios arbitrários.
- */
 function validateAndParseYouTubeUrl(rawUrl, { allowEmpty = false } = {}) {
   if (rawUrl === undefined || rawUrl === null || String(rawUrl).trim() === '') {
     if (allowEmpty) {
@@ -179,7 +175,6 @@ async function ensureAcademyTables() {
     }
   }
 
-  // Tabela de progresso individual por jogador autenticado
   await run(`
     CREATE TABLE IF NOT EXISTS academy_user_progress (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,12 +190,10 @@ async function ensureAcademyTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_academy_progress_user ON academy_user_progress(user_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_academy_progress_lesson ON academy_user_progress(lesson_id)`);
 
-  // Configuração administrativa para exibir ou ocultar aviso de slots "Em breve"
   await run(
     `INSERT OR IGNORE INTO system_settings (key, value) VALUES ('academy_show_coming_soon', 'true')`
   );
 
-  // Atualiza de forma não-destrutiva registros preexistentes que ainda não têm category/level/display_order
   const allRows = await all(`SELECT * FROM academy_content ORDER BY id ASC`);
   let fallbackOrder = 100;
 
@@ -301,11 +294,6 @@ async function setShowComingSoonSetting(show) {
   return show;
 }
 
-/**
- * Catálogo público da Motion Tennis Academy.
- * Acessível gratuitamente por visitantes sem login, visitantes em Modo Visitante, jogadores autenticados e admins.
- * Por padrão (e em conformidade com o Teste #7), a lista `lessons` retorna APENAS aulas publicadas (`published = 1`).
- */
 async function getPublicCatalog({ userId = null, category = null, level = null, search = null } = {}) {
   const completedSet = await getCompletedLessonIdSet(userId);
   const showComingSoon = await getShowComingSoonSetting();
@@ -317,7 +305,6 @@ async function getPublicCatalog({ userId = null, category = null, level = null, 
 
   const allFormatted = allRows.map((r) => formatLessonRow(r, completedSet));
 
-  // Somente aulas efetivamente publicadas entram no catálogo público `lessons`
   const allPublished = allFormatted.filter((lesson) => lesson.published && lesson.embed_url);
 
   let filteredPublished = allPublished;
@@ -343,7 +330,6 @@ async function getPublicCatalog({ userId = null, category = null, level = null, 
     );
   }
 
-  // Categorias consolidadas (módulos de aprendizagem)
   const categoryMap = new Map();
   for (const catName of Object.values(SKILL_TO_CATEGORY)) {
     categoryMap.set(catName, {
@@ -382,7 +368,6 @@ async function getPublicCatalog({ userId = null, category = null, level = null, 
     progressPercent: c.publishedCount > 0 ? Math.round((c.completedCount / c.publishedCount) * 100) : 0
   }));
 
-  // Estrutura das 12 videoaulas iniciais planejadas (sem expor links inexistentes)
   const initial12Slots = allFormatted
     .filter((l) => l.slot_number !== null && l.slot_number >= 1 && l.slot_number <= 12)
     .sort((a, b) => a.slot_number - b.slot_number)
@@ -397,7 +382,6 @@ async function getPublicCatalog({ userId = null, category = null, level = null, 
       title: slot.published ? slot.title : `Aula ${String(slot.slot_number).padStart(2, '0')} — ${slot.category} (Em breve)`
     }));
 
-  // Resumo de progresso para usuário autenticado
   const completedPublishedCount = allPublished.filter((l) => l.completed).length;
   const userProgress = userId
     ? {
@@ -427,10 +411,6 @@ async function getPublicCatalog({ userId = null, category = null, level = null, 
   };
 }
 
-/**
- * Detalhes de uma aula específica + aulas relacionadas.
- * Visitantes e jogadores comuns só podem abrir aulas publicadas (`published = 1`).
- */
 async function getLessonDetail(lessonId, { userId = null, isAdmin = false } = {}) {
   if (!lessonId) {
     throw new AcademyHttpError(400, 'ID da aula é obrigatório.');
@@ -452,7 +432,6 @@ async function getLessonDetail(lessonId, { userId = null, isAdmin = false } = {}
   }
   const lesson = formatLessonRow(row, completedSet);
 
-  // Busca aulas relacionadas publicadas (mesma categoria ou habilidade, excluindo a própria aula)
   const relatedRows = await all(
     `SELECT * FROM academy_content
      WHERE id != ? AND published = 1 AND embed_url IS NOT NULL AND embed_url != ''
@@ -471,10 +450,6 @@ async function getLessonDetail(lessonId, { userId = null, isAdmin = false } = {}
   };
 }
 
-/**
- * Registra ou desmarca conclusão de uma aula para o usuário autenticado.
- * Visitantes nunca alteram progresso. Não concede XP nem conquistas dos jogos.
- */
 async function setUserLessonProgress({ userId, lessonId, completed = true }) {
   if (!userId || !Number.isInteger(Number(userId)) || Number(userId) <= 0) {
     throw new AcademyHttpError(403, 'Apenas jogadores autenticados podem salvar progresso de aulas.');
@@ -538,8 +513,6 @@ async function getUserProgress({ userId, targetLessonId = null }) {
   };
 }
 
-// ================= ADMIN MANAGEMENT (CRUD DE AULAS) ================= //
-
 async function listAdminLessons() {
   const showComingSoon = await getShowComingSoonSetting();
   const rows = await all(`
@@ -584,7 +557,6 @@ async function createAdminLesson(payload = {}) {
     throw new AcademyHttpError(400, 'A categoria da aula é obrigatória.');
   }
 
-  // Valida URL do YouTube (obrigatória caso a aula esteja marcada para publicação)
   const ytParsed = validateAndParseYouTubeUrl(rawYoutubeUrl, { allowEmpty: !published });
   if (published && ytParsed.empty) {
     throw new AcademyHttpError(400, 'Para publicar uma aula, informe uma URL válida do YouTube.');

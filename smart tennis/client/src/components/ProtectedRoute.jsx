@@ -17,7 +17,6 @@ export function ProtectedRoute({ children, requireAdmin = false, allowGuest = fa
     );
   }
 
-  // Visitantes só podem acessar rotas que permitem allowGuest (como /app/play)
   if (isGuest && !allowGuest) {
     return <Navigate to="/app/play" replace />;
   }

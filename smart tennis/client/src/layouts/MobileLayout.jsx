@@ -50,7 +50,6 @@ export default function MobileLayout() {
   }, []);
 
   const checkConnection = async () => {
-    // Em modo Web Demo na Vercel sem servidor local explicitamente salvo, não faz polling indevido
     if (isWebDemoMode() && !getSavedServerUrl()) {
       setConnectionState({
         online: false,
@@ -59,7 +58,6 @@ export default function MobileLayout() {
       });
       return;
     }
-    // Em modo Android Cloud sem servidor local salvo, também não faz polling indevido
     if ((isCloudOnlyMode() || isNativeMobile()) && !getSavedServerUrl()) {
       setConnectionState({
         online: false,
@@ -97,9 +95,9 @@ export default function MobileLayout() {
   return (
     <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] flex flex-col justify-between selection:bg-[#B8F044] selection:text-[#101820] transition-colors duration-200">
       
-      {/* Top Mobile Header */}
+      
       <header className="sticky top-0 z-40 bg-[#142B3D]/95 dark:bg-[#0D1B2A]/95 backdrop-blur border-b border-[#1C3A52] dark:border-[#344653] px-3 sm:px-4 py-2.5 flex items-center justify-between safe-area-top text-white">
-        {/* Brand Logo */}
+        
         <div 
           onClick={() => navigate('/mobile/dashboard')}
           className="flex items-center space-x-2 cursor-pointer"
@@ -115,11 +113,11 @@ export default function MobileLayout() {
           </span>
         </div>
 
-        {/* Status / Connect Pill + Theme Toggle */}
+        
         <div className="flex items-center space-x-1.5 sm:space-x-2">
           <ThemeToggle className="py-1 px-1.5 text-xs" />
 
-          {/* Connection / Cloud Indicator */}
+          
           {isEquipmentMode() && !isNativeMobile() ? (
             <button
               onClick={() => navigate('/mobile/connect')}
@@ -173,7 +171,7 @@ export default function MobileLayout() {
             </div>
           )}
 
-          {/* User mini badge */}
+          
           {user ? (
             <div 
               onClick={() => navigate('/mobile/profile')}
@@ -193,7 +191,7 @@ export default function MobileLayout() {
         </div>
       </header>
 
-      {/* Offline Alert Banner */}
+      
       {!cloudActive && !connectionState.online && location.pathname !== '/mobile/connect' && (
         <div className="bg-rose-950/90 border-b border-rose-500/30 px-4 py-2 flex items-center justify-between text-xs text-rose-200">
           <div className="flex items-center space-x-2 truncate mr-2">
@@ -211,12 +209,12 @@ export default function MobileLayout() {
         </div>
       )}
 
-      {/* Main Screen Outlet */}
+      
       <main className="flex-1 pb-24 overflow-y-auto">
         <Outlet />
       </main>
 
-      {/* Fixed Bottom Navigation Bar (4 Items: Início, Histórico, Evolução, Perfil) */}
+      
       <nav 
         data-testid="mobile-bottom-navigation"
         className="fixed bottom-0 inset-x-0 z-40 bg-[#142B3D]/98 dark:bg-[#0D1B2A]/98 backdrop-blur-md border-t border-[#1C3A52] dark:border-[#344653] px-1 py-1.5 safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.2)] text-slate-300"

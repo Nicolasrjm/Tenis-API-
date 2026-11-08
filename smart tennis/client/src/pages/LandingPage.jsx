@@ -30,11 +30,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#DCE3E8] dark:bg-[#101820] text-[#142B3D] dark:text-[#F1F5F9] selection:bg-[#B8F044] selection:text-[#101820] font-sans transition-colors duration-200">
       
-      {/* 3. SITE INSTITUCIONAL — Top Header Sport Premium */}
+      
       <header className="border-b border-[#1C3A52] dark:border-[#344653] bg-[#142B3D]/95 dark:bg-[#0D1B2A]/95 backdrop-blur sticky top-0 z-50 text-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
-          {/* Brand Logo Sport Premium */}
+          
           <Link to="/" className="flex items-center space-x-3 group">
             <div className="w-9 h-9 rounded-xl bg-[#0D1C28] border border-[#B8F044]/50 flex items-center justify-center shadow-[0_2px_10px_rgba(184,240,68,0.25)] transition-transform group-hover:scale-105">
               <svg className="w-5 h-5 text-[#B8F044]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -55,7 +55,7 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* Menu Institucional */}
+          
           <nav className="hidden md:flex items-center space-x-6 text-xs font-bold tracking-wider text-slate-300 uppercase">
             <button onClick={() => scrollTo('produto')} className="hover:text-white hover:text-[#B8F044] transition-colors">
               PRODUTO
@@ -74,7 +74,7 @@ export default function LandingPage() {
             </button>
           </nav>
 
-          {/* Botões Principais: ThemeToggle, Conheça o Motion Tennis & Acessar Plataforma */}
+          
           <div className="flex items-center space-x-2 sm:space-x-3">
             <ThemeToggle />
 
@@ -96,19 +96,19 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* HERO SECTION SPORT PREMIUM — Dual Theme (Cinza-Azulado / Dark Grafite) */}
+      
       <section className="relative pt-16 pb-20 lg:pt-24 lg:pb-32 overflow-hidden bg-gradient-to-b from-[#DCE3E8] via-[#D3DDE3] to-[#C9D4DC] dark:from-[#101820] dark:via-[#18242E] dark:to-[#101820] border-b border-[#B8C6D0] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              {/* Badge Esportivo */}
+              
               <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-xs text-xs font-bold text-[#142B3D] dark:text-[#F1F5F9]">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#B8F044] border border-[#142B3D] dark:border-[#B8F044] animate-pulse"></span>
                 <span className="tracking-wide uppercase">Plataforma Esportiva Interativa</span>
               </div>
 
-              {/* Título Principal com Barlow Condensed */}
+              
               <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight text-[#142B3D] dark:text-[#F1F5F9]">
                 <span>MOTION </span>
                 <span className="text-[#2563EB] dark:text-[#60A5FA]">TENNIS</span>
@@ -122,7 +122,7 @@ export default function LandingPage() {
                 Transforme cada treino em uma experiência interativa. Desenvolva sua precisão, acompanhe seus resultados e evolua com o Motion Tennis.
               </p>
 
-              {/* Botões de Ação */}
+              
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-3">
                 <button
                   onClick={() => scrollTo('como-funciona')}
@@ -139,7 +139,7 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              {/* Destaques Rápidos */}
+              
               <div className="pt-6 grid grid-cols-3 gap-4 border-t border-[#B8C6D0] dark:border-[#344653] max-w-md mx-auto lg:mx-0 text-left">
                 <div>
                   <div className="text-lg sm:text-xl font-black font-sport text-[#142B3D] dark:text-[#F1F5F9] leading-tight">INTERATIVO</div>
@@ -156,14 +156,14 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Visual Alvo Físico Esportivo */}
+            
             <div className="lg:col-span-5 flex flex-col items-center">
               <div className="relative p-5 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-[0_10px_30px_-5px_rgba(16,24,32,0.15)] w-full max-w-[460px]">
                 <div className="absolute -top-3.5 left-6 px-3 py-1 rounded-full bg-[#142B3D] dark:bg-[#0D1B2A] text-[#B8F044] border border-[#142B3D] dark:border-[#344653] text-[10px] font-bold tracking-wider shadow-sm flex items-center space-x-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#B8F044] animate-ping"></span>
                   <span>ALVO MOTION TENNIS</span>
                 </div>
-                {/* Contêiner escuro interno para garantir alto contraste do alvo com a bola */}
+                
                 <div className="rounded-2xl bg-[#050D07] p-3 border border-[#1B3624] overflow-hidden">
                   <CourtTarget interactive={false} gameMode="single" activeSensorId={5} />
                 </div>
@@ -177,7 +177,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRODUTO — Fundo Principal #DCE3E8 / #101820 */}
+      
       <section id="produto" className="py-20 bg-[#DCE3E8] dark:bg-[#101820] border-b border-[#B8C6D0] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-xs font-black tracking-widest text-[#2563EB] dark:text-[#60A5FA] uppercase">
@@ -224,7 +224,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* COMO FUNCIONA — Seção Alternada Cinza #C9D4DC / Escura #18242E */}
+      
       <section id="como-funciona" className="py-24 bg-[#C9D4DC] dark:bg-[#18242E] border-b border-[#B8C6D0] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
@@ -280,7 +280,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* TECNOLOGIA — Fundo Principal #DCE3E8 / #101820 */}
+      
       <section id="tecnologia" className="py-20 bg-[#DCE3E8] dark:bg-[#101820] border-b border-[#B8C6D0] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -316,7 +316,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* BENEFÍCIOS — Seção Alternada #C9D4DC / #18242E */}
+      
       <section id="beneficios" className="py-20 bg-[#C9D4DC] dark:bg-[#18242E] border-b border-[#B8C6D0] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-xs font-black tracking-widest text-[#142B3D] dark:text-[#F1F5F9] uppercase">
@@ -346,7 +346,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SEÇÃO INFORMATIVA: MOTION TENNIS ACADEMY */}
+      
       <section id="academy-info" className="py-20 bg-[#142B3D] dark:bg-[#0D1B2A] text-white border-b border-[#1C3A52] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto p-8 sm:p-10 rounded-3xl bg-[#0D1C28] dark:bg-[#18242E] border border-[#1C3A52] dark:border-[#344653] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
@@ -386,7 +386,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SOBRE — Fundo Principal #DCE3E8 / #101820 */}
+      
       <section id="sobre" className="py-16 bg-[#DCE3E8] dark:bg-[#101820] border-b border-[#B8C6D0] dark:border-[#344653] text-center">
         <div className="max-w-3xl mx-auto px-4 space-y-4">
           <h3 className="text-2xl font-black text-[#142B3D] dark:text-[#F1F5F9] font-sport">Sobre o Motion Tennis</h3>
@@ -405,7 +405,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
+      
       <footer className="py-6 bg-[#0D1C28] dark:bg-[#0D1B2A] text-slate-400 dark:text-[#A8BAC8] text-xs text-center border-t border-[#1C3A52] dark:border-[#344653]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span>MOTION TENNIS © 2026 • Plataforma Esportiva e Tecnológica</span>

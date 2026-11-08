@@ -82,7 +82,7 @@ export default function AcademyLessonPage() {
 
   const pageBody = (
     <div className="space-y-6 pb-12" data-testid="academy-lesson-playback-page">
-      {/* Barra Superior de Retorno ao Catálogo */}
+      
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           to={baseAcademyPath}
@@ -125,9 +125,9 @@ export default function AcademyLessonPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna Principal: Player YouTube + Detalhes da Aula */}
+          
           <div className="lg:col-span-2 space-y-6">
-            {/* Player de Vídeo Integrado (Embed Seguro do YouTube) */}
+            
             <div className="rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden shadow-sm">
               {safeEmbedUrl ? (
                 <div className="relative aspect-video w-full bg-black">
@@ -153,7 +153,7 @@ export default function AcademyLessonPage() {
                 </div>
               )}
 
-              {/* Cabeçalho e Informações da Aula */}
+              
               <div className="p-6 sm:p-8 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -175,7 +175,7 @@ export default function AcademyLessonPage() {
                     </span>
                   </div>
 
-                  {/* Botão de Marcar/Desmarcar como Concluída (Apenas Usuário Autenticado) */}
+                  
                   {user && !isGuest ? (
                     <button
                       type="button"
@@ -219,7 +219,7 @@ export default function AcademyLessonPage() {
                   </h1>
                 </div>
 
-                {/* Informações do Professor & Link Oficial */}
+                
                 <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] flex items-center justify-center text-[#2563EB] dark:text-[#B8F044]">
@@ -248,7 +248,7 @@ export default function AcademyLessonPage() {
                   )}
                 </div>
 
-                {/* Descrição Técnica Completa */}
+                
                 <div className="space-y-2 pt-2 border-t border-[#B8C6D0] dark:border-[#344653]">
                   <h3 className="text-xs font-mono uppercase tracking-wider text-[#2563EB] dark:text-[#B8F044] font-bold">
                     Descrição da Aula & Objetivos Técnicos
@@ -264,7 +264,7 @@ export default function AcademyLessonPage() {
             </div>
           </div>
 
-          {/* Coluna Lateral: Aulas Relacionadas */}
+          
           <div className="space-y-4">
             <div className="p-5 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] space-y-4 shadow-sm">
               <div className="flex items-center justify-between border-b border-[#B8C6D0] dark:border-[#344653] pb-3">

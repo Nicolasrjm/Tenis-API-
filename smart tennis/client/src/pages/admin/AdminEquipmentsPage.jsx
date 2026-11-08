@@ -18,12 +18,10 @@ export default function AdminEquipmentsPage() {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editEquipment, setEditEquipment] = useState(null);
-  const [selectedEquipmentUsers, setSelectedEquipmentUsers] = useState(null); // { equipment, users: [] }
+  const [selectedEquipmentUsers, setSelectedEquipmentUsers] = useState(null);
 
-  // Form states
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [location, setLocation] = useState('Quadra Principal');
@@ -124,7 +122,7 @@ export default function AdminEquipmentsPage() {
   return (
     <div className="space-y-8 animate-fadeIn">
       
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#08120B] border border-[#295437]">
         <div>
           <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
@@ -145,7 +143,7 @@ export default function AdminEquipmentsPage() {
         </button>
       </div>
 
-      {/* Equipments Cards Grid (Requirement 7) */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {equipments.map((eq) => (
           <div
@@ -170,7 +168,7 @@ export default function AdminEquipmentsPage() {
               </span>
             </div>
 
-            {/* Metrics */}
+            
             <div className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-[#060D08] border border-[#1B3624] font-mono text-center text-xs">
               <div>
                 <span className="text-[10px] text-[#8C9891]">JOGADORES</span>
@@ -186,7 +184,7 @@ export default function AdminEquipmentsPage() {
               </div>
             </div>
 
-            {/* Actions */}
+            
             <div className="flex items-center justify-between pt-2 border-t border-[#1B3624]">
               <button
                 onClick={() => openUsersModal(eq)}
@@ -218,7 +216,7 @@ export default function AdminEquipmentsPage() {
         ))}
       </div>
 
-      {/* Modal: Create Equipment */}
+      
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">
@@ -289,7 +287,7 @@ export default function AdminEquipmentsPage() {
         </div>
       )}
 
-      {/* Modal: Edit Equipment */}
+      
       {editEquipment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">
@@ -359,7 +357,7 @@ export default function AdminEquipmentsPage() {
         </div>
       )}
 
-      {/* Modal: View & Link Players for Equipment (Requirement 7 & 8) */}
+      
       {selectedEquipmentUsers && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-lg w-full p-6 rounded-3xl bg-[#08120B] border-2 border-amber-400/50 space-y-4">
@@ -377,7 +375,7 @@ export default function AdminEquipmentsPage() {
               </button>
             </div>
 
-            {/* List of currently linked players */}
+            
             <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
               {selectedEquipmentUsers.users.length === 0 ? (
                 <p className="text-xs text-[#8C9891] text-center py-4 font-mono">
@@ -408,7 +406,7 @@ export default function AdminEquipmentsPage() {
               )}
             </div>
 
-            {/* Add Player Dropdown */}
+            
             <div className="pt-3 border-t border-[#1B3624] space-y-2">
               <span className="text-xs font-mono text-[#8C9891] uppercase">Vincular Novo Atleta:</span>
               <div className="flex gap-2">

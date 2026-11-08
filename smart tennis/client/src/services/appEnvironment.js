@@ -19,11 +19,7 @@ export const APP_MODES = {
   ANDROID_CLOUD: 'android_cloud'
 };
 
-/**
- * Retorna o modo operacional atual da aplicação.
- */
 export function getAppMode() {
-  // 1. Configuração explícita de build (VITE_APP_MODE) ou runtime
   const envMode = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_MODE)
     || (typeof process !== 'undefined' && process.env?.VITE_APP_MODE)
     || '';
@@ -31,14 +27,12 @@ export function getAppMode() {
   if (envMode === APP_MODES.ANDROID_CLOUD) return APP_MODES.ANDROID_CLOUD;
   if (envMode === APP_MODES.EQUIPMENT) return APP_MODES.EQUIPMENT;
 
-  // 2. Detecção automática de ambiente nativo Capacitor (Android)
   if (typeof window !== 'undefined') {
     if (window.Capacitor?.isNativePlatform?.() || window.Capacitor?.getPlatform?.() === 'android') {
       return APP_MODES.ANDROID_CLOUD;
     }
   }
 
-  // 3. Detecção automática de ambiente Vercel (process.env.VERCEL ou hostname *.vercel.app)
   if (typeof window !== 'undefined') {
     const host = window.location.hostname || '';
     if (host.endsWith('.vercel.app')) {
@@ -46,34 +40,21 @@ export function getAppMode() {
     }
   }
 
-  // 4. Padrão para desenvolvimento local no equipamento físico
   return APP_MODES.EQUIPMENT;
 }
 
-/**
- * Retorna true se a aplicação estiver executando em modo demonstração web pública (Vercel).
- */
 export function isWebDemoMode() {
   return getAppMode() === APP_MODES.WEB_DEMO;
 }
 
-/**
- * Retorna true se a aplicação estiver executando no aplicativo Android nativo conectado à nuvem.
- */
 export function isAndroidCloudMode() {
   return getAppMode() === APP_MODES.ANDROID_CLOUD;
 }
 
-/**
- * Retorna true se a aplicação estiver executando no notebook físico da quadra (com SQLite).
- */
 export function isEquipmentMode() {
   return getAppMode() === APP_MODES.EQUIPMENT;
 }
 
-/**
- * Retorna true se a aplicação estiver em modo exclusivamente em nuvem (Vercel ou Android).
- */
 export function isCloudOnlyMode() {
   const mode = getAppMode();
   return mode === APP_MODES.WEB_DEMO || mode === APP_MODES.ANDROID_CLOUD;

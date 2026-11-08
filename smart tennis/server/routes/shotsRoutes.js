@@ -6,10 +6,8 @@ const { broadcastEvent } = require('../services/eventHub');
 const { requireAuth } = require('../services/authService');
 const experienceService = require('../services/experienceService');
 
-// Exige autenticação de usuário cadastrado (visitantes recebem 403 e anônimos 401)
 router.use(requireAuth);
 
-// GET /api/shots/recent
 router.get('/recent', async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 100);
@@ -32,7 +30,6 @@ router.get('/recent', async (req, res) => {
   }
 });
 
-// GET /api/shots/hitmap - All points for heatmap + zone frequency analysis
 router.get('/hitmap', async (req, res) => {
   try {
     const userId = req.user.role === 'admin' && req.query?.user_id
@@ -69,7 +66,6 @@ router.get('/hitmap', async (req, res) => {
   }
 });
 
-// POST /api/shots/simulate - Generate simulated shot
 router.post('/simulate', async (req, res) => {
   try {
     const { targetZone, speed, sessionId, client_event_id } = req.body || {};
@@ -118,7 +114,6 @@ router.post('/simulate', async (req, res) => {
   }
 });
 
-// POST /api/shots/manual - Manual click on virtual court
 router.post('/manual', async (req, res) => {
   try {
     const { x, y, force = 80, sessionId, client_event_id } = req.body || {};

@@ -1,4 +1,3 @@
-// SMART TENNIS — TESTE DE VALIDAÇÃO DA FASE 1 (GEOMETRIA DOS 6 ALVOS)
 const { calculateWallGeometry, classifyImpact, PHYSICAL_CONSTANTS, WALL_PRESETS } = require('../server/services/wallGeometry');
 const { detectSector, resolveSensor } = require('../server/services/gameEngine');
 
@@ -19,7 +18,6 @@ console.log('================================================================');
 console.log('🎾 TESTES OBRIGATÓRIOS DA FASE 1: GEOMETRIA E CLASSIFICAÇÃO');
 console.log('================================================================\n');
 
-// 1. Verificação dos 6 alvos e disposição 3 colunas x 2 linhas
 console.log('TESTE 1: Quantidade de alvos e organização espacial');
 for (const preset of ['small', 'medium', 'large']) {
   const geo = calculateWallGeometry(preset);
@@ -30,7 +28,6 @@ for (const preset of ['small', 'medium', 'large']) {
   assert(rows.size === 2, `Preset ${preset}: exatamente 2 linhas (0, 1)`);
 }
 
-// 2. Preservação do espaçamento físico de 30 cm e margens de 10 cm nas 3 configurações
 console.log('\nTESTE 2: Espaçamento físico de 30 cm e margens de 10 cm');
 for (const [key, expected] of Object.entries({
   small: { targetW: 0.40, targetH: 0.50, W: 2.0, H: 1.5 },
@@ -41,16 +38,13 @@ for (const [key, expected] of Object.entries({
   assert(Math.abs(geo.targetWidthM - expected.targetW) < 0.001, `Preset ${key}: Largura física do alvo calculada = ${geo.targetWidthM}m (${expected.targetW}m esperado)`);
   assert(Math.abs(geo.targetHeightM - expected.targetH) < 0.001, `Preset ${key}: Altura física do alvo calculada = ${geo.targetHeightM}m (${expected.targetH}m esperado)`);
   
-  // Verifica soma física na horizontal: 2*10cm + 3*targetW + 2*30cm == W
   const sumW = 2 * PHYSICAL_CONSTANTS.MARGIN_X_M + 3 * geo.targetWidthM + 2 * PHYSICAL_CONSTANTS.GAP_X_M;
   assert(Math.abs(sumW - expected.W) < 0.001, `Preset ${key}: Soma horizontal (2x10cm + 3x${geo.targetWidthM}m + 2x30cm) = ${sumW.toFixed(2)}m (${expected.W}m parede)`);
 
-  // Verifica soma física na vertical: 2*10cm + 2*targetH + 1*30cm == H
   const sumH = 2 * PHYSICAL_CONSTANTS.MARGIN_Y_M + 2 * geo.targetHeightM + 1 * PHYSICAL_CONSTANTS.GAP_Y_M;
   assert(Math.abs(sumH - expected.H) < 0.001, `Preset ${key}: Soma vertical (2x10cm + 2x${geo.targetHeightM}m + 1x30cm) = ${sumH.toFixed(2)}m (${expected.H}m parede)`);
 }
 
-// 3. Clique no centro de cada alvo é identificado com TARGET_HIT
 console.log('\nTESTE 3: Identificação de cliques no centro de cada um dos 6 alvos');
 const geoMed = calculateWallGeometry('medium');
 geoMed.sectors.forEach(s => {
@@ -58,39 +52,29 @@ geoMed.sectors.forEach(s => {
   assert(hit.classification === 'TARGET_HIT' && hit.sectorId === s.id, `Centro do Alvo ${s.id} (${s.centerX}%, ${s.centerY}%) -> TARGET_HIT com sectorId=${hit.sectorId}`);
 });
 
-// 4. Clique nos corredores entre alvos não pontua (NEUTRAL_AREA)
 console.log('\nTESTE 4: Identificação de cliques nos corredores entre alvos');
-// Corredor horizontal entre Alvo 1 e Alvo 2 (X entre 27.778% e 37.778%, testar X = 32%)
 const gapH1 = classifyImpact(32.0, 23.75, 'medium');
 assert(gapH1.classification === 'NEUTRAL_AREA' && gapH1.hit === false, 'Corredor horizontal entre Alvo 1 e 2 (X=32%, Y=23.75%) -> NEUTRAL_AREA (hit=false)');
 
-// Corredor horizontal entre Alvo 2 e Alvo 3 (X entre 62.222% e 72.222%, testar X = 67%)
 const gapH2 = classifyImpact(67.0, 23.75, 'medium');
 assert(gapH2.classification === 'NEUTRAL_AREA' && gapH2.hit === false, 'Corredor horizontal entre Alvo 2 e 3 (X=67%, Y=23.75%) -> NEUTRAL_AREA (hit=false)');
 
-// Corredor vertical entre Linha 0 e Linha 1 (Y entre 42.5% e 57.5%, testar Y = 50%)
 const gapV = classifyImpact(50.0, 50.0, 'medium');
 assert(gapV.classification === 'NEUTRAL_AREA' && gapV.hit === false, 'Corredor vertical central (X=50%, Y=50%) -> NEUTRAL_AREA (hit=false)');
 
-// 5. Clique nas margens externas de 10 cm não pontua (NEUTRAL_AREA)
 console.log('\nTESTE 5: Identificação de cliques nas margens externas de 10 cm');
-// Margem esquerda (< 3.333% no médio)
 const marginL = classifyImpact(1.5, 23.75, 'medium');
 assert(marginL.classification === 'NEUTRAL_AREA' && marginL.hit === false, 'Margem esquerda (X=1.5%, Y=23.75%) -> NEUTRAL_AREA (hit=false)');
 
-// Margem direita (> 96.667% no médio)
 const marginR = classifyImpact(98.5, 23.75, 'medium');
 assert(marginR.classification === 'NEUTRAL_AREA' && marginR.hit === false, 'Margem direita (X=98.5%, Y=23.75%) -> NEUTRAL_AREA (hit=false)');
 
-// Margem superior (< 5.0% no médio)
 const marginT = classifyImpact(50.0, 2.0, 'medium');
 assert(marginT.classification === 'NEUTRAL_AREA' && marginT.hit === false, 'Margem superior (X=50%, Y=2.0%) -> NEUTRAL_AREA (hit=false)');
 
-// Margem inferior (> 95.0% no médio)
 const marginB = classifyImpact(50.0, 97.5, 'medium');
 assert(marginB.classification === 'NEUTRAL_AREA' && marginB.hit === false, 'Margem inferior (X=50%, Y=97.5%) -> NEUTRAL_AREA (hit=false)');
 
-// 6. Rejeição de impactos fora da parede (OUT_OF_BOUNDS)
 console.log('\nTESTE 6: Rejeição de impactos fora da parede projetada');
 const outLeft = classifyImpact(-5, 50, 'medium');
 assert(outLeft.classification === 'OUT_OF_BOUNDS' && outLeft.hit === false, 'Impacto fora à esquerda (X=-5%) -> OUT_OF_BOUNDS (hit=false)');
@@ -101,7 +85,6 @@ assert(outTop.classification === 'OUT_OF_BOUNDS' && outTop.hit === false, 'Impac
 const outBottom = classifyImpact(50, 110, 'medium');
 assert(outBottom.classification === 'OUT_OF_BOUNDS' && outBottom.hit === false, 'Impacto fora abaixo (Y=110%) -> OUT_OF_BOUNDS (hit=false)');
 
-// 7. Teste de `resolveSensor` do gameEngine
 console.log('\nTESTE 7: Integração com o motor do jogo (gameEngine.resolveSensor)');
 const resHit = resolveSensor(null, 50.0, 23.75, 'medium');
 assert(resHit.is_hit === 1 && resHit.sensor.id === 2, `resolveSensor em (50%, 23.75%) -> is_hit=1, sensor=Alvo 2`);

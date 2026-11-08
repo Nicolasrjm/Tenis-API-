@@ -19,8 +19,7 @@ export default function AdminReportsPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filtros
-  const [period, setPeriod] = useState('all'); // '7d' | '30d' | 'all'
+  const [period, setPeriod] = useState('all');
   const [userFilter, setUserFilter] = useState('');
   const [modeFilter, setModeFilter] = useState('all');
 
@@ -71,9 +70,7 @@ export default function AdminReportsPage() {
     });
   };
 
-  // Filtragem combinada por período, usuário e modo
   const filteredSessions = sessions.filter((s) => {
-    // 1. Filtro por Período
     if (period !== 'all') {
       const sessDate = new Date(s.created_at);
       const now = new Date();
@@ -82,7 +79,6 @@ export default function AdminReportsPage() {
       if (period === '30d' && diffDays > 30) return false;
     }
 
-    // 2. Filtro por Usuário
     if (userFilter.trim()) {
       const term = userFilter.toLowerCase();
       const nameMatch = s.user_name?.toLowerCase().includes(term) || s.player_name?.toLowerCase().includes(term);
@@ -90,7 +86,6 @@ export default function AdminReportsPage() {
       if (!nameMatch && !userMatch) return false;
     }
 
-    // 3. Filtro por Modo
     if (modeFilter !== 'all' && s.mode !== modeFilter) {
       return false;
     }
@@ -98,14 +93,12 @@ export default function AdminReportsPage() {
     return true;
   });
 
-  // Métricas calculadas sobre as sessões filtradas
   const totalFilteredHits = filteredSessions.reduce((acc, s) => acc + (s.hits || 0), 0);
   const totalFilteredScore = filteredSessions.reduce((acc, s) => acc + (s.score || 0), 0);
   const avgFilteredAccuracy = filteredSessions.length > 0
     ? Math.round(filteredSessions.reduce((acc, s) => acc + (s.accuracy || 80), 0) / filteredSessions.length)
     : (stats?.averageAccuracy || 0);
 
-  // Exportação CSV nativa
   const handleExportCSV = () => {
     if (filteredSessions.length === 0) {
       alert('Nenhuma sessão disponível para exportação com os filtros atuais.');
@@ -137,7 +130,7 @@ export default function AdminReportsPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn font-mono">
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#08120B] border border-[#295437]">
         <div>
           <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
@@ -159,7 +152,7 @@ export default function AdminReportsPage() {
         </button>
       </div>
 
-      {/* Cards de Métricas Consolidadas */}
+      
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-[#08120B] border border-[#295437] space-y-1">
           <div className="flex items-center gap-2 text-[#8C9891]">
@@ -206,9 +199,9 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {/* Barra de Filtros */}
+      
       <div className="p-4 rounded-2xl bg-[#08120B] border border-[#295437] grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Filtro por Atleta */}
+        
         <div className="relative">
           <Search className="w-4 h-4 text-[#8C9891] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -220,7 +213,7 @@ export default function AdminReportsPage() {
           />
         </div>
 
-        {/* Filtro por Período */}
+        
         <div>
           <select
             value={period}
@@ -233,7 +226,7 @@ export default function AdminReportsPage() {
           </select>
         </div>
 
-        {/* Filtro por Modo de Jogo */}
+        
         <div>
           <select
             value={modeFilter}
@@ -248,7 +241,7 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {/* Tabela de Resultados & Histórico */}
+      
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4 overflow-x-auto">
         <div className="flex items-center justify-between pb-2 border-b border-[#1B3624]">
           <h2 className="text-sm font-bold text-[#8C9891] uppercase tracking-wider">

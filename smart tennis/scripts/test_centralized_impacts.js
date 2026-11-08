@@ -1,20 +1,3 @@
-// SMART TENNIS — TESTE DE CENTRALIZAÇÃO DO PROCESSAMENTO DE IMPACTOS (FASE 2)
-//
-// Valida que TODAS as rotas de impacto e simulação:
-//   - POST /api/hardware/hit
-//   - POST /api/hardware/simulate
-//   - POST /api/shots/simulate
-//   - POST /api/shots/manual
-// passam estritamente pelas regras do Modo Shopping quando ativo:
-//   1. Rejeição com 409 quando não há experiência ativa.
-//   2. Respeito ao relógio oficial do servidor e rodada ativa.
-//   3. Bloqueio durante intervalos (INTERVAL_BLOCKED).
-//   4. Bloqueio após experiência finalizada/abortada (EXPERIENCE_ENDED).
-//   5. Classificação da geometria (6 alvos, áreas neutras de 30 cm, fora da parede).
-//   6. Rejeição de eventos duplicados (client_event_id).
-//   7. Em Modo Pessoal: funcionamento normal de treinos livres sem limitação comercial.
-//
-// Executado exclusivamente sobre uma cópia temporária do SQLite. O banco real NUNCA é modificado.
 
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -26,8 +9,8 @@ const ROOT = path.join(__dirname, '..');
 const REAL_DB = path.join(ROOT, 'server', 'database', 'smart_tennis.db');
 const PORT = 3198;
 const BASE = `http://127.0.0.1:${PORT}/api`;
-const ROUND = 3; // 3 segundos por rodada em modo de teste
-const INTERVAL = 2; // 2 segundos de intervalo
+const ROUND = 3;
+const INTERVAL = 2;
 
 const sha = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
 
@@ -60,7 +43,6 @@ async function waitReady() {
       const r = await fetch(`http://127.0.0.1:${PORT}/status`);
       if (r.ok) return;
     } catch (e) {
-      // waiting
     }
     await sleep(250);
   }
@@ -91,7 +73,6 @@ async function api(method, endpoint, token, body) {
   try {
     json = await res.json();
   } catch (e) {
-    // empty response
   }
   return { status: res.status, body: json };
 }
@@ -115,7 +96,6 @@ async function runTests() {
 
   await startServer();
 
-  // Login
   const adminLogin = await api('POST', '/auth/login', null, { username: 'admin', password: 'admin123' });
   const adminToken = adminLogin.body.token;
 
@@ -147,30 +127,24 @@ async function runTests() {
   assert('Experiência Shopping iniciada', startExp.status === 201 && startExp.body.experience && startExp.body.experience.state === 'ACTIVE');
   const expId = startExp.body.experience.id;
 
-  // hardware/simulate
   const hSim = await api('POST', '/hardware/simulate', null, { target_id: 2 });
   assert('hardware/simulate aceito na experiência ativa', hSim.status === 200 || hSim.status === 201);
   assert('hardware/simulate sinaliza shopping: true', hSim.body.shopping === true);
 
-  // shots/simulate
   const sSim = await api('POST', '/shots/simulate', null, { targetZone: 2 });
   assert('shots/simulate aceito na experiência ativa', sSim.status === 200 || sSim.status === 201);
   assert('shots/simulate sinaliza shopping: true', sSim.body.shopping === true);
 
-  // shots/manual no centro do alvo 2 (em preset medium: x ≈ 50, y ≈ 20)
   const sManHit = await api('POST', '/shots/manual', null, { x: 50, y: 20 });
   assert('shots/manual no alvo aceito e pontua', sManHit.status === 201 && sManHit.body.data.points === 85);
 
-  // shots/manual fora da parede (x: 120, y: 120)
   const sManOut = await api('POST', '/shots/manual', null, { x: 120, y: 120 });
   assert('shots/manual fora da parede rejeitado', sManOut.status === 200 && sManOut.body.data.accepted === false && sManOut.body.data.reason === 'OUT_OF_BOUNDS');
 
-  // shots/manual em área neutra (entre colunas, corredor de 30cm: em medium x ≈ 34.5, y ≈ 20)
   const sManNeutral = await api('POST', '/shots/manual', null, { x: 34.5, y: 20 });
   assert('shots/manual em área neutra classificado como NEUTRAL_AREA (0 pts)', 
     sManNeutral.status === 201 && sManNeutral.body.data.accepted === true && sManNeutral.body.data.hit === false && sManNeutral.body.data.points === 0);
 
-  // Deduplicação com client_event_id
   const evtId = 'dup_evt_test_123';
   const hit1 = await api('POST', '/hardware/hit', null, { x: 50, y: 20, client_event_id: evtId });
   assert('Primeiro envio com client_event_id aceito', hit1.status === 201 && hit1.body.data.accepted === true);
@@ -179,7 +153,6 @@ async function runTests() {
   assert('Segundo envio com mesmo client_event_id detectado como duplicata', hit2.status === 201 && hit2.body.data.duplicate === true);
 
   console.log('\n--- 4. TRANSIÇÃO PARA INTERVALO E BLOQUEIO DE TODAS AS ROTAS ---');
-  // Aguarda a rodada de 3 segundos expirar para entrar no intervalo de 2 segundos
   console.log('  Aguardando término da rodada 1...');
   await sleep(3500);
 
@@ -233,7 +206,6 @@ async function runTests() {
   const finalRealSha = sha(REAL_DB);
   assert('Banco SQLite real permaneceu 100% INTOCADO (SHA-256 idêntico)', initialRealSha === finalRealSha);
 
-  // Limpeza
   fs.rmSync(TMP_DIR, { recursive: true, force: true });
 
   console.log('========================================================');

@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-// Layouts
 import PlayerLayout from './layouts/PlayerLayout';
 import AdminLayout from './layouts/AdminLayout';
 import MobileLayout from './layouts/MobileLayout';
 
-// Guards
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Public pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import MobileConnectPage from './pages/mobile/MobileConnectPage';
@@ -21,7 +18,6 @@ import MobileAcademyLessonPage from './pages/mobile/MobileAcademyLessonPage';
 import MobileProfilePage from './pages/mobile/MobileProfilePage';
 import { isNativeMobile, isMobileDevice } from './services/serverConfig';
 
-// Player pages
 import DashboardPage from './pages/DashboardPage';
 import PlayPage from './pages/PlayPage';
 import StatisticsPage from './pages/StatisticsPage';
@@ -33,7 +29,6 @@ import HistoryPage from './pages/HistoryPage';
 import AchievementsPage from './pages/AchievementsPage';
 import ProfilePage from './pages/ProfilePage';
 
-// Admin pages
 import AdminSensorsPage from './pages/admin/AdminSensorsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminEquipmentsPage from './pages/admin/AdminEquipmentsPage';
@@ -41,11 +36,9 @@ import AdminReportsPage from './pages/admin/AdminReportsPage';
 import AdminAcademyPage from './pages/admin/AdminAcademyPage';
 import AdminDiagnosticPage from './pages/admin/AdminDiagnosticPage';
 
-// Global services
 import { wsClient } from './services/websocket';
 import { useAuth } from './context/AuthContext';
 
-// Level-up modal
 import LevelUpModal from './components/LevelUpModal';
 import ConnectMobileModal from './components/ConnectMobileModal';
 
@@ -53,7 +46,6 @@ export default function App() {
   const { user, setUser, isGuest } = useAuth();
   const [modalData, setModalData] = useState(null);
 
-  // Connect WebSocket and listen for real-time events (ignorados no Modo Visitante)
   useEffect(() => {
     wsClient.connect();
 
@@ -95,12 +87,12 @@ export default function App() {
   return (
     <>
       <Routes>
-        {/* ── Public ── */}
+        
         <Route path="/" element={isNativeMobile() ? <Navigate to="/mobile/dashboard" replace /> : <LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/connect-qr" element={<div className="min-h-screen bg-[#07110B] flex items-center justify-center p-4"><ConnectMobileModal isOpen={true} onClose={() => {}} /></div>} />
 
-        {/* ── Dedicated Mobile Area (Fase 6B) ── */}
+        
         <Route path="/mobile" element={<MobileLayout />}>
           <Route index element={<Navigate to={isGuest ? '/mobile/academy' : '/mobile/dashboard'} replace />} />
           <Route path="connect" element={<MobileConnectPage />} />
@@ -112,12 +104,12 @@ export default function App() {
           <Route path="profile" element={<ProtectedRoute><MobileProfilePage /></ProtectedRoute>} />
         </Route>
 
-        {/* ── Redirecionamento da Academy para os 2 pontos oficiais de acesso do atleta (Notebook / Celular) ── */}
+        
         <Route path="/academy" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
         <Route path="/academy/aula/:id" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
         <Route path="/academy/:skill" element={<Navigate to={isMobileDevice() ? '/mobile/academy' : '/app/academy'} replace />} />
 
-        {/* ── Player & Guest Area ── */}
+        
         <Route
           path="/app"
           element={
@@ -139,7 +131,7 @@ export default function App() {
           <Route path="profile" element={<ProtectedRoute><ProfilePage player={user} onPlayerUpdate={(p) => setUser((prev) => ({ ...prev, ...p }))} /></ProtectedRoute>} />
         </Route>
 
-        {/* ── Admin Area ── */}
+        
         <Route
           path="/admin"
           element={
@@ -148,7 +140,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          {/* As 6 Áreas Principais Simplificadas */}
+          
           <Route index element={<Navigate to="/admin/sensors" replace />} />
           <Route path="sensors" element={<AdminSensorsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
@@ -157,18 +149,18 @@ export default function App() {
           <Route path="academy" element={<AdminAcademyPage />} />
           <Route path="diagnostic" element={<AdminDiagnosticPage />} />
 
-          {/* Redirecionamentos de compatibilidade para rotas legadas */}
+          
           <Route path="overview" element={<Navigate to="/admin/sensors" replace />} />
           <Route path="sessions" element={<Navigate to="/admin/reports" replace />} />
           <Route path="settings" element={<Navigate to="/admin/sensors" replace />} />
           <Route path="iot" element={<Navigate to="/admin/diagnostic" replace />} />
         </Route>
 
-        {/* ── Catch-all ── */}
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Global celebration modal (somente para jogadores autenticados) */}
+      
       {!isGuest && <LevelUpModal data={modalData} onClose={() => setModalData(null)} />}
     </>
   );

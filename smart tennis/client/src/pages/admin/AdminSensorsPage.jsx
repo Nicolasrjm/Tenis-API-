@@ -44,19 +44,14 @@ const WALL_PRESETS = [
 ];
 
 export default function AdminSensorsPage() {
-  // Estado da Parede
   const [selectedPreset, setSelectedPreset] = useState('3x2');
-  
-  // Estado do Modo de Hardware (Arduino via Ponte Serial vs Simulação)
   const [hardwareMode, setHardwareMode] = useState('connected');
   const [lastSeen, setLastSeen] = useState(null);
 
-  // Calibração Essencial
   const [propagationSpeed, setPropagationSpeed] = useState('343');
   const [groupingWindow, setGroupingWindow] = useState('25000');
   const [calibrated, setCalibrated] = useState(true);
 
-  // Estados de feedback e carregamento
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -107,13 +102,8 @@ export default function AdminSensorsPage() {
     setFeedback(null);
 
     try {
-      // 1. Salva o preset da parede
       await api.admin.setWallConfig(selectedPreset);
-
-      // 2. Salva o modo de hardware (persiste no SQLite para nunca reverter sozinho)
       await api.setHardwareMode(hardwareMode);
-
-      // 3. Salva os parâmetros essenciais de calibração acústica TDOA
       await api.updateIotCalibration({
         calibration: {
           calibrated: Boolean(calibrated && Number(propagationSpeed) > 0),
@@ -142,7 +132,6 @@ export default function AdminSensorsPage() {
 
   return (
     <div className="space-y-6 animate-fadeIn font-mono">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#08120B] border border-[#295437]">
         <div>
           <h1 className="text-2xl font-black text-[#F5F7F5] flex items-center space-x-2">
@@ -174,7 +163,6 @@ export default function AdminSensorsPage() {
         </div>
       )}
 
-      {/* 1. Seleção do Tamanho da Parede */}
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
         <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
           <Layers className="w-5 h-5 text-amber-400" />
@@ -217,7 +205,6 @@ export default function AdminSensorsPage() {
         </div>
       </div>
 
-      {/* 2. Status da Conexão de Hardware */}
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-[#1B3624]">
           <div className="flex items-center space-x-2">
@@ -268,7 +255,6 @@ export default function AdminSensorsPage() {
         </div>
       </div>
 
-      {/* 3. Mapeamento Físico Oficial dos Três Sensores KY-037 */}
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
         <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
           <Target className="w-5 h-5 text-amber-400" />
@@ -277,7 +263,6 @@ export default function AdminSensorsPage() {
           </h2>
         </div>
 
-        {/* Três Sensores em Cards Claros */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="p-4 rounded-2xl bg-[#0C1A11] border border-cyan-400/40 space-y-1">
             <div className="flex items-center justify-between">
@@ -316,7 +301,6 @@ export default function AdminSensorsPage() {
           </div>
         </div>
 
-        {/* Representação visual da parede com os 6 alvos */}
         <div className="p-4 rounded-2xl bg-[#050C07] border border-[#1B3624] space-y-3">
           <div className="flex items-center justify-between text-xs text-[#8C9891]">
             <span>Layout Físico dos 6 Alvos com os 3 Sensores</span>
@@ -324,27 +308,22 @@ export default function AdminSensorsPage() {
           </div>
 
           <div className="relative aspect-[3/2] max-w-md mx-auto rounded-xl border-2 border-[#1B3624] bg-[#08120B] p-2">
-            {/* Sensor S2 no canto superior esquerdo */}
             <div className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
               S2 (0, {activePresetConfig.heightM}m)
             </div>
 
-            {/* Aviso no canto superior direito sem sensor */}
             <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded bg-[#08120B] border border-dashed border-[#1B3624] text-[9px] text-[#8C9891]">
               Sem sensor
             </div>
 
-            {/* Sensor S1 no canto inferior esquerdo */}
             <div className="absolute bottom-2 left-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
               S1 (0, 0)
             </div>
 
-            {/* Sensor S3 no canto inferior direito */}
             <div className="absolute bottom-2 right-2 z-20 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-400 text-[10px] font-bold text-cyan-300 shadow">
               S3 ({activePresetConfig.widthM}m, 0)
             </div>
 
-            {/* 6 Alvos Retangulares */}
             <div className="grid grid-cols-3 grid-rows-2 gap-2 h-full py-6 px-1">
               {[1, 2, 3, 4, 5, 6].map((num) => (
                 <div
@@ -359,7 +338,6 @@ export default function AdminSensorsPage() {
         </div>
       </div>
 
-      {/* 4. Configuração e Calibração Essenciais */}
       <div className="p-6 rounded-3xl bg-[#08120B] border border-[#295437] space-y-4">
         <div className="flex items-center space-x-2 pb-2 border-b border-[#1B3624]">
           <Sliders className="w-5 h-5 text-amber-400" />
@@ -416,7 +394,6 @@ export default function AdminSensorsPage() {
           </div>
         </div>
 
-        {/* Botão Salvar no Rodapé da Página */}
         <div className="pt-4 border-t border-[#1B3624] flex justify-end">
           <button
             type="button"

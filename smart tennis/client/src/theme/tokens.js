@@ -1,51 +1,38 @@
-/**
- * MOTION TENNIS — SPORT PREMIUM + SPORT PLAY DESIGN TOKENS
- * Centralized design tokens for colors, typography, spacing, shadows and states.
- * Etapa 2: Dual Theme (Sport Premium Dark [Default] & Sport Premium Light [Cinza-Azulado])
- */
 
 export const sportsColors = {
-  // Brand Main Colors
   navy: '#142B3D',
   navyDeep: '#0D1C28',
   navyLight: '#1C3A52',
   navyHeading: '#142B3D',
   
-  // ==========================================
-  // TEMA ESCURO — Sport Premium Dark (Padrão)
-  // ==========================================
   dark: {
-    bg: '#101820',            // Fundo principal
-    bgSec: '#18242E',         // Fundo secundário
-    card: '#22313D',          // Cards
-    header: '#0D1B2A',        // Header
-    border: '#344653',        // Bordas
-    text: '#F1F5F9',          // Texto principal
-    textSec: '#A8BAC8',       // Texto secundário
-    lime: '#B8F044',          // Destaque esportivo
-    blue: '#60A5FA',          // Azul complementar
-    input: '#18242E',         // Inputs
-    borderInput: '#344653',   // Borda do input
+    bg: '#101820',
+    bgSec: '#18242E',
+    card: '#22313D',
+    header: '#0D1B2A',
+    border: '#344653',
+    text: '#F1F5F9',
+    textSec: '#A8BAC8',
+    lime: '#B8F044',
+    blue: '#60A5FA',
+    input: '#18242E',
+    borderInput: '#344653',
   },
 
-  // ==========================================
-  // TEMA CLARO — Sport Premium Light (Cinza-Azulado)
-  // ==========================================
   light: {
-    bg: '#DCE3E8',            // Fundo principal
-    bgSec: '#C9D4DC',         // Seções alternadas
-    card: '#F4F6F8',          // Cards e formulários
-    input: '#E8EDF1',         // Inputs
-    header: '#142B3D',        // Header
-    border: '#B8C6D0',        // Bordas
-    text: '#142B3D',          // Texto principal
-    textSec: '#475569',       // Texto secundário
-    lime: '#B8F044',          // Destaque esportivo
-    blue: '#2563EB',          // Azul complementar
-    borderInput: '#B8C6D0',   // Borda do input
+    bg: '#DCE3E8',
+    bgSec: '#C9D4DC',
+    card: '#F4F6F8',
+    input: '#E8EDF1',
+    header: '#142B3D',
+    border: '#B8C6D0',
+    text: '#142B3D',
+    textSec: '#475569',
+    lime: '#B8F044',
+    blue: '#2563EB',
+    borderInput: '#B8C6D0',
   },
 
-  // Compatibility aliases (Light Cinza-Azulado defaults)
   bgLight: '#DCE3E8',
   surfaceAlt: '#C9D4DC',
   surfaceCard: '#F4F6F8',
@@ -55,7 +42,6 @@ export const sportsColors = {
   textDark: '#142B3D',
   textMuted: '#475569',
 
-  // Accents
   lime: '#B8F044',
   limeHover: '#A4DE2D',
   blue: '#2563EB',
@@ -63,11 +49,9 @@ export const sportsColors = {
   orange: '#FF7548',
   orangeHover: '#F05F30',
   
-  // Arena Ativa (Sempre Escura / Preto de Projeção)
   arenaBg: '#050D07',
   arenaOverlay: '#000000',
   
-  // Semantic status
   success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',

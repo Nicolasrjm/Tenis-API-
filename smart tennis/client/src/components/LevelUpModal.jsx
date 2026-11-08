@@ -7,7 +7,6 @@ export default function LevelUpModal({ data, onClose }) {
   useEffect(() => {
     if (data) {
       playLevelUp();
-      // Confetti burst with neon green and gold
       try {
         confetti({
           particleCount: 80,
@@ -27,7 +26,7 @@ export default function LevelUpModal({ data, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-md bg-[#0C1A11] border-2 border-[#39FF88] rounded-2xl p-6 shadow-neon-strong text-center overflow-hidden">
         
-        {/* Close Button */}
+        
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-[#8C9891] hover:text-[#F5F7F5] p-1 rounded-lg"
@@ -35,10 +34,10 @@ export default function LevelUpModal({ data, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Ambient Glow */}
+        
         <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-40 h-40 bg-[#39FF88]/20 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* Icon */}
+        
         <div className="w-20 h-20 mx-auto rounded-2xl bg-[#102216] border border-[#39FF88]/60 flex items-center justify-center mb-4 shadow-neon">
           {isLevelUp ? (
             <Zap className="w-10 h-10 text-[#39FF88] animate-bounce" />
@@ -47,7 +46,7 @@ export default function LevelUpModal({ data, onClose }) {
           )}
         </div>
 
-        {/* Heading */}
+        
         <span className="text-xs font-mono font-bold tracking-widest text-[#39FF88] uppercase bg-[#39FF88]/15 px-3 py-1 rounded-full">
           {isLevelUp ? 'NOVO NÍVEL ALCANÇADO!' : 'CONQUISTA DESBLOQUEADA!'}
         </span>
@@ -62,14 +61,14 @@ export default function LevelUpModal({ data, onClose }) {
             : data.description}
         </p>
 
-        {/* Reward XP */}
+        
         {data.xpReward && (
           <div className="mt-4 py-2 px-4 rounded-xl bg-[#102216] border border-[#1B3624] inline-block font-mono text-sm text-[#39FF88]">
             +{data.xpReward} XP BÔNUS CONCEDIDO
           </div>
         )}
 
-        {/* Action Button */}
+        
         <div className="mt-6">
           <button
             onClick={onClose}

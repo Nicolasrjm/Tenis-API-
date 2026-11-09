@@ -1,26 +1,4 @@
--- ==============================================================================
--- MOTION TENNIS — MIGRAÇÃO 004: SINCRONIZAÇÃO END-TO-END (INCREMENTAL E COMPATÍVEL)
--- ==============================================================================
--- Migração ADITIVA. Não altera as migrações 001-003 já instaladas; corrige o que a
--- auditoria da Fase 8 (ETAPA A) provou ser incompatível com o jogo real:
---
---  R1  Regras de XP do cloud contradiziam o gameEngine.js. No jogo o XP é concedido POR
---      IMPACTO em TARGET_HIT (gameEngine.js L174-194), independente dos pontos da partida
---      (personalMatchService.js L958-1001). Ex.: modo 'single' pontua 1 por acerto mas
---      rende 43-68 XP por impacto. O constraint chk_sessions_xp (001) e as regras da RPC v1
---      (xp <= total_score + 100) rejeitariam partidas legítimas.
---  R4  Fingerprint de idempotência da v1 não cobria os impactos. A v2 recalcula todos os
---      agregados A PARTIR DOS IMPACTOS e assina sessão + impactos (SHA-256 canônico).
---  R6  Reafirma o REVOKE das RPCs de equipamento para anon/authenticated (a 003 as concedia).
---      Apenas service_role (Edge Function equipment-gateway) pode executá-las.
---  R3  equipments.environment: simulação só é aceita em equipamento 'homologation'.
---
--- Versionamento das regras: payload.engine_rules_version = 1 corresponde exatamente aos
--- valores abaixo (derivados do código). Mudança no jogo => nova versão + nova migração.
---
--- Fonte canônica: cloud/migrations/004_end_to_end_sync_hardening.sql
--- (espelho: supabase/migrations/20261102000004_end_to_end_sync_hardening.sql)
--- ==============================================================================
+
 
 -- ------------------------------------------------------------------------------
 -- 1. ESQUEMA (ADITIVO)

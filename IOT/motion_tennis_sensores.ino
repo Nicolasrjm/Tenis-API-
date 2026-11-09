@@ -9,24 +9,6 @@
  *   S3 (Canto Inferior Direito)  -> Pino Digital D4 (PCINT20 - Port D Pin 4)
  *   (Canto Superior Direito: SEM SENSOR)
  * Comunicação: USB Serial @ 115200 baud
- * ==============================================================================
- * 
- * LIGAÇÕES ELÉTRICAS OBRIGATÓRIAS:
- *   - S1 DO -> Pino D2 do Arduino Uno
- *   - S2 DO -> Pino D3 do Arduino Uno
- *   - S3 DO -> Pino D4 do Arduino Uno
- *   - Todos os VCC dos 3 módulos KY-037 -> 5V do Arduino (ou fonte 5V estável)
- *   - Todos os GND dos 3 módulos KY-037 -> GND comum do Arduino Uno
- *   - AVISO: Pinos D0 (RX) e D1 (TX) NÃO são utilizados por sensores para evitar
- *     conflito com a porta serial USB do ATmega16U2/CH340.
- *
- * POLARIDADE DE DISPARO:
- *   O comparador LM393 do KY-037 possui saída em coletor aberto com resistor de
- *   pull-up na placa. Em repouso o sinal DO é HIGH (+5V). Ao detectar som que
- *   ultrapassa o limiar regulado no trimpot, a saída transita para LOW (0V).
- *   Padrão: ATIVO_LOW (borda de descida).
- *
- * ==============================================================================
  */
 
 #include <Arduino.h>

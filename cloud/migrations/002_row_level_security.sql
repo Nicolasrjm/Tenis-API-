@@ -1,15 +1,4 @@
--- ==============================================================================
--- MOTION TENNIS — MIGRAÇÃO 002: ROW LEVEL SECURITY & PRIVILÉGIOS (FASE 7B.3)
--- ==============================================================================
--- Descrição: Habilitação de RLS em todas as tabelas e aplicação de Least Privilege:
--- 1. REVOKE amplo de privilégios herdados em PUBLIC, anon e authenticated.
--- 2. Privilégios explícitos de coluna em player_profiles (apenas display_name, avatar e updated_at).
--- 3. Defesa de integridade com gatilho canônico centralizado na Migração 003.
--- 4. Bloqueio de inserção/modificação direta em equipment_pairings (apenas via RPC segura).
--- 5. Eliminação de listagens públicas de equipamentos para anon (zero exposição de hardware).
--- 6. Schema private estritamente inacessível a clientes da Data API.
--- Fonte Oficial Canônica: cloud/migrations/002_row_level_security.sql
--- ==============================================================================
+
 
 -- 1. REVOGAÇÃO ESPECÍFICA DE PERMISSÕES NOS OBJETOS DO MOTION TENNIS (Least Privilege)
 -- Revogações direcionadas estritamente às tabelas do Motion Tennis, preservando objetos e schemas de terceiros.

@@ -1,15 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — SUÍTE DE TESTES E VALIDAÇÃO DA FUNDAÇÃO CLOUD (COMPATIBILIDADE REAL)
- * ==============================================================================
- * Executa verificações automatizadas de integridade estática, validação de SQL,
- * cobertura de políticas RLS, proteção de XP real (gameEngine.js), segurança de
- * credenciais, validação criptográfica de hash de pareamento, expiração estrita de vínculos,
- * compatibilidade de múltiplos conteúdos na Academy, atributos esportivos normalizados,
- * ordem transacional e tratamento concorrente de checkpoints, conformidade de contratos JSON,
- * integridade de espelhamento e preservação estrita do SQLite de produção.
- * ==============================================================================
- */
+
 
 const fs = require('fs');
 const path = require('path');

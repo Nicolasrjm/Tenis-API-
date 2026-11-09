@@ -1,11 +1,3 @@
-// MOTION TENNIS — SERVIÇO OFICIAL DE PARTIDAS DO MODO PESSOAL (5 MINUTOS + PREPARAÇÃO DE 5 SEGUNDOS + MODO VISITANTE)
-//
-// Autoridade de tempo e estado no backend:
-// - Fluxo obrigatório: IDLE -> PREPARING (5s) -> ACTIVE (300s) -> COMPLETED / WON / INTERRUPTED / CANCELLED.
-// - Os 300 segundos (05:00) do Modo Pessoal começam SOMENTE ao entrar em ACTIVE.
-// - Impactos durante PREPARING ou IDLE são rejeitados (HTTP 409).
-// - Proteção contra F5 e reinício do servidor: recupera o estado real (PREPARING ou ACTIVE) pelos timestamps.
-// - Isolamento total para Visitantes: zero escrita em users, players, sessions, hits, shots, attributes, achievements.
 
 const crypto = require('crypto');
 const { run, get, all, exec } = require('../database/db');

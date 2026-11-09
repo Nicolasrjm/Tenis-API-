@@ -1,7 +1,7 @@
 // ===== SENSORES KY-037 =====
 // D4 = Sensor 5 metros
-// D2 = Sensor 4 metros
-// D7 = Sensor 3 metros (substitui D0)
+// D3 = Sensor 4 metros
+// D2 = Sensor 3 metros 
 
 // PINOS
 const int sensor5m = 4;

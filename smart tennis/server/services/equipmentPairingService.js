@@ -1,23 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — SERVIÇO DE PAREAMENTO DE EQUIPAMENTOS (MULTI-ATLETA)
- * ==============================================================================
- * Gerencia o aperto de mão criptográfico de autorização entre atletas autenticados
- * e o notebook da quadra física, sem depender de comandos SQL manuais.
- *
- * DIRETRIZES DE SEGURANÇA E CONTRATOS:
- * 1. ZERO SERVICE_ROLE: Opera estritamente com as credenciais individuais do equipamento
- *    (EQUIPMENT_ID e EQUIPMENT_API_KEY via Edge Function equipment-gateway) e o token
- *    JWT do atleta autenticado (auth.uid()).
- * 2. AUTORIZAÇÃO LEGÍTIMA: Cada pareamento requer um desafio temporário válido
- *    (issue_equipment_pairing_challenge_v1) e o consumo atômico por hash SHA-256
- *    (claim_equipment_pairing_v1).
- * 3. IMPEDE UUIDs ARBITRÁRIOS: O vínculo na nuvem é sempre derivado do claim do JWT
- *    do atleta no Supabase Auth.
- * 4. MULTI-ATLETA CONCORRENTE: Múltiplos atletas compartilham o mesmo equipamento físico,
- *    mantendo seus históricos, sessões, XP e UUIDs estritamente isolados.
- * ==============================================================================
- */
+
 
 const crypto = require('crypto');
 const { getSupabaseConfig, getEquipmentConfig } = require('../config/supabaseConfig');

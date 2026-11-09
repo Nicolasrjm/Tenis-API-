@@ -1,24 +1,4 @@
-/**
- * ==============================================================================
- * MOTION TENNIS — WORKER DE SINCRONIZAÇÃO CLOUD (OFFLINE-FIRST)
- * ==============================================================================
- * Processador em segundo plano de eventos da `cloud_outbox`.
- *
- * DIRETRIZES ESTATUTÁRIAS DE OPERAÇÃO:
- * 1. RESILIÊNCIA A QUEDAS DE CONEXÃO: Detecta indisponibilidade de internet e
- *    reagenda envios com backoff exponencial sem perder eventos.
- * 2. PREVENÇÃO DE CONCORRÊNCIA: Bloqueio atômico no SQLite para impedir que múltiplos
- *    workers ou requisições simultâneas processem o mesmo evento em paralelo.
- * 3. RECUPERAÇÃO APÓS REINÍCIO: Eventos em processamento órfãos são recuperados
- *    automaticamente na inicialização do servidor.
- * 4. IDEMPOTÊNCIA E CONFIRMAÇÃO: Trata 'DUPLICATE_EVENT_IGNORED' como confirmação
- *    válida de entrega, marcando o evento como 'completed'.
- * 5. ISOLAMENTO DE ERROS: Erros permanentes de validação (ex: 400 Bad Request, schema)
- *    são marcados como 'failed', evitando reenvio infinito de payloads defeituosos.
- * 6. ZERO EXPOSIÇÃO DE CREDENCIAIS: Todas as mensagens de erro têm chaves e segredos
- *    sanitizados antes da persistência no banco.
- * ==============================================================================
- */
+
 
 const { run, get, all } = require('../database/db');
 const { getSupabaseConfig, getEquipmentConfig } = require('../config/supabaseConfig');

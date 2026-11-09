@@ -1,29 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-==============================================================================
-MOTION TENNIS — PONTE DE COMUNICAÇÃO SERIAL / SIMULAÇÃO IoT (PYTHON -> NODE.JS)
-==============================================================================
-Diretório Oficial: C:\\Users\\nicolas\\Desktop\\Tenis-API-\\IOT
-Alvo do Backend:   http://localhost:3000/api/hardware/arduino/events
-
-Dois modos de operação explicitamente separados:
-1. MODO SIMULAÇÃO (--mode sim / --sim):
-   - Não abre porta COM e não exige Arduino fisicamente conectado.
-   - Gera eventos sintéticos determinísticos e reproduzíveis (S1, S2, S3).
-   - Testa cenários: 1 sensor, 2 sensores, 3 sensores, duplicatas, fora de ordem,
-     rollover de micros(), ruído e resiliência de rede.
-   - Totalmente ISOLADO: não pontua partidas reais, não gera XP e não altera dados.
-
-2. MODO SERIAL REAL (--mode serial / --port COMx):
-   - Abre a porta COM configurada com baud rate 115200.
-   - Lê as linhas emitidas pelo firmware (motion_tennis_sensores.ino):
-       EVENT,eventId,sensorId,timestampUs
-       IMPACT,impactId,t1,t2,t3,count
-   - Reconexão com atraso controlado, validação e deduplicação estrita.
-==============================================================================
-"""
-
 import sys
 import os
 import time

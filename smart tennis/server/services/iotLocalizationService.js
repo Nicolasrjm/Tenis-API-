@@ -1,11 +1,4 @@
-// SMART TENNIS — SERVIÇO DE CONFIGURAÇÃO DE PAREDE, POSICIONAMENTO DE SENSORES KY-037 E LOCALIZAÇÃO TDOA
-//
-// Responsabilidades:
-// 1. Persistir e recuperar a configuração de tamanho da parede (4x3, 3x3, 3x2) vinculada ao ID real da conta Nicolas.
-// 2. Isolar configurações entre usuários e bloquear alterações durante partidas em andamento (PREPARING ou ACTIVE).
-// 3. Calcular dinamicamente as coordenadas de S1=(0,0), S2=(0,H) e S3=(W,0) (sem sensor no canto superior direito).
-// 4. Executar o algoritmo numérico de localização TDOA (Time Difference of Arrival) com minimização de resíduos
-//    restrita aos limites físicos da parede, exigindo calibração experimental válida para liberar coordenadas.
+ calibração experimental válida para liberar coordenadas.
 
 const { run, get, all, exec } = require('../database/db');
 const {

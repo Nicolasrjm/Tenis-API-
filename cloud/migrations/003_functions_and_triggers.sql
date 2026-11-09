@@ -1,17 +1,3 @@
--- ==============================================================================
--- MOTION TENNIS — MIGRAÇÃO 003: FUNÇÕES, TRIGGERS E RPCS (COMPATIBILIDADE REAL)
--- ==============================================================================
--- 1. Gatilho de auditoria temporal set_updated_at().
--- 2. Gatilho de proteção protect_player_profile_fields() (bloqueia alteração indevida de XP/nível).
--- 3. RPC issue_equipment_pairing_challenge_v1(): notebook emite desafio temporário no schema private.
--- 4. RPC claim_equipment_pairing_v1(): atleta consome desafio atomicamente via conferência de hash SHA-256.
--- 5. RPC record_equipment_heartbeat_v1(): telemetria com proteção contra força bruta.
--- 6. RPC sync_equipment_session_v1(): ingestão atômica com validação de pareamento não expirado,
---    teto real de XP do gameEngine.js, tratamento rigoroso de idempotência/concorrência e sem reconciliação automática.
--- 7. View analítica com security_invoker = true: v_player_career_summary.
--- 8. Procedimento seguro administrativo: reconcile_player_stats() com fórmula e títulos oficiais do Motion Tennis.
--- Fonte Oficial Canônica: cloud/migrations/003_functions_and_triggers.sql
--- ==============================================================================
 
 -- 1. GATILHO GENÉRICO DE TIMESTAMP ATUALIZADO
 CREATE OR REPLACE FUNCTION public.set_updated_at()

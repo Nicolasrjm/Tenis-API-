@@ -1,13 +1,3 @@
--- ==============================================================================
--- MOTION TENNIS — MIGRAÇÃO 001: ESTRUTURA INICIAL DO BANCO (COMPATIBILIDADE REAL)
--- ==============================================================================
--- 1. Extensões criptográficas e schema privado (private).
--- 2. Tabela de segredos e desafios de pareamento isoladas no schema private.
--- 3. Perfis e Atributos normalizados em estrita conformidade com o SQLite e gameEngine.js.
--- 4. Academy com múltiplos conteúdos por módulo (id alfanumérico como no SQLite).
--- 5. Sessões e disparos sincronizados com retenção perpétua e teto matemático real de XP.
--- Fonte Oficial Canônica: cloud/migrations/001_initial_schema.sql
--- ==============================================================================
 
 -- 1. EXTENSÕES OBRIGATÓRIAS (SCHEMA extensions NO SUPABASE)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
@@ -125,19 +115,6 @@ CREATE TABLE IF NOT EXISTS private.pairing_attempt_limits (
     CONSTRAINT uq_pairing_attempt_limit UNIQUE (equipment_id, user_id)
 );
 
--- ==============================================================================
--- 8. TABELA: equipment_heartbeats (Telemetria Temporal do Notebook)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS public.equipment_heartbeats (
-    id BIGSERIAL PRIMARY KEY,
-    equipment_id UUID NOT NULL REFERENCES public.equipments(id) ON DELETE CASCADE,
-    reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    client_ip TEXT,
-    ping_ms INTEGER DEFAULT 0,
-    pending_outbox_count INTEGER DEFAULT 0,
-    db_integrity_ok BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 CREATE INDEX IF NOT EXISTS idx_equipment_heartbeats_time 
 ON public.equipment_heartbeats (equipment_id, reported_at DESC);

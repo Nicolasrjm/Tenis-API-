@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { get, all } = require('../database/db');
-const { requireAuth, requireAdmin, verifyToken } = require('../services/authService');
+const { requireAuth, verifyToken } = require('../services/authService');
 const guestSessionService = require('../services/guestSessionService');
 const academyService = require('../services/academyService');
 
@@ -168,71 +168,6 @@ router.put('/lessons/:id/progress', requireAuth, async (req, res) => {
       completed
     });
     res.json(result);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.get('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const data = await academyService.listAdminLessons();
-    res.json(data);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.post('/admin/lessons', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const created = await academyService.createAdminLesson(req.body);
-    res.status(201).json(created);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.put('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const updated = await academyService.updateAdminLesson(req.params.id, req.body);
-    res.json(updated);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.patch('/admin/lessons/:id/publish', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const published = Boolean(req.body?.published);
-    const updated = await academyService.setAdminLessonPublished(req.params.id, published);
-    res.json(updated);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.delete('/admin/lessons/:id', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const result = await academyService.deleteAdminLesson(req.params.id);
-    res.json(result);
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.put('/admin/settings', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const showComingSoon = Boolean(req.body?.showComingSoon);
-    await academyService.setShowComingSoonSetting(showComingSoon);
-    res.json({ showComingSoon });
-  } catch (error) {
-    handleAcademyError(res, error);
-  }
-});
-
-router.post('/admin/validate-youtube', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const parsed = academyService.validateAndParseYouTubeUrl(req.body?.url, { allowEmpty: false });
-    res.json(parsed);
   } catch (error) {
     handleAcademyError(res, error);
   }

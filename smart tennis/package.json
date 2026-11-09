@@ -12,8 +12,7 @@
     "build:client": "npm --prefix client run build",
     "build": "npm run build:client && npm run build:launcher",
     "build:launcher": "powershell -ExecutionPolicy Bypass -File ./scripts/build_launcher.ps1",
-    "smart-tennis": "node scripts/start.js",
-    "seed": "node server/database/seed.js"
+    "smart-tennis": "node scripts/start.js"
   },
   "keywords": [
     "tennis",

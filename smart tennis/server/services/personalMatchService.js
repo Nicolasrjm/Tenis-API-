@@ -1,4 +1,3 @@
-
 const crypto = require('crypto');
 const { run, get, all, exec } = require('../database/db');
 const { classifyImpact, calculateWallGeometry } = require('./wallGeometry');
@@ -9,8 +8,8 @@ const iotLocalizationService = require('./iotLocalizationService');
 const arduinoIngestService = require('./arduinoIngestService');
 const cloudOutboxService = require('./cloudOutboxService');
 
-const PERSONAL_MATCH_SECONDS = 300; // 5 minutos exatos em produção
-const PERSONAL_PREPARE_SECONDS = 5; // 5 segundos de contagem regressiva antes da partida
+const PERSONAL_MATCH_SECONDS = 300;
+const PERSONAL_PREPARE_SECONDS = 5;
 
 const GAMES = {
   free: { key: 'free', name: 'Treino Livre', sessionMode: 'Treino Livre' },
@@ -32,8 +31,7 @@ function isTestMode() {
 
 function getPersonalMatchSeconds() {
   const override = Number(process.env.SMART_TENNIS_PERSONAL_SECONDS);
-  if (isTestMode() && override > 0) return override;
-  return PERSONAL_MATCH_SECONDS;
+  return isTestMode() && override > 0 ? override : PERSONAL_MATCH_SECONDS;
 }
 
 function getPrepareSeconds() {
@@ -100,33 +98,24 @@ async function ensurePersonalMatchTables() {
       ON personal_match_impacts(match_id, client_event_id) WHERE client_event_id IS NOT NULL;
   `);
 
-  // Migração não-destrutiva para adicionar prepare_started_at e is_simulation se a tabela já existia
   try {
     const cols = await all(`PRAGMA table_info(personal_matches)`);
-    if (!cols.some((c) => c.name === 'prepare_started_at')) {
-      await run(`ALTER TABLE personal_matches ADD COLUMN prepare_started_at INTEGER`);
-    }
-    if (!cols.some((c) => c.name === 'is_simulation')) {
-      await run(`ALTER TABLE personal_matches ADD COLUMN is_simulation INTEGER DEFAULT 0`);
-    }
-  } catch (err) {}
+    if (!cols.some((c) => c.name === 'prepare_started_at')) await run(`ALTER TABLE personal_matches ADD COLUMN prepare_started_at INTEGER`);
+    if (!cols.some((c) => c.name === 'is_simulation')) await run(`ALTER TABLE personal_matches ADD COLUMN is_simulation INTEGER DEFAULT 0`);
+  } catch {}
 
-  // Migração não-destrutiva para colunas granulares de sincronização em personal_match_impacts
   try {
     const impCols = await all(`PRAGMA table_info(personal_match_impacts)`);
-    if (!impCols.some((c) => c.name === 'shot_score')) {
-      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_score INTEGER DEFAULT 0`);
+    const extraCols = [
+      ['shot_score', 'INTEGER DEFAULT 0'],
+      ['shot_xp', 'INTEGER DEFAULT 0'],
+      ['force_kmh', 'REAL DEFAULT 80.0'],
+      ['is_bullseye', 'INTEGER DEFAULT 0']
+    ];
+    for (const [col, def] of extraCols) {
+      if (!impCols.some((c) => c.name === col)) await run(`ALTER TABLE personal_match_impacts ADD COLUMN ${col} ${def}`);
     }
-    if (!impCols.some((c) => c.name === 'shot_xp')) {
-      await run(`ALTER TABLE personal_match_impacts ADD COLUMN shot_xp INTEGER DEFAULT 0`);
-    }
-    if (!impCols.some((c) => c.name === 'force_kmh')) {
-      await run(`ALTER TABLE personal_match_impacts ADD COLUMN force_kmh REAL DEFAULT 80.0`);
-    }
-    if (!impCols.some((c) => c.name === 'is_bullseye')) {
-      await run(`ALTER TABLE personal_match_impacts ADD COLUMN is_bullseye INTEGER DEFAULT 0`);
-    }
-  } catch (err) {}
+  } catch {}
 
   await cloudOutboxService.ensureOutboxTable();
   await iotLocalizationService.ensureIotAndWallTables();
@@ -139,24 +128,14 @@ function randomOtherSector(current) {
 
 function initRoundState(mode) {
   const sectorHits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-  if (mode === 'single') {
-    return { activeSector: crypto.randomInt(1, 7), sectorHits };
-  }
-  if (mode === 'clear_all') {
-    return {
-      sectorStates: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true },
-      sectorHits
-    };
-  }
+  if (mode === 'single') return { activeSector: crypto.randomInt(1, 7), sectorHits };
+  if (mode === 'clear_all') return { sectorStates: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true }, sectorHits };
   return { sectorHits };
 }
 
 function buildMatchState(match, now = Date.now()) {
   if (!match) return null;
-  const rs = typeof match.round_state === 'string'
-    ? JSON.parse(match.round_state)
-    : (match.round_state || {});
-
+  const rs = typeof match.round_state === 'string' ? JSON.parse(match.round_state) : (match.round_state || {});
   const isPreparing = match.state === 'PREPARING';
   const isActive = match.state === 'ACTIVE';
 
@@ -165,17 +144,8 @@ function buildMatchState(match, now = Date.now()) {
   const prepRemainingMs = isPreparing ? Math.max(0, match.started_at - now) : 0;
   const prepRemainingSeconds = isPreparing ? Math.max(0, Math.ceil(prepRemainingMs / 1000)) : 0;
 
-  // Durante PREPARING o cronômetro oficial de 05:00 permanece parado em planned_seconds (300s)
-  const remainingMs = isPreparing
-    ? match.planned_seconds * 1000
-    : isActive
-      ? Math.max(0, match.ends_at - now)
-      : 0;
-  const remainingSeconds = isPreparing
-    ? match.planned_seconds
-    : isActive
-      ? Math.ceil(remainingMs / 1000)
-      : 0;
+  const remainingMs = isPreparing ? match.planned_seconds * 1000 : isActive ? Math.max(0, match.ends_at - now) : 0;
+  const remainingSeconds = isPreparing ? match.planned_seconds : isActive ? Math.ceil(remainingMs / 1000) : 0;
 
   const elapsedSeconds = isPreparing
     ? 0
@@ -196,7 +166,7 @@ function buildMatchState(match, now = Date.now()) {
     mode: game.key,
     modeName: game.name,
     sessionMode: game.sessionMode,
-    state: match.state, // 'PREPARING' | 'ACTIVE' | 'COMPLETED' | 'WON' | 'INTERRUPTED' | 'CANCELLED'
+    state: match.state,
     won: Boolean(match.won),
     endReason: match.end_reason || null,
     prepareStartedAt,
@@ -230,53 +200,38 @@ function buildMatchState(match, now = Date.now()) {
   };
 }
 
-// Finaliza partida pessoal de usuário cadastrado (idempotente) e grava a sessão em sessions UMA ÚNICA VEZ.
-// Se estava em PREPARING (cancelada antes de iniciar oficialmente), NÃO grava sessão no histórico.
 async function finalizePersonalMatch(match, nextState, endReason, endedAt = Date.now()) {
   if (!match || (match.state !== 'ACTIVE' && match.state !== 'PREPARING')) return match;
 
-  const wasPreparing = match.state === 'PREPARING' || endedAt < match.started_at;
-  if (wasPreparing) {
+  if (match.state === 'PREPARING' || endedAt < match.started_at) {
     await run(
-      `UPDATE personal_matches SET
-         state = 'CANCELLED', ended_at = ?, duration_seconds = 0, end_reason = ?, session_id = NULL
-       WHERE id = ? AND state IN ('PREPARING', 'ACTIVE')`,
+      `UPDATE personal_matches SET state = 'CANCELLED', ended_at = ?, duration_seconds = 0, end_reason = ?, session_id = NULL WHERE id = ? AND state IN ('PREPARING', 'ACTIVE')`,
       [endedAt, endReason || 'CANCELLED', match.id]
     );
-    match.state = 'CANCELLED';
-    match.ended_at = endedAt;
-    match.duration_seconds = 0;
-    match.end_reason = endReason || 'CANCELLED';
-    match.session_id = null;
+    Object.assign(match, { state: 'CANCELLED', ended_at: endedAt, duration_seconds: 0, end_reason: endReason || 'CANCELLED', session_id: null });
     broadcastEvent('PERSONAL_MATCH_UPDATED', buildMatchState(match, endedAt));
     return match;
   }
 
   const rawElapsed = Math.round((endedAt - match.started_at) / 1000);
-  const durationSeconds = endReason === 'TIME'
-    ? match.planned_seconds
-    : Math.max(1, Math.min(match.planned_seconds, rawElapsed));
-
+  const durationSeconds = endReason === 'TIME' ? match.planned_seconds : Math.max(1, Math.min(match.planned_seconds, rawElapsed));
   const sessionId = match.session_id || `pers_${match.id}`;
   const shouldSaveSession = Boolean(match.user_id) && !match.is_guest && (
-    endReason === 'TIME' ||
-    endReason === 'WON' ||
-    endReason === 'MANUAL' ||
-    match.shots_count > 0
+    endReason === 'TIME' || endReason === 'WON' || endReason === 'MANUAL' || match.shots_count > 0
   );
 
   await run(
-    `UPDATE personal_matches SET
-       state = ?, ended_at = ?, duration_seconds = ?, end_reason = ?, session_id = ?
-     WHERE id = ? AND state IN ('PREPARING', 'ACTIVE')`,
+    `UPDATE personal_matches SET state = ?, ended_at = ?, duration_seconds = ?, end_reason = ?, session_id = ? WHERE id = ? AND state IN ('PREPARING', 'ACTIVE')`,
     [nextState, endedAt, durationSeconds, endReason, shouldSaveSession ? sessionId : null, match.id]
   );
 
-  match.state = nextState;
-  match.ended_at = endedAt;
-  match.duration_seconds = durationSeconds;
-  match.end_reason = endReason;
-  match.session_id = shouldSaveSession ? sessionId : null;
+  Object.assign(match, {
+    state: nextState,
+    ended_at: endedAt,
+    duration_seconds: durationSeconds,
+    end_reason: endReason,
+    session_id: shouldSaveSession ? sessionId : null
+  });
 
   if (shouldSaveSession) {
     const game = GAMES[match.mode] || GAMES.free;
@@ -305,14 +260,8 @@ async function finalizePersonalMatch(match, nextState, endReason, endedAt = Date
       ]
     );
 
-    // Enfileiramento automático na cloud_outbox (Offline-First)
     try {
-      await cloudOutboxService.createMatchFinishedEvent({
-        match,
-        durationSeconds,
-        sessionId,
-        endedAt
-      });
+      await cloudOutboxService.createMatchFinishedEvent({ match, durationSeconds, sessionId, endedAt });
     } catch (outboxErr) {
       console.warn('[OUTBOX] Falha ao enfileirar evento de partida finalizada:', outboxErr.message);
     }
@@ -324,22 +273,14 @@ async function finalizePersonalMatch(match, nextState, endReason, endedAt = Date
 
 async function syncMatchClock(match, now = Date.now()) {
   if (!match) return null;
-
   if (match.state === 'PREPARING' && now >= match.started_at) {
-    await run(
-      `UPDATE personal_matches SET state = 'ACTIVE' WHERE id = ? AND state = 'PREPARING'`,
-      [match.id]
-    );
+    await run(`UPDATE personal_matches SET state = 'ACTIVE' WHERE id = ? AND state = 'PREPARING'`, [match.id]);
     match.state = 'ACTIVE';
-    if (now < match.ends_at) {
-      broadcastEvent('PERSONAL_MATCH_UPDATED', buildMatchState(match, now));
-    }
+    if (now < match.ends_at) broadcastEvent('PERSONAL_MATCH_UPDATED', buildMatchState(match, now));
   }
-
   if (match.state === 'ACTIVE' && now >= match.ends_at) {
     await finalizePersonalMatch(match, 'COMPLETED', 'TIME', match.ends_at);
   }
-
   return match;
 }
 
@@ -348,58 +289,35 @@ async function syncUserActiveMatches(userId, now = Date.now()) {
     `SELECT * FROM personal_matches WHERE user_id = ? AND state IN ('PREPARING', 'ACTIVE') ORDER BY started_at DESC`,
     [userId]
   );
-  for (const row of activeRows) {
-    await syncMatchClock(row, now);
-  }
+  for (const row of activeRows) await syncMatchClock(row, now);
   const stillRunning = activeRows.filter((r) => r.state === 'PREPARING' || r.state === 'ACTIVE');
-  if (stillRunning.length > 1) {
-    for (let i = 1; i < stillRunning.length; i += 1) {
-      await finalizePersonalMatch(stillRunning[i], 'INTERRUPTED', 'SUPERSEDED', now);
-    }
+  for (let i = 1; i < stillRunning.length; i += 1) {
+    await finalizePersonalMatch(stillRunning[i], 'INTERRUPTED', 'SUPERSEDED', now);
   }
   return stillRunning[0] || null;
 }
 
-// ---------------------------------------------------------------------------
-// Funções de controle em memória/efêmero para Visitantes (sem tocar no SQLite pessoal)
-// ---------------------------------------------------------------------------
 function finalizeGuestMatchInMemory(guestState, match, nextState, endReason, endedAt = Date.now()) {
   if (!match) return null;
-  const wasPreparing = match.state === 'PREPARING' || endedAt < match.started_at;
-  if (wasPreparing) {
-    match.state = 'CANCELLED';
-    match.ended_at = endedAt;
-    match.duration_seconds = 0;
-    match.end_reason = endReason || 'CANCELLED';
-    if (guestState.activeMatch && guestState.activeMatch.id === match.id) {
-      guestState.activeMatch = null;
-    }
+  if (match.state === 'PREPARING' || endedAt < match.started_at) {
+    Object.assign(match, { state: 'CANCELLED', ended_at: endedAt, duration_seconds: 0, end_reason: endReason || 'CANCELLED' });
+    if (guestState.activeMatch?.id === match.id) guestState.activeMatch = null;
     return match;
   }
 
   const rawElapsed = Math.round((endedAt - match.started_at) / 1000);
-  const durationSeconds = endReason === 'TIME'
-    ? match.planned_seconds
-    : Math.max(1, Math.min(match.planned_seconds, rawElapsed));
-
-  match.state = nextState;
-  match.ended_at = endedAt;
-  match.duration_seconds = durationSeconds;
-  match.end_reason = endReason;
+  const durationSeconds = endReason === 'TIME' ? match.planned_seconds : Math.max(1, Math.min(match.planned_seconds, rawElapsed));
+  Object.assign(match, { state: nextState, ended_at: endedAt, duration_seconds: durationSeconds, end_reason: endReason });
 
   if (!guestState.lastMatchesByMode) guestState.lastMatchesByMode = {};
   guestState.lastMatchesByMode[match.mode] = { ...match };
   guestState.lastMatch = { ...match };
-
-  if (guestState.activeMatch && guestState.activeMatch.id === match.id) {
-    guestState.activeMatch = null;
-  }
-
+  if (guestState.activeMatch?.id === match.id) guestState.activeMatch = null;
   return match;
 }
 
 async function syncGuestMatchClock(guestId, guestState, now = Date.now()) {
-  if (!guestState || !guestState.activeMatch) return null;
+  if (!guestState?.activeMatch) return null;
   const m = guestState.activeMatch;
   let dirty = false;
 
@@ -411,29 +329,136 @@ async function syncGuestMatchClock(guestId, guestState, now = Date.now()) {
     finalizeGuestMatchInMemory(guestState, m, 'COMPLETED', 'TIME', m.ends_at);
     dirty = true;
   }
-
-  if (dirty) {
-    await guestSessionService.saveGuestPersonalState(guestId, guestState);
-  }
+  if (dirty) await guestSessionService.saveGuestPersonalState(guestId, guestState);
   return guestState.activeMatch;
 }
 
 function normalizeActor({ actor, userId }) {
-  if (actor && actor.type === 'guest' && actor.guestId) {
-    return { type: 'guest', guestId: actor.guestId };
-  }
-  if (actor && actor.type === 'user' && actor.userId) {
-    return { type: 'user', userId: Number(actor.userId) };
-  }
-  if (userId) {
-    return { type: 'user', userId: Number(userId) };
-  }
+  if (actor?.type === 'guest' && actor.guestId) return { type: 'guest', guestId: actor.guestId };
+  if (actor?.type === 'user' && actor.userId) return { type: 'user', userId: Number(actor.userId) };
+  if (userId) return { type: 'user', userId: Number(userId) };
   throw new PersonalMatchHttpError(401, 'Sessão não autenticada.');
 }
 
-// ---------------------------------------------------------------------------
-// API Pública do Serviço
-// ---------------------------------------------------------------------------
+function createInitialMatchObject({ id, userId, guestId, isGuest, equipmentId, mode, prepSeconds, plannedSeconds, now, wallPreset, wallWidthM, wallHeightM, sensorCoordinatesJson, sessionId }) {
+  const startedAt = now + prepSeconds * 1000;
+  return {
+    id,
+    user_id: userId || null,
+    guest_id: guestId || null,
+    is_guest: Boolean(isGuest),
+    equipment_id: Number(equipmentId || 1),
+    mode,
+    state: prepSeconds > 0 ? 'PREPARING' : 'ACTIVE',
+    prepare_started_at: now,
+    started_at: startedAt,
+    ends_at: startedAt + plannedSeconds * 1000,
+    ended_at: null,
+    planned_seconds: plannedSeconds,
+    duration_seconds: 0,
+    score: 0,
+    shots_count: 0,
+    hits_count: 0,
+    errors_count: 0,
+    neutral_count: 0,
+    reactivations: 0,
+    won: 0,
+    end_reason: null,
+    round_state: JSON.stringify(initRoundState(mode)),
+    wall_preset: wallPreset,
+    wall_width_m: wallWidthM,
+    wall_height_m: wallHeightM,
+    sensor_coordinates_json: sensorCoordinatesJson,
+    session_id: sessionId || null
+  };
+}
+
+function assertMatchReadyForImpact(match, now, noMatchMsg) {
+  if (!match) {
+    throw new PersonalMatchHttpError(409, noMatchMsg, { accepted: false, reason: 'NO_ACTIVE_MATCH' });
+  }
+  if (match.state === 'PREPARING') {
+    throw new PersonalMatchHttpError(409, 'Contagem regressiva de 5 segundos em andamento. Impactos bloqueados até o JÁ!.', {
+      accepted: false,
+      reason: 'PREPARING_BLOCKED',
+      match: buildMatchState(match, now)
+    });
+  }
+  if (match.state !== 'ACTIVE') {
+    throw new PersonalMatchHttpError(409, 'Partida encerrada. Novos impactos estão bloqueados.', {
+      accepted: false,
+      reason: 'MATCH_ENDED',
+      match: buildMatchState(match, now)
+    });
+  }
+}
+
+function evaluateAndApplyMatchRules(match, cls, rs) {
+  let matchPoints = 0;
+  let isMatchHit = false;
+  let isReactivation = false;
+  let won = false;
+  let reason = cls.classification;
+
+  if (cls.classification === 'TARGET_HIT' && cls.sectorId) {
+    const hitSector = Number(cls.sectorId);
+    rs.sectorHits[hitSector] = (rs.sectorHits[hitSector] || 0) + 1;
+
+    if (match.mode === 'free') {
+      isMatchHit = true;
+      matchPoints = 85;
+    } else if (match.mode === 'single') {
+      if (hitSector === Number(rs.activeSector)) {
+        isMatchHit = true;
+        matchPoints = 1;
+        rs.activeSector = randomOtherSector(rs.activeSector);
+      } else {
+        reason = 'WRONG_SECTOR';
+      }
+    } else if (match.mode === 'clear_all') {
+      if (!rs.sectorStates) rs.sectorStates = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
+      if (rs.sectorStates[hitSector] !== false) {
+        rs.sectorStates[hitSector] = false;
+        isMatchHit = true;
+        matchPoints = 100;
+        if ([1, 2, 3, 4, 5, 6].every((s) => rs.sectorStates[s] === false)) {
+          won = true;
+          matchPoints += 500;
+          reason = 'WIN';
+        }
+      } else {
+        rs.sectorStates[hitSector] = true;
+        isReactivation = true;
+        reason = 'REACTIVATED';
+      }
+    }
+  }
+
+  match.score += matchPoints;
+  match.shots_count += 1;
+  if (isMatchHit) match.hits_count += 1;
+  else match.errors_count += 1;
+  if (cls.classification === 'NEUTRAL_AREA') match.neutral_count += 1;
+  if (isReactivation) match.reactivations += 1;
+  if (won) match.won = 1;
+  match.round_state = JSON.stringify(rs);
+
+  return { matchPoints, isMatchHit, isReactivation, won, reason };
+}
+
+function resolveImpactCoordinates(x, y, sectorId, preset) {
+  let resolvedX = x;
+  let resolvedY = y;
+  if ((resolvedX === undefined || resolvedX === null || resolvedY === undefined || resolvedY === null) && sectorId) {
+    const s = calculateWallGeometry(preset).sectors.find((item) => item.id === Number(sectorId));
+    if (s) {
+      resolvedX = s.centerX;
+      resolvedY = s.centerY;
+    }
+  }
+  return { resolvedX, resolvedY, cls: classifyImpact(resolvedX, resolvedY, preset) };
+}
+
 function getCurrentMatch({ actor = null, userId = null, mode = null }) {
   return withLock(async () => {
     const now = Date.now();
@@ -442,15 +467,8 @@ function getCurrentMatch({ actor = null, userId = null, mode = null }) {
     if (resolvedActor.type === 'guest') {
       const guestState = await guestSessionService.getGuestPersonalState(resolvedActor.guestId);
       const active = await syncGuestMatchClock(resolvedActor.guestId, guestState, now);
-
-      let current = null;
-      if (active && (!mode || active.mode === mode)) {
-        current = buildMatchState(active, now);
-      }
-
-      const lastObj = mode
-        ? (guestState.lastMatchesByMode && guestState.lastMatchesByMode[mode]) || null
-        : guestState.lastMatch || null;
+      const current = active && (!mode || active.mode === mode) ? buildMatchState(active, now) : null;
+      const lastObj = mode ? guestState.lastMatchesByMode?.[mode] || null : guestState.lastMatch || null;
 
       return {
         match: current,
@@ -464,23 +482,15 @@ function getCurrentMatch({ actor = null, userId = null, mode = null }) {
 
     const effectiveUserId = resolvedActor.userId;
     const active = await syncUserActiveMatches(effectiveUserId, now);
-
-    let current = null;
-    if (active && (!mode || active.mode === mode)) {
-      current = buildMatchState(active, now);
-    }
+    const current = active && (!mode || active.mode === mode) ? buildMatchState(active, now) : null;
 
     const lastQuery = mode
       ? await get(
-          `SELECT * FROM personal_matches
-           WHERE user_id = ? AND mode = ? AND state NOT IN ('PREPARING', 'ACTIVE', 'CANCELLED')
-           ORDER BY started_at DESC LIMIT 1`,
+          `SELECT * FROM personal_matches WHERE user_id = ? AND mode = ? AND state NOT IN ('PREPARING', 'ACTIVE', 'CANCELLED') ORDER BY started_at DESC LIMIT 1`,
           [effectiveUserId, mode]
         )
       : await get(
-          `SELECT * FROM personal_matches
-           WHERE user_id = ? AND state NOT IN ('PREPARING', 'ACTIVE', 'CANCELLED')
-           ORDER BY started_at DESC LIMIT 1`,
+          `SELECT * FROM personal_matches WHERE user_id = ? AND state NOT IN ('PREPARING', 'ACTIVE', 'CANCELLED') ORDER BY started_at DESC LIMIT 1`,
           [effectiveUserId]
         );
 
@@ -513,99 +523,54 @@ function startMatch({ actor = null, userId = null, equipmentId = 1, mode = 'free
       const existing = await syncGuestMatchClock(resolvedActor.guestId, guestState, now);
 
       if (existing) {
-        if (!forceNew && existing.mode === cleanMode) {
-          // Proteção pós-F5 e proteção contra duplo clique em JOGAR
-          return buildMatchState(existing, now);
-        }
+        if (!forceNew && existing.mode === cleanMode) return buildMatchState(existing, now);
         finalizeGuestMatchInMemory(guestState, existing, 'INTERRUPTED', 'SWITCHED', now);
       }
 
-      const id = `gpm_${crypto.randomUUID()}`;
-      const roundState = initRoundState(cleanMode);
-      const startedAt = now + prepSeconds * 1000;
-      const endsAt = startedAt + plannedSeconds * 1000;
-
-      const guestMatch = {
-        id,
-        user_id: null,
-        guest_id: resolvedActor.guestId,
-        is_guest: true,
-        equipment_id: Number(equipmentId || 1),
+      const guestMatch = createInitialMatchObject({
+        id: `gpm_${crypto.randomUUID()}`,
+        guestId: resolvedActor.guestId,
+        isGuest: true,
+        equipmentId,
         mode: cleanMode,
-        state: prepSeconds > 0 ? 'PREPARING' : 'ACTIVE',
-        prepare_started_at: now,
-        started_at: startedAt,
-        ends_at: endsAt,
-        ended_at: null,
-        planned_seconds: plannedSeconds,
-        duration_seconds: 0,
-        score: 0,
-        shots_count: 0,
-        hits_count: 0,
-        errors_count: 0,
-        neutral_count: 0,
-        reactivations: 0,
-        won: 0,
-        end_reason: null,
-        round_state: JSON.stringify(roundState),
-        wall_preset: wallPreset,
-        wall_width_m: wallWidthM,
-        wall_height_m: wallHeightM,
-        sensor_coordinates_json: sensorCoordinatesJson,
-        session_id: null
-      };
+        prepSeconds,
+        plannedSeconds,
+        now,
+        wallPreset,
+        wallWidthM,
+        wallHeightM,
+        sensorCoordinatesJson
+      });
 
       guestState.activeMatch = guestMatch;
       guestState.impactEventIds = [];
       await guestSessionService.saveGuestPersonalState(resolvedActor.guestId, guestState);
-
       return buildMatchState(guestMatch, now);
     }
 
     const effectiveUserId = resolvedActor.userId;
     const existingActive = await syncUserActiveMatches(effectiveUserId, now);
     if (existingActive) {
-      if (!forceNew && existingActive.mode === cleanMode) {
-        // Proteção contra duplo clique em JOGAR e pós-F5 (não reinicia PREPARING nem ACTIVE)
-        return buildMatchState(existingActive, now);
-      }
+      if (!forceNew && existingActive.mode === cleanMode) return buildMatchState(existingActive, now);
       await finalizePersonalMatch(existingActive, 'INTERRUPTED', 'SWITCHED', now);
     }
 
     const id = `pm_${crypto.randomUUID()}`;
-    const sessionId = `pers_${id}`;
-    const roundState = initRoundState(cleanMode);
-    const startedAt = now + prepSeconds * 1000;
-    const endsAt = startedAt + plannedSeconds * 1000;
-    const initialState = prepSeconds > 0 ? 'PREPARING' : 'ACTIVE';
-
-    const match = {
+    const match = createInitialMatchObject({
       id,
-      user_id: effectiveUserId,
-      equipment_id: Number(equipmentId || 1),
+      userId: effectiveUserId,
+      isGuest: false,
+      equipmentId,
       mode: cleanMode,
-      state: initialState,
-      prepare_started_at: now,
-      started_at: startedAt,
-      ends_at: endsAt,
-      ended_at: null,
-      planned_seconds: plannedSeconds,
-      duration_seconds: 0,
-      score: 0,
-      shots_count: 0,
-      hits_count: 0,
-      errors_count: 0,
-      neutral_count: 0,
-      reactivations: 0,
-      won: 0,
-      end_reason: null,
-      round_state: JSON.stringify(roundState),
-      wall_preset: wallPreset,
-      wall_width_m: wallWidthM,
-      wall_height_m: wallHeightM,
-      sensor_coordinates_json: sensorCoordinatesJson,
-      session_id: sessionId
-    };
+      prepSeconds,
+      plannedSeconds,
+      now,
+      wallPreset,
+      wallWidthM,
+      wallHeightM,
+      sensorCoordinatesJson,
+      sessionId: `pers_${id}`
+    });
 
     await run(
       `INSERT INTO personal_matches (
@@ -641,40 +606,25 @@ function finishMatch({ actor = null, userId = null, matchId = null }) {
         }
         throw new PersonalMatchHttpError(404, 'Nenhuma partida de visitante encontrada para encerrar.');
       }
-      if (match.state === 'PREPARING') {
-        finalizeGuestMatchInMemory(guestState, match, 'CANCELLED', 'CANCELLED', now);
-      } else if (match.state === 'ACTIVE') {
-        finalizeGuestMatchInMemory(guestState, match, 'COMPLETED', 'MANUAL', now);
-      }
+      if (match.state === 'PREPARING') finalizeGuestMatchInMemory(guestState, match, 'CANCELLED', 'CANCELLED', now);
+      else if (match.state === 'ACTIVE') finalizeGuestMatchInMemory(guestState, match, 'COMPLETED', 'MANUAL', now);
       await guestSessionService.saveGuestPersonalState(resolvedActor.guestId, guestState);
       return buildMatchState(match, now);
     }
 
     const effectiveUserId = resolvedActor.userId;
-    let match = null;
-    if (matchId) {
-      match = await get(`SELECT * FROM personal_matches WHERE id = ? AND user_id = ?`, [matchId, effectiveUserId]);
-    } else {
-      match = await get(
-        `SELECT * FROM personal_matches WHERE user_id = ? AND state IN ('PREPARING', 'ACTIVE') ORDER BY started_at DESC LIMIT 1`,
-        [effectiveUserId]
-      );
-    }
+    const match = matchId
+      ? await get(`SELECT * FROM personal_matches WHERE id = ? AND user_id = ?`, [matchId, effectiveUserId])
+      : await get(`SELECT * FROM personal_matches WHERE user_id = ? AND state IN ('PREPARING', 'ACTIVE') ORDER BY started_at DESC LIMIT 1`, [effectiveUserId]);
 
-    if (!match) {
-      throw new PersonalMatchHttpError(404, 'Nenhuma partida pessoal encontrada para encerrar.');
-    }
+    if (!match) throw new PersonalMatchHttpError(404, 'Nenhuma partida pessoal encontrada para encerrar.');
     await syncMatchClock(match, now);
-    if (match.state === 'PREPARING') {
-      await finalizePersonalMatch(match, 'CANCELLED', 'CANCELLED', now);
-    } else if (match.state === 'ACTIVE') {
-      await finalizePersonalMatch(match, 'COMPLETED', 'MANUAL', now);
-    }
+    if (match.state === 'PREPARING') await finalizePersonalMatch(match, 'CANCELLED', 'CANCELLED', now);
+    else if (match.state === 'ACTIVE') await finalizePersonalMatch(match, 'COMPLETED', 'MANUAL', now);
     return buildMatchState(match, now);
   });
 }
 
-// Processa impacto no Modo Pessoal com validação de PREPARING/ACTIVE, regras dos 3 jogos, deduplicação e isolamento de Visitante
 function registerPersonalImpact({
   actor = null,
   userId = null,
@@ -695,42 +645,14 @@ function registerPersonalImpact({
     const resolvedActor = normalizeActor({ actor, userId });
     const cleanMode = GAMES[gameMode] ? gameMode : 'free';
 
-    // =========================================================================
-    // FLUXO VISITANTE (100% ISOLADO — NENHUMA ESCRITA NO SQLITE PESSOAL)
-    // =========================================================================
     if (resolvedActor.type === 'guest') {
       const guestState = await guestSessionService.getGuestPersonalState(resolvedActor.guestId);
       await syncGuestMatchClock(resolvedActor.guestId, guestState, now);
 
       let match = guestState.activeMatch;
-      if (!match && matchId && guestState.lastMatch && guestState.lastMatch.id === matchId) {
-        match = guestState.lastMatch;
-      }
+      if (!match && matchId && guestState.lastMatch?.id === matchId) match = guestState.lastMatch;
+      assertMatchReadyForImpact(match, now, 'Nenhuma partida iniciada. Clique em JOGAR para iniciar a contagem.');
 
-      if (!match) {
-        throw new PersonalMatchHttpError(409, 'Nenhuma partida iniciada. Clique em JOGAR para iniciar a contagem.', {
-          accepted: false,
-          reason: 'NO_ACTIVE_MATCH'
-        });
-      }
-
-      if (match.state === 'PREPARING') {
-        throw new PersonalMatchHttpError(409, 'Contagem regressiva de 5 segundos em andamento. Impactos bloqueados até o JÁ!.', {
-          accepted: false,
-          reason: 'PREPARING_BLOCKED',
-          match: buildMatchState(match, now)
-        });
-      }
-
-      if (match.state !== 'ACTIVE') {
-        throw new PersonalMatchHttpError(409, 'Partida encerrada. Novos impactos estão bloqueados.', {
-          accepted: false,
-          reason: 'MATCH_ENDED',
-          match: buildMatchState(match, now)
-        });
-      }
-
-      // Deduplicação em memória para o visitante
       if (!Array.isArray(guestState.impactEventIds)) guestState.impactEventIds = [];
       if (clientEventId && guestState.impactEventIds.includes(clientEventId)) {
         return {
@@ -748,90 +670,18 @@ function registerPersonalImpact({
       }
       if (clientEventId) {
         guestState.impactEventIds.push(clientEventId);
-        if (guestState.impactEventIds.length > 500) {
-          guestState.impactEventIds.shift();
-        }
+        if (guestState.impactEventIds.length > 500) guestState.impactEventIds.shift();
       }
 
-      let resolvedX = x;
-      let resolvedY = y;
       const preset = match.wall_preset || 'medium';
-      if ((resolvedX === undefined || resolvedX === null || resolvedY === undefined || resolvedY === null) && sectorId) {
-        const s = calculateWallGeometry(preset).sectors.find((item) => item.id === Number(sectorId));
-        if (s) {
-          resolvedX = s.centerX;
-          resolvedY = s.centerY;
-        }
-      }
-
-      const cls = classifyImpact(resolvedX, resolvedY, preset);
+      const { resolvedX, resolvedY, cls } = resolveImpactCoordinates(x, y, sectorId, preset);
       const rs = typeof match.round_state === 'string' ? JSON.parse(match.round_state) : initRoundState(match.mode);
       if (!rs.sectorHits) rs.sectorHits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
 
-      let matchPoints = 0;
-      let isMatchHit = false;
-      let isReactivation = false;
-      let won = false;
-      let reason = cls.classification;
-
-      if (cls.classification === 'TARGET_HIT' && cls.sectorId) {
-        const hitSector = Number(cls.sectorId);
-        rs.sectorHits[hitSector] = (rs.sectorHits[hitSector] || 0) + 1;
-
-        if (match.mode === 'free') {
-          isMatchHit = true;
-          matchPoints = 85;
-        } else if (match.mode === 'single') {
-          if (hitSector === Number(rs.activeSector)) {
-            isMatchHit = true;
-            matchPoints = 1;
-            rs.activeSector = randomOtherSector(rs.activeSector);
-          } else {
-            isMatchHit = false;
-            matchPoints = 0;
-            reason = 'WRONG_SECTOR';
-          }
-        } else if (match.mode === 'clear_all') {
-          if (!rs.sectorStates) {
-            rs.sectorStates = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
-          }
-          const wasOn = rs.sectorStates[hitSector] !== false;
-          if (wasOn) {
-            rs.sectorStates[hitSector] = false;
-            isMatchHit = true;
-            matchPoints = 100;
-            const allOff = [1, 2, 3, 4, 5, 6].every((s) => rs.sectorStates[s] === false);
-            if (allOff) {
-              won = true;
-              matchPoints += 500;
-              reason = 'WIN';
-            }
-          } else {
-            rs.sectorStates[hitSector] = true;
-            isMatchHit = false;
-            isReactivation = true;
-            matchPoints = 0;
-            reason = 'REACTIVATED';
-          }
-        }
-      }
-
-      match.score += matchPoints;
-      match.shots_count += 1;
-      if (isMatchHit) match.hits_count += 1;
-      else match.errors_count += 1;
-      if (cls.classification === 'NEUTRAL_AREA') match.neutral_count += 1;
-      if (isReactivation) match.reactivations += 1;
-      if (won) match.won = 1;
-      match.round_state = JSON.stringify(rs);
-
-      if (won) {
-        finalizeGuestMatchInMemory(guestState, match, 'WON', 'WON', now);
-      }
+      const { matchPoints, isMatchHit, isReactivation, won, reason } = evaluateAndApplyMatchRules(match, cls, rs);
+      if (won) finalizeGuestMatchInMemory(guestState, match, 'WON', 'WON', now);
 
       await guestSessionService.saveGuestPersonalState(resolvedActor.guestId, guestState);
-      const matchState = buildMatchState(match, now);
-
       return {
         accepted: true,
         duplicate: false,
@@ -860,55 +710,24 @@ function registerPersonalImpact({
         reactivated: isReactivation,
         won,
         reason,
-        match: matchState
+        match: buildMatchState(match, now)
       };
     }
 
-    // =========================================================================
-    // FLUXO JOGADOR AUTENTICADO (PERSISTIDO NO SQLITE)
-    // =========================================================================
     const effectiveUserId = resolvedActor.userId;
-
     let match = null;
     if (matchId) {
       match = await get(`SELECT * FROM personal_matches WHERE id = ? AND user_id = ?`, [matchId, effectiveUserId]);
       if (match) await syncMatchClock(match, now);
     } else {
       const active = await syncUserActiveMatches(effectiveUserId, now);
-      if (active && active.mode === cleanMode) {
-        match = active;
-      }
+      if (active && active.mode === cleanMode) match = active;
     }
 
-    if (!match) {
-      throw new PersonalMatchHttpError(409, 'Nenhuma partida ativa no momento. Clique em JOGAR para iniciar.', {
-        accepted: false,
-        reason: 'NO_ACTIVE_MATCH'
-      });
-    }
+    assertMatchReadyForImpact(match, now, 'Nenhuma partida ativa no momento. Clique em JOGAR para iniciar.');
 
-    if (match.state === 'PREPARING') {
-      throw new PersonalMatchHttpError(409, 'Contagem regressiva de 5 segundos em andamento. Impactos bloqueados até o JÁ!.', {
-        accepted: false,
-        reason: 'PREPARING_BLOCKED',
-        match: buildMatchState(match, now)
-      });
-    }
-
-    if (match.state !== 'ACTIVE') {
-      throw new PersonalMatchHttpError(409, 'Partida encerrada. Novos impactos estão bloqueados.', {
-        accepted: false,
-        reason: 'MATCH_ENDED',
-        match: buildMatchState(match, now)
-      });
-    }
-
-    // Deduplicação por client_event_id
     if (clientEventId) {
-      const dup = await get(
-        `SELECT * FROM personal_match_impacts WHERE match_id = ? AND client_event_id = ?`,
-        [match.id, clientEventId]
-      );
+      const dup = await get(`SELECT * FROM personal_match_impacts WHERE match_id = ? AND client_event_id = ?`, [match.id, clientEventId]);
       if (dup) {
         const existingHit = dup.hit_id ? await get(`SELECT * FROM hits WHERE id = ?`, [dup.hit_id]) : null;
         const player = await get(`SELECT * FROM players WHERE user_id = ? LIMIT 1`, [effectiveUserId]);
@@ -928,32 +747,22 @@ function registerPersonalImpact({
       }
     }
 
-    let resolvedX = x;
-    let resolvedY = y;
     const preset = match.wall_preset || 'medium';
-    if ((resolvedX === undefined || resolvedX === null || resolvedY === undefined || resolvedY === null) && sectorId) {
-      const s = calculateWallGeometry(preset).sectors.find((item) => item.id === Number(sectorId));
-      if (s) {
-        resolvedX = s.centerX;
-        resolvedY = s.centerY;
-      }
-    }
-
-    const cls = classifyImpact(resolvedX, resolvedY, preset);
+    const { resolvedX, resolvedY, cls } = resolveImpactCoordinates(x, y, sectorId, preset);
     const rs = match.round_state ? JSON.parse(match.round_state) : initRoundState(match.mode);
     if (!rs.sectorHits) rs.sectorHits = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
 
     const targetBeforeHit = rs.activeSector || null;
+    const hitSectorOrNull = cls.classification === 'TARGET_HIT' ? cls.sectorId : null;
 
-    // Registra no motor principal (persiste em hits, shots, atualiza players e attributes)
     const engineResult = await registerHit({
       userId: effectiveUserId,
       equipmentId: match.equipment_id || equipmentId || 1,
       sessionId: sessionId || match.session_id,
       gameMode: match.mode,
-      sectorId: cls.classification === 'TARGET_HIT' ? cls.sectorId : null,
-      sensorId: cls.classification === 'TARGET_HIT' ? cls.sectorId : null,
-      targetId: cls.classification === 'TARGET_HIT' ? cls.sectorId : null,
+      sectorId: hitSectorOrNull,
+      sensorId: hitSectorOrNull,
+      targetId: hitSectorOrNull,
       x: resolvedX,
       y: resolvedY,
       speed,
@@ -975,65 +784,7 @@ function registerPersonalImpact({
       });
     }
 
-    let matchPoints = 0;
-    let isMatchHit = false;
-    let isReactivation = false;
-    let won = false;
-    let reason = cls.classification;
-
-    if (cls.classification === 'TARGET_HIT' && cls.sectorId) {
-      const hitSector = Number(cls.sectorId);
-      rs.sectorHits[hitSector] = (rs.sectorHits[hitSector] || 0) + 1;
-
-      if (match.mode === 'free') {
-        isMatchHit = true;
-        matchPoints = 85;
-      } else if (match.mode === 'single') {
-        if (hitSector === Number(rs.activeSector)) {
-          isMatchHit = true;
-          matchPoints = 1;
-          rs.activeSector = randomOtherSector(rs.activeSector);
-        } else {
-          isMatchHit = false;
-          matchPoints = 0;
-          reason = 'WRONG_SECTOR';
-        }
-      } else if (match.mode === 'clear_all') {
-        if (!rs.sectorStates) {
-          rs.sectorStates = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
-        }
-        const wasOn = rs.sectorStates[hitSector] !== false;
-        if (wasOn) {
-          rs.sectorStates[hitSector] = false;
-          isMatchHit = true;
-          matchPoints = 100;
-          const allOff = [1, 2, 3, 4, 5, 6].every((s) => rs.sectorStates[s] === false);
-          if (allOff) {
-            won = true;
-            matchPoints += 500;
-            reason = 'WIN';
-          }
-        } else {
-          rs.sectorStates[hitSector] = true;
-          isMatchHit = false;
-          isReactivation = true;
-          matchPoints = 0;
-          reason = 'REACTIVATED';
-        }
-      }
-    } else {
-      isMatchHit = false;
-      matchPoints = 0;
-    }
-
-    match.score += matchPoints;
-    match.shots_count += 1;
-    if (isMatchHit) match.hits_count += 1;
-    else match.errors_count += 1;
-    if (cls.classification === 'NEUTRAL_AREA') match.neutral_count += 1;
-    if (isReactivation) match.reactivations += 1;
-    if (won) match.won = 1;
-    match.round_state = JSON.stringify(rs);
+    const { matchPoints, isMatchHit, isReactivation, won, reason } = evaluateAndApplyMatchRules(match, cls, rs);
 
     await run(
       `UPDATE personal_matches SET
@@ -1047,16 +798,14 @@ function registerPersonalImpact({
       ]
     );
 
-    if (isSimulation) {
-      match.is_simulation = 1;
-    }
+    if (isSimulation) match.is_simulation = 1;
 
-    const hitId = engineResult.hit ? engineResult.hit.id : null;
-    const shotId = engineResult.hit ? engineResult.hit.shot_id : null;
-    const shotScore = engineResult.hit ? engineResult.hit.score : 0;
-    const shotXp = engineResult.hit ? engineResult.hit.xp : 0;
-    const shotSpeed = engineResult.hit && engineResult.hit.speed !== undefined ? engineResult.hit.speed : (speed || 80);
-    const isBullseye = engineResult.hit && engineResult.hit.is_bullseye ? 1 : 0;
+    const hitId = engineResult.hit?.id || null;
+    const shotId = engineResult.hit?.shot_id || null;
+    const shotScore = engineResult.hit?.score || 0;
+    const shotXp = engineResult.hit?.xp || 0;
+    const shotSpeed = engineResult.hit?.speed !== undefined ? engineResult.hit.speed : (speed || 80);
+    const isBullseye = engineResult.hit?.is_bullseye ? 1 : 0;
 
     await run(
       `INSERT OR IGNORE INTO personal_match_impacts (
@@ -1072,9 +821,7 @@ function registerPersonalImpact({
       ]
     );
 
-    if (won) {
-      await finalizePersonalMatch(match, 'WON', 'WON', now);
-    }
+    if (won) await finalizePersonalMatch(match, 'WON', 'WON', now);
 
     const matchState = buildMatchState(match, now);
     broadcastEvent('PERSONAL_MATCH_UPDATED', matchState);
@@ -1122,9 +869,7 @@ function startPersonalMatchTicker(intervalMs = 250) {
         `SELECT * FROM personal_matches WHERE (state = 'PREPARING' AND started_at <= ?) OR (state = 'ACTIVE' AND ends_at <= ?)`,
         [now, now]
       );
-      for (const match of running) {
-        await syncMatchClock(match, now);
-      }
+      for (const match of running) await syncMatchClock(match, now);
     }).catch((err) => console.error('[PERSONAL MATCH] ticker:', err.message));
   }, intervalMs);
   if (personalTickerHandle.unref) personalTickerHandle.unref();

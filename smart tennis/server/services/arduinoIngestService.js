@@ -1,16 +1,3 @@
-// SMART TENNIS — SERVIÇO DE RECEBIMENTO DE DADOS DO ARDUINO, AGRUPAMENTO TEMPORAL E DIAGNÓSTICO IoT
-//
-// Responsabilidades (Seções 6 e 7):
-// - Receber leituras individuais ou em lote dos 3 sensores KY-037 (S1, S2, S3) conectados ao Arduino.
-// - Priorizar exclusivamente os timestamps em microssegundos do relógio do microcontrolador (nunca usar Date.now() para TDOA).
-// - Agrupar leituras do mesmo dispositivo dentro de uma janela temporal configurável (groupingWindowUs).
-// - Tratar leituras duplicadas, leituras incompletas (sensor sem resposta), ruídos/falsos disparos,
-//   impactos próximos no tempo e reinicialização do contador de microssegundos (overflow 32 bits).
-// - Manter o estado para o Painel de Diagnóstico IoT distinguindo claramente:
-//     1. SIMULATED_IMPACT   ("Impacto simulado")
-//     2. HARDWARE_UNLOCATED ("Impacto detectado pelo hardware sem localização confiável")
-//     3. HARDWARE_LOCATED   ("Impacto localizado pelo algoritmo com calibração válida")
-
 const crypto = require('crypto');
 const {
   getNicolasAccount,
@@ -24,32 +11,20 @@ const VALID_SENSORS = new Set(['S1', 'S2', 'S3']);
 const MAX_PROCESSED_EVENT_IDS = 1000;
 const MAX_DIAGNOSTIC_LOG = 30;
 
-// Estado em memória do subsistema de hardware e diagnóstico IoT
 let connectionState = {
-  mode: 'simulation', // 'simulation' | 'connected'
+  mode: 'simulation',
   port: 'COM3 (Aguardando Arduino / Ponte Serial)',
   baudRate: 115200,
   lastArduinoPacketAt: null,
-  lastDeviceId: null
+  lastDeviceId: null,
+  lastSessionId: null
 };
 
-// Conjunto limitado de event_ids já processados para rejeição de eventos duplicados
 const processedEventIds = new Set();
 const processedEventQueue = [];
-
-// Agrupamentos pendentes por device_id: { [deviceId]: { groupId, deviceId, firstTimestampUs, createdAtMs, readings: { S1, S2, S3 }, rawEvents: [] } }
 const pendingGroupsByDevice = new Map();
-
-// Último impacto completo por device_id (para controle de eco/refratário entre impactos muito próximos)
-const lastCompletedImpactByDevice = new Map();
-
-// Último estado consolidado do diagnóstico IoT (eventos reais/sintéticos de protocolo Arduino)
 let lastHardwareDiagnostic = null;
-
-// Último impacto simulado por mouse/interface (mantido separado para nunca ser confundido com Arduino)
 let lastSimulatedDiagnostic = null;
-
-// Histórico recente de eventos de diagnóstico
 const diagnosticHistory = [];
 
 function normalizeSensorId(rawSensorId) {
@@ -62,28 +37,37 @@ function normalizeSensorId(rawSensorId) {
 }
 
 function rememberEventId(eventId) {
-  if (!eventId) return;
-  const key = String(eventId).trim();
+  const key = eventId ? String(eventId).trim() : '';
   if (!key) return;
   processedEventIds.add(key);
   processedEventQueue.push(key);
   if (processedEventQueue.length > MAX_PROCESSED_EVENT_IDS) {
-    const oldest = processedEventQueue.shift();
-    processedEventIds.delete(oldest);
+    processedEventIds.delete(processedEventQueue.shift());
   }
 }
 
 function pushDiagnosticHistory(entry) {
   diagnosticHistory.unshift(entry);
-  if (diagnosticHistory.length > MAX_DIAGNOSTIC_LOG) {
-    diagnosticHistory.pop();
-  }
+  if (diagnosticHistory.length > MAX_DIAGNOSTIC_LOG) diagnosticHistory.pop();
 }
 
-/**
- * Registra um impacto simulado (ex.: clique de mouse no jogo) APENAS como referência
- * de simulação, sem jamais apresentá-lo como evento vindo do Arduino.
- */
+function rejectReading({ eventId, deviceId, sensorId, timestampUs, status, groupingState, reason, message }) {
+  const rec = {
+    eventId,
+    deviceId,
+    sensorId,
+    timestampUs: Number.isFinite(timestampUs) ? timestampUs : null,
+    receivedAt: new Date().toISOString(),
+    accepted: false,
+    status,
+    groupingState,
+    reason,
+    message
+  };
+  pushDiagnosticHistory(rec);
+  return rec;
+}
+
 function recordSimulatedImpactDiagnostic({ xPct, yPct, sectorId, classification, gameMode, wallPreset }) {
   lastSimulatedDiagnostic = {
     category: 'SIMULATED_IMPACT',
@@ -101,23 +85,14 @@ function recordSimulatedImpactDiagnostic({ xPct, yPct, sectorId, classification,
   return lastSimulatedDiagnostic;
 }
 
-/**
- * Finaliza um grupo pendente (seja por estar completo 3/3 ou por ter expirado incompleto 1/3 ou 2/3)
- */
 function finalizeGroup(group, reason, wallCfg) {
-  const s1Reading = group.readings.S1 || null;
-  const s2Reading = group.readings.S2 || null;
-  const s3Reading = group.readings.S3 || null;
-
-  const t1Us = s1Reading ? s1Reading.timestampUs : null;
-  const t2Us = s2Reading ? s2Reading.timestampUs : null;
-  const t3Us = s3Reading ? s3Reading.timestampUs : null;
+  const t1Us = group.readings.S1?.timestampUs ?? null;
+  const t2Us = group.readings.S2?.timestampUs ?? null;
+  const t3Us = group.readings.S3?.timestampUs ?? null;
 
   const presentSensors = ['S1', 'S2', 'S3'].filter((k) => Boolean(group.readings[k]));
   const missingSensors = ['S1', 'S2', 'S3'].filter((k) => !group.readings[k]);
   const isComplete = presentSensors.length === 3;
-
-  // Se apenas 1 sensor disparou isoladamente e expirou a janela -> classificar como ruído/falso disparo ou leitura incompleta
   const isSingleSpikeNoise = !isComplete && presentSensors.length === 1 && reason === 'WINDOW_EXPIRED_INCOMPLETE';
 
   const tdoa = estimateImpactLocationTDOA({
@@ -130,8 +105,7 @@ function finalizeGroup(group, reason, wallCfg) {
   });
 
   const isSimulatedDevice = Boolean(
-    group.isSimulation ||
-    (group.deviceId && String(group.deviceId).toUpperCase().includes('SIMULAT'))
+    group.isSimulation || (group.deviceId && String(group.deviceId).toUpperCase().includes('SIMULAT'))
   );
 
   let category = 'HARDWARE_UNLOCATED';
@@ -145,38 +119,33 @@ function finalizeGroup(group, reason, wallCfg) {
       category = 'SIMULATED_UNLOCATED';
       categoryLabel = 'Simulação: Impacto sintético sem localização confiável';
     }
+  } else if (!isComplete) {
+    category = 'HARDWARE_INCOMPLETE';
+    categoryLabel = isSingleSpikeNoise
+      ? `Hardware Real: Disparo isolado em ${presentSensors[0]} (ruído/bancada)`
+      : `Hardware Real: Leitura incompleta (${presentSensors.length}/3 sensores)`;
+  } else if (tdoa.reason === 'CALIBRATION_REQUIRED' || !wallCfg.calibration?.calibrated) {
+    category = 'HARDWARE_AWAITING_CALIBRATION';
+    categoryLabel = 'Hardware Real: 3/3 sensores detectados — Aguardando calibração';
+  } else if (tdoa.status === 'valid' && tdoa.locationReliable) {
+    category = 'HARDWARE_LOCATED';
+    categoryLabel = 'Hardware Real: Impacto físico localizado com sucesso';
   } else {
-    // Hardware físico real (Arduino Uno / KY-037)
-    if (!isComplete) {
-      category = 'HARDWARE_INCOMPLETE';
-      categoryLabel = isSingleSpikeNoise
-        ? `Hardware Real: Disparo isolado em ${presentSensors[0]} (ruído/bancada)`
-        : `Hardware Real: Leitura incompleta (${presentSensors.length}/3 sensores)`;
-    } else if (tdoa.reason === 'CALIBRATION_REQUIRED' || !wallCfg.calibration?.calibrated) {
-      category = 'HARDWARE_AWAITING_CALIBRATION';
-      categoryLabel = 'Hardware Real: 3/3 sensores detectados — Aguardando calibração';
-    } else if (tdoa.status === 'valid' && tdoa.locationReliable) {
-      category = 'HARDWARE_LOCATED';
-      categoryLabel = 'Hardware Real: Impacto físico localizado com sucesso';
-    } else {
-      category = 'HARDWARE_REJECTED';
-      categoryLabel = `Hardware Real: Rejeitado (${tdoa.reason || 'inconsistência física'})`;
-    }
+    category = 'HARDWARE_REJECTED';
+    categoryLabel = `Hardware Real: Rejeitado (${tdoa.reason || 'inconsistência física'})`;
   }
 
-  let groupingState = isComplete ? 'COMPLETE_3_OF_3' : 'INCOMPLETE';
-  let groupingLabel = isComplete
-    ? 'Agrupamento completo (S1, S2 e S3 dentro da janela temporal)'
-    : `Leitura incompleta (${presentSensors.length}/3 sensores — ausente: ${missingSensors.join(', ')})`;
-
-  if (isSingleSpikeNoise) {
-    groupingState = 'NOISE_OR_INCOMPLETE';
-    groupingLabel = `Disparo isolado em ${presentSensors[0]} sem confirmação de ${missingSensors.join(' e ')} (ruído ou leitura incompleta)`;
-  }
+  const groupingState = isSingleSpikeNoise ? 'NOISE_OR_INCOMPLETE' : isComplete ? 'COMPLETE_3_OF_3' : 'INCOMPLETE';
+  const groupingLabel = isSingleSpikeNoise
+    ? `Disparo isolado em ${presentSensors[0]} sem confirmação de ${missingSensors.join(' e ')} (ruído ou leitura incompleta)`
+    : isComplete
+      ? 'Agrupamento completo (S1, S2 e S3 dentro da janela temporal)'
+      : `Leitura incompleta (${presentSensors.length}/3 sensores — ausente: ${missingSensors.join(', ')})`;
 
   const record = {
     groupId: group.groupId,
     eventId: group.lastEventId || group.groupId,
+    sessionId: group.sessionId || null,
     deviceId: group.deviceId,
     receivedAt: new Date().toISOString(),
     isArduinoHardware: !isSimulatedDevice,
@@ -199,8 +168,8 @@ function finalizeGroup(group, reason, wallCfg) {
     dt21Us: tdoa.dt21Us,
     dt31Us: tdoa.dt31Us,
     dt32Us: tdoa.dt32Us,
-    estimationStatus: tdoa.status, // 'valid' | 'uncertain' | 'unavailable'
-    estimationStatusLabel: tdoa.classificationLabel, // 'válida' | 'incerta' | 'indisponível'
+    estimationStatus: tdoa.status,
+    estimationStatusLabel: tdoa.classificationLabel,
     estimationReason: isComplete ? tdoa.reason : 'INCOMPLETE_READINGS',
     estimationMessage: isComplete
       ? tdoa.message
@@ -225,30 +194,22 @@ function finalizeGroup(group, reason, wallCfg) {
   return record;
 }
 
-/**
- * Obtém a configuração de referência para cálculos IoT (prioriza a configuração persistida de Nicolas).
- */
 async function resolveReferenceWallConfig(actor = null) {
-  if (actor) {
-    return getWallConfigForActor(actor);
-  }
+  if (actor) return getWallConfigForActor(actor);
   const nicolas = await getNicolasAccount();
-  if (nicolas) {
-    return getWallConfigForActor({ type: 'user', userId: nicolas.id });
-  }
-  return getWallConfigForActor(null);
+  return getWallConfigForActor(nicolas ? { type: 'user', userId: nicolas.id } : null);
 }
 
-/**
- * Processa uma leitura individual de sensor do Arduino:
- *   { event_id, sensor_id, timestamp_us, device_id, valid, signal_level }
- */
 async function ingestSensorReading(rawReading = {}, wallCfg = null) {
   const cfg = wallCfg || (await resolveReferenceWallConfig());
   const groupingWindowUs = Number(cfg.calibration?.groupingWindowUs || 25000);
   const minSignalLevel = Number(cfg.calibration?.minSignalLevel || 0);
 
-  const eventId = rawReading.event_id ?? rawReading.eventId ?? rawReading.id ?? null;
+  const rawEventId = rawReading.event_id ?? rawReading.eventId ?? rawReading.id ?? null;
+  const sessionId = rawReading.session_id ?? rawReading.sessionId ?? rawReading.boot_id ?? rawReading.bootId ?? null;
+  const eventId = rawEventId && sessionId && !String(rawEventId).includes(String(sessionId))
+    ? `${sessionId}_${rawEventId}`
+    : rawEventId;
   const deviceId = String(rawReading.device_id ?? rawReading.deviceId ?? 'ARDUINO_MAIN').trim() || 'ARDUINO_MAIN';
   const rawSensor = rawReading.sensor_id ?? rawReading.sensorId ?? rawReading.sensor;
   const sensorId = normalizeSensorId(rawSensor);
@@ -257,110 +218,86 @@ async function ingestSensorReading(rawReading = {}, wallCfg = null) {
   const isValidFlag = rawReading.valid !== undefined ? Boolean(rawReading.valid) : true;
   const signalLevel = rawReading.signal_level ?? rawReading.signalLevel ?? rawReading.amplitude ?? null;
 
-  // 1. Rejeição de evento com event_id duplicado
   if (eventId && processedEventIds.has(String(eventId).trim())) {
-    const dupRecord = {
+    return rejectReading({
       eventId: String(eventId).trim(),
       deviceId,
       sensorId,
-      timestampUs: Number.isFinite(timestampUs) ? timestampUs : null,
-      receivedAt: new Date().toISOString(),
-      accepted: false,
+      timestampUs,
       status: 'REJECTED_DUPLICATE_EVENT',
       groupingState: 'DUPLICATE_EVENT',
       reason: 'DUPLICATE_EVENT_ID',
       message: `Evento duplicado (${eventId}) descartado.`
-    };
-    pushDiagnosticHistory(dupRecord);
-    return dupRecord;
+    });
   }
 
-  // 2. Validação de ruído, leitura marcada como inválida, sensor inexistente ou timestamp inválido
   if (!isValidFlag) {
     if (eventId) rememberEventId(eventId);
-    const noiseRec = {
+    return rejectReading({
       eventId: eventId || `noise_${Date.now()}`,
       deviceId,
       sensorId,
-      timestampUs: Number.isFinite(timestampUs) ? timestampUs : null,
-      receivedAt: new Date().toISOString(),
-      accepted: false,
+      timestampUs,
       status: 'REJECTED_INVALID_READING',
       groupingState: 'NOISE_REJECTED',
       reason: 'READING_MARKED_INVALID',
       message: 'Leitura marcada como inválida pelo microcontrolador (ruído descartado).'
-    };
-    pushDiagnosticHistory(noiseRec);
-    return noiseRec;
+    });
   }
 
   if (signalLevel !== null && Number.isFinite(Number(signalLevel)) && minSignalLevel > 0 && Number(signalLevel) < minSignalLevel) {
     if (eventId) rememberEventId(eventId);
-    const lowAmpRec = {
+    return rejectReading({
       eventId: eventId || `noise_${Date.now()}`,
       deviceId,
       sensorId,
-      timestampUs: Number.isFinite(timestampUs) ? timestampUs : null,
-      receivedAt: new Date().toISOString(),
-      accepted: false,
+      timestampUs,
       status: 'REJECTED_NOISE',
       groupingState: 'NOISE_REJECTED',
       reason: 'BELOW_NOISE_THRESHOLD',
       message: `Sinal (${signalLevel}) abaixo do limiar de ruído (${minSignalLevel}).`
-    };
-    pushDiagnosticHistory(lowAmpRec);
-    return lowAmpRec;
+    });
   }
 
   if (!sensorId || !VALID_SENSORS.has(sensorId) || !Number.isFinite(timestampUs) || timestampUs < 0) {
-    const badRec = {
+    return rejectReading({
       eventId: eventId || `bad_${Date.now()}`,
       deviceId,
       sensorId: rawSensor || null,
-      timestampUs: Number.isFinite(timestampUs) ? timestampUs : null,
-      receivedAt: new Date().toISOString(),
-      accepted: false,
+      timestampUs,
       status: 'REJECTED_MALFORMED',
       groupingState: 'INVALID_FORMAT',
       reason: !sensorId ? 'INVALID_SENSOR_ID' : 'INVALID_TIMESTAMP_US',
       message: !sensorId
         ? `Identificador de sensor inválido (${rawSensor}). Use apenas S1, S2 ou S3.`
         : 'Timestamp em microssegundos ausente ou inválido.'
-    };
-    pushDiagnosticHistory(badRec);
-    return badRec;
+    });
   }
 
   if (eventId) rememberEventId(eventId);
-
   connectionState.lastArduinoPacketAt = new Date().toISOString();
   connectionState.lastDeviceId = deviceId;
 
-  const isSimReading = Boolean(rawReading.is_simulation || rawReading.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
-  if (!isSimReading && connectionState.mode !== 'connected') {
-    connectionState.mode = 'connected';
-  }
+  const isSim = Boolean(rawReading.is_simulation || rawReading.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
+  if (!isSim && connectionState.mode !== 'connected') connectionState.mode = 'connected';
 
   let finalizedPreviousGroup = null;
   let currentGroup = pendingGroupsByDevice.get(deviceId) || null;
 
-  // 3. Se já existe grupo pendente para este deviceId, verifica se a leitura está dentro da janela temporal
   if (currentGroup) {
     const deltaFromFirstUs = signedMicrosDiff(timestampUs, currentGroup.firstTimestampUs);
     if (deltaFromFirstUs === null || Math.abs(deltaFromFirstUs) > groupingWindowUs) {
-      // A leitura atual pertence a OUTRO impacto! Fecha o grupo anterior como incompleto.
       finalizedPreviousGroup = finalizeGroup(currentGroup, 'WINDOW_EXPIRED_INCOMPLETE', cfg);
       pendingGroupsByDevice.delete(deviceId);
       currentGroup = null;
     }
   }
 
-  // 4. Cria novo grupo se não houver grupo ativo
   if (!currentGroup) {
-    const isSim = Boolean(rawReading.is_simulation || rawReading.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
     currentGroup = {
       groupId: `grp_${crypto.randomUUID()}`,
       deviceId,
+      sessionId: sessionId || null,
       isSimulation: isSim,
       firstTimestampUs: timestampUs,
       lastEventId: eventId || null,
@@ -371,13 +308,9 @@ async function ingestSensorReading(rawReading = {}, wallCfg = null) {
     pendingGroupsByDevice.set(deviceId, currentGroup);
   }
 
-  // 5. Se o mesmo sensor (ex.: S1) disparar novamente dentro do mesmo impacto (reverberação local),
-  //    preserva o primeiro instante de detecção (borda de subida inicial) e contabiliza disparo duplicado.
   if (currentGroup.readings[sensorId]) {
     currentGroup.duplicateSensorTriggers += 1;
-    const existingTs = currentGroup.readings[sensorId].timestampUs;
-    // Se por acaso os pacotes chegaram fora de ordem e o novo timestamp for ligeiramente anterior dentro da janela, usa o menor
-    if (signedMicrosDiff(timestampUs, existingTs) < 0) {
+    if (signedMicrosDiff(timestampUs, currentGroup.readings[sensorId].timestampUs) < 0) {
       currentGroup.readings[sensorId] = {
         eventId: eventId || currentGroup.readings[sensorId].eventId,
         sensorId,
@@ -397,30 +330,20 @@ async function ingestSensorReading(rawReading = {}, wallCfg = null) {
     };
   }
 
-  // Registra a leitura do sensor no grupo
   currentGroup.readings[sensorId] = {
     eventId: eventId || `${deviceId}_${sensorId}_${timestampUs}`,
     sensorId,
     timestampUs: Math.round(timestampUs)
   };
   if (eventId) currentGroup.lastEventId = eventId;
-
-  // Atualiza firstTimestampUs caso leituras do mesmo pacote cheguem fora de ordem
   if (signedMicrosDiff(timestampUs, currentGroup.firstTimestampUs) < 0) {
     currentGroup.firstTimestampUs = Math.round(timestampUs);
   }
 
   const presentSensors = Object.keys(currentGroup.readings);
-
-  // 6. Se os 3 sensores (S1, S2 e S3) já foram registrados dentro da janela temporal, fecha o impacto imediatamente!
   if (presentSensors.length === 3) {
     pendingGroupsByDevice.delete(deviceId);
     const completedImpact = finalizeGroup(currentGroup, 'ALL_THREE_SENSORS_RECEIVED', cfg);
-    lastCompletedImpactByDevice.set(deviceId, {
-      firstTimestampUs: currentGroup.firstTimestampUs,
-      completedAtMs: Date.now(),
-      groupId: currentGroup.groupId
-    });
     return {
       accepted: true,
       status: 'IMPACT_GROUP_COMPLETED',
@@ -441,23 +364,21 @@ async function ingestSensorReading(rawReading = {}, wallCfg = null) {
   };
 }
 
-/**
- * Processa um lote de leituras ou um pacote de impacto do Arduino.
- * Permite:
- *   - { readings: [ { event_id, sensor_id, timestamp_us, device_id, valid }, ... ], finalize_pending: true }
- *   - { event_id, device_id, t1_us, t2_us, t3_us, valid }
- *   - ou uma leitura individual { event_id, sensor_id, timestamp_us, device_id, valid }
- */
 async function ingestArduinoPayload(payload = {}, actor = null) {
   const cfg = await resolveReferenceWallConfig(actor);
 
-  // Caso 1: formato pré-agrupado { event_id, t1_us, t2_us, t3_us, device_id, valid }
   if (
     payload &&
     (payload.t1_us !== undefined || payload.t2_us !== undefined || payload.t3_us !== undefined ||
      payload.t1Us !== undefined || payload.t2Us !== undefined || payload.t3Us !== undefined)
   ) {
-    const baseEventId = payload.event_id || payload.eventId || null;
+    const rawEventId = payload.event_id || payload.eventId || null;
+    const sessionId = payload.session_id || payload.sessionId || payload.boot_id || payload.bootId || null;
+    const baseEventId = rawEventId && sessionId && !String(rawEventId).includes(String(sessionId))
+      ? `${sessionId}_${rawEventId}`
+      : rawEventId;
+    if (sessionId) connectionState.lastSessionId = sessionId;
+
     if (baseEventId && processedEventIds.has(String(baseEventId).trim())) {
       return {
         accepted: false,
@@ -471,10 +392,6 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
 
     const deviceId = payload.device_id || payload.deviceId || 'ARDUINO_MAIN';
     const valid = payload.valid !== undefined ? Boolean(payload.valid) : true;
-    const t1 = payload.t1_us ?? payload.t1Us ?? null;
-    const t2 = payload.t2_us ?? payload.t2Us ?? null;
-    const t3 = payload.t3_us ?? payload.t3Us ?? null;
-
     if (!valid) {
       if (baseEventId) rememberEventId(baseEventId);
       return {
@@ -485,7 +402,6 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
       };
     }
 
-    // Limpa grupo anterior pendente do mesmo device se existir
     const prev = pendingGroupsByDevice.get(deviceId);
     if (prev) {
       finalizeGroup(prev, 'SUPERSEDED_BY_PACKET', cfg);
@@ -493,29 +409,28 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
     }
 
     const isSim = Boolean(payload.is_simulation || payload.isSimulation || deviceId.toUpperCase().includes('SIMULAT'));
-    if (!isSim && connectionState.mode !== 'connected') {
-      connectionState.mode = 'connected';
-    }
-    const syntheticReadings = [];
-    if (t1 !== null && t1 !== undefined && t1 !== '') {
-      syntheticReadings.push({ event_id: baseEventId ? `${baseEventId}_S1` : null, sensor_id: 'S1', timestamp_us: t1, device_id: deviceId, valid: true, is_simulation: isSim });
-    }
-    if (t2 !== null && t2 !== undefined && t2 !== '') {
-      syntheticReadings.push({ event_id: baseEventId ? `${baseEventId}_S2` : null, sensor_id: 'S2', timestamp_us: t2, device_id: deviceId, valid: true, is_simulation: isSim });
-    }
-    if (t3 !== null && t3 !== undefined && t3 !== '') {
-      syntheticReadings.push({ event_id: baseEventId ? `${baseEventId}_S3` : null, sensor_id: 'S3', timestamp_us: t3, device_id: deviceId, valid: true, is_simulation: isSim });
-    }
+    if (!isSim && connectionState.mode !== 'connected') connectionState.mode = 'connected';
+
+    const pairs = [
+      ['S1', payload.t1_us ?? payload.t1Us ?? null],
+      ['S2', payload.t2_us ?? payload.t2Us ?? null],
+      ['S3', payload.t3_us ?? payload.t3Us ?? null]
+    ];
+    const syntheticReadings = pairs
+      .filter(([, ts]) => ts !== null && ts !== undefined && ts !== '')
+      .map(([sensor_id, timestamp_us]) => ({
+        event_id: baseEventId ? `${baseEventId}_${sensor_id}` : null,
+        session_id: sessionId,
+        sensor_id,
+        timestamp_us,
+        device_id: deviceId,
+        valid: true,
+        is_simulation: isSim
+      }));
 
     if (baseEventId) rememberEventId(baseEventId);
-
     if (syntheticReadings.length === 0) {
-      return {
-        accepted: false,
-        status: 'REJECTED_MALFORMED',
-        groupingState: 'INVALID_FORMAT',
-        reason: 'EMPTY_READINGS'
-      };
+      return { accepted: false, status: 'REJECTED_MALFORMED', groupingState: 'INVALID_FORMAT', reason: 'EMPTY_READINGS' };
     }
 
     const stepResults = [];
@@ -524,12 +439,10 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
       const res = await ingestSensorReading(r, cfg);
       stepResults.push(res);
       if (res.impact) completedImpact = res.impact;
-      if (res.finalizedPreviousGroup && !completedImpact) {
-        completedImpact = res.finalizedPreviousGroup;
-      }
+      if (res.finalizedPreviousGroup && !completedImpact) completedImpact = res.finalizedPreviousGroup;
     }
+    if (completedImpact && baseEventId) completedImpact.eventId = baseEventId;
 
-    // Se o pacote enviou apenas 1 ou 2 sensores (leitura incompleta), fecha imediatamente o grupo pendente como INCOMPLETE
     const leftover = pendingGroupsByDevice.get(deviceId);
     if (leftover) {
       pendingGroupsByDevice.delete(deviceId);
@@ -564,7 +477,6 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
     };
   }
 
-  // Caso 2: lista de leituras { readings: [...] }
   if (Array.isArray(payload?.readings)) {
     const results = [];
     let lastImpact = null;
@@ -577,9 +489,7 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
 
     if (payload.finalize_pending || payload.finalizePending) {
       const flushed = await flushPendingGroups(cfg);
-      if (flushed.length > 0 && !lastImpact) {
-        lastImpact = flushed[flushed.length - 1];
-      }
+      if (flushed.length > 0 && !lastImpact) lastImpact = flushed[flushed.length - 1];
     }
 
     const allAccepted = results.length > 0 && results.every((r) => r.accepted);
@@ -592,7 +502,6 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
     };
   }
 
-  // Caso 3: leitura individual
   const singleRes = await ingestSensorReading(payload, cfg);
   if ((payload?.finalize_pending || payload?.finalizePending) && pendingGroupsByDevice.size > 0) {
     const flushed = await flushPendingGroups(cfg);
@@ -610,9 +519,6 @@ async function ingestArduinoPayload(payload = {}, actor = null) {
   return singleRes;
 }
 
-/**
- * Expira grupos pendentes incompletos (por timeout ou solicitação explícita de flush).
- */
 async function flushPendingGroups(wallCfg = null, maxAgeMs = 0) {
   const cfg = wallCfg || (await resolveReferenceWallConfig());
   const now = Date.now();
@@ -627,29 +533,15 @@ async function flushPendingGroups(wallCfg = null, maxAgeMs = 0) {
 }
 
 function setHardwareConnectionMode(mode, extra = {}) {
-  if (mode === 'simulation' || mode === 'connected') {
-    connectionState.mode = mode;
-  }
+  if (mode === 'simulation' || mode === 'connected') connectionState.mode = mode;
   if (extra.port) connectionState.port = String(extra.port);
   if (extra.baudRate) connectionState.baudRate = Number(extra.baudRate);
   return { ...connectionState };
 }
 
-/**
- * Retorna o estado completo para o Painel de Diagnóstico IoT (Seção 7).
- */
 async function getIotDiagnosticsState(actor = null) {
   const wallCfg = await resolveReferenceWallConfig(actor);
-  // Expira automaticamente grupos parciais pendentes há mais de 250ms de relógio de parede
   await flushPendingGroups(wallCfg, 250);
-
-  const pendingList = Array.from(pendingGroupsByDevice.values()).map((g) => ({
-    groupId: g.groupId,
-    deviceId: g.deviceId,
-    firstTimestampUs: g.firstTimestampUs,
-    presentSensors: Object.keys(g.readings),
-    missingSensors: ['S1', 'S2', 'S3'].filter((s) => !g.readings[s])
-  }));
 
   return {
     wall: {
@@ -670,30 +562,22 @@ async function getIotDiagnosticsState(actor = null) {
       ...connectionState,
       statusLabel: connectionState.mode === 'connected' ? 'Conectado (Arduino / Serial)' : 'Modo Simulação (Sem dependência obrigatória de hardware)'
     },
-    pendingGroups: pendingList,
+    pendingGroups: Array.from(pendingGroupsByDevice.values()).map((g) => ({
+      groupId: g.groupId,
+      deviceId: g.deviceId,
+      firstTimestampUs: g.firstTimestampUs,
+      presentSensors: Object.keys(g.readings),
+      missingSensors: ['S1', 'S2', 'S3'].filter((s) => !g.readings[s])
+    })),
     lastArduinoEvent: lastHardwareDiagnostic,
     lastSimulatedImpact: lastSimulatedDiagnostic,
     recentEvents: diagnosticHistory.slice(0, 15)
   };
 }
 
-function resetIotDiagnosticsMemory() {
-  processedEventIds.clear();
-  processedEventQueue.length = 0;
-  pendingGroupsByDevice.clear();
-  lastCompletedImpactByDevice.clear();
-  lastHardwareDiagnostic = null;
-  lastSimulatedDiagnostic = null;
-  diagnosticHistory.length = 0;
-}
-
 module.exports = {
-  normalizeSensorId,
   recordSimulatedImpactDiagnostic,
-  ingestSensorReading,
   ingestArduinoPayload,
-  flushPendingGroups,
   setHardwareConnectionMode,
-  getIotDiagnosticsState,
-  resetIotDiagnosticsMemory
+  getIotDiagnosticsState
 };

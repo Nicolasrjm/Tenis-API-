@@ -1,29 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { 
-  Play, 
-  RotateCcw, 
-  Square, 
-  Maximize, 
-  Minimize, 
-  Volume2, 
-  VolumeX, 
-  Trophy, 
-  Clock, 
-  Zap, 
-  CheckCircle2, 
+import {
+  Play,
+  RotateCcw,
+  Square,
+  Maximize,
+  Minimize,
+  Volume2,
+  VolumeX,
+  Trophy,
+  Zap,
+  CheckCircle2,
   Settings,
   AlertCircle,
   Sparkles,
-  LogIn,
   Sliders,
   Radio,
-  Lock,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
-  History,
-  ArrowLeft
+  History
 } from 'lucide-react';
 import CourtTarget, { FIXED_SECTORS } from '../components/CourtTarget';
 import ShoppingExperience from '../components/ShoppingExperience';
@@ -40,19 +36,24 @@ const GAME_INFO = {
   free: {
     title: '1. Treino Livre',
     subtitle: 'Todos os 6 alvos disponíveis • +85 pts por acerto',
-    description: 'Desfira golpes livres nos 6 setores retangulares da parede durante 05:00 para treinar consistência e precisão.'
+    description: 'Desfira golpes livres nos 6 setores retangulares da parede durante 05:00 para treinar consistência e precisão.',
+    icon: Play
   },
   single: {
     title: '2. Liga um por vez',
     subtitle: 'Apenas 1 alvo aceso por vez • +1 ponto por acerto no alvo ativo',
-    description: 'Acerte exclusivamente o setor iluminado. A cada acerto, um novo setor diferente acende imediatamente.'
+    description: 'Acerte exclusivamente o setor iluminado. A cada acerto, um novo setor diferente acende imediatamente.',
+    icon: Zap
   },
   clear_all: {
     title: '3. Apagar todos',
     subtitle: 'Todos os 6 alvos começam acesos • +100 pts ao apagar (+500 bônus vitória)',
-    description: 'Apague todos os 6 setores antes de 05:00. Cuidado: atingir um setor já apagado faz com que ele reacenda!'
+    description: 'Apague todos os 6 setores antes de 05:00. Cuidado: atingir um setor já apagado faz com que ele reacenda!',
+    icon: Sparkles
   }
 };
+
+const ALL_SECTORS_ON = () => Object.fromEntries(FIXED_SECTORS.map((s) => [s.id, true]));
 
 export default function PlayPage(props) {
   const isDemo = isWebDemoMode();
@@ -102,12 +103,10 @@ function PersonalPlay({ isWebDemo = false }) {
   }
 
   const arenaContainerRef = useRef(null);
-
   const initialMode = searchParams.get('mode') || 'free';
   const [mode, setMode] = useState(['free', 'single', 'clear_all'].includes(initialMode) ? initialMode : 'free');
 
   const [plannedSeconds, setPlannedSeconds] = useState(300);
-  const [matchId, setMatchId] = useState(null);
   const matchIdRef = useRef(null);
   const [matchStatus, setMatchStatus] = useState('IDLE');
   const [matchStartedAt, setMatchStartedAt] = useState(null);
@@ -117,12 +116,6 @@ function PersonalPlay({ isWebDemo = false }) {
   const [startingMatch, setStartingMatch] = useState(false);
   const serverOffsetRef = useRef(0);
   const [sessionId, setSessionId] = useState(() => 'sess_' + Date.now());
-
-  const [syncState, setSyncState] = useState({
-    status: 'idle',
-    hitId: null,
-    message: null
-  });
 
   const [wallConfig, setWallConfig] = useState({
     preset: '3x2',
@@ -146,59 +139,73 @@ function PersonalPlay({ isWebDemo = false }) {
   const [score, setScore] = useState(0);
   const [shotsCount, setShotsCount] = useState(0);
   const [hitsCount, setHitsCount] = useState(0);
-  const [sectorHits, setSectorHits] = useState({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 });
   const [lastHitSectorId, setLastHitSectorId] = useState(null);
   const [lastImpactCoords, setLastImpactCoords] = useState(null);
-  const [lastFeedbackText, setLastFeedbackText] = useState('Selecione o modo e clique em JOGAR para iniciar a contagem de 5 segundos.');
-  const [syncWarning, setSyncWarning] = useState(null);
 
   const [activeSectorId, setActiveSectorId] = useState(1);
-  const [sectorStates, setSectorStates] = useState(() => {
-    const init = {};
-    FIXED_SECTORS.forEach(s => { init[s.id] = true; });
-    return init;
-  });
-  const [reactivations, setReactivations] = useState(0);
+  const [sectorStates, setSectorStates] = useState(ALL_SECTORS_ON);
   const [gameWon, setGameWon] = useState(false);
 
   const recentLocalEvents = useRef(new Set());
 
+  const applyWallConfig = (cfg, fallbackPreset) => {
+    if (!cfg) return;
+    const geo = cfg.geometry || cfg;
+    setWallConfig((prev) => ({
+      ...prev,
+      preset: cfg.preset || fallbackPreset || prev.preset,
+      width: cfg.widthM || geo.width || prev.width,
+      height: cfg.heightM || geo.height || prev.height,
+      label: cfg.label || geo.label || prev.label,
+      aspectRatio: cfg.aspectRatio || geo.aspectRatio || prev.aspectRatio,
+      canConfigureWall: cfg.canConfigureWall !== undefined ? Boolean(cfg.canConfigureWall) : prev.canConfigureWall,
+      sensors: cfg.sensors || geo.sensors || prev.sensors,
+      sensorOffsetsCm: cfg.sensorOffsetsCm || prev.sensorOffsetsCm
+    }));
+  };
+
+  const prepareIdleGame = (gameMode, durationSec = 300) => {
+    matchIdRef.current = null;
+    setMatchStartedAt(null);
+    setMatchEndsAt(null);
+    setUsedDurationSeconds(0);
+    setPlannedSeconds(durationSec);
+    setShotsCount(0);
+    setHitsCount(0);
+    setScore(0);
+    setLastHitSectorId(null);
+    setLastImpactCoords(null);
+    setGameWon(false);
+    setMatchStatus('IDLE');
+    if (gameMode === 'single') setActiveSectorId(1);
+    else if (gameMode === 'clear_all') setSectorStates(ALL_SECTORS_ON());
+  };
+
   const applyBackendMatchState = (m) => {
     if (!m) return;
     const clientNow = Date.now();
-    if (m.serverNow) {
-      serverOffsetRef.current = m.serverNow - clientNow;
-    }
+    if (m.serverNow) serverOffsetRef.current = m.serverNow - clientNow;
     setNowTick(clientNow);
-    setMatchId(m.id);
     matchIdRef.current = m.id;
     if (m.sessionId) setSessionId(m.sessionId);
     if (m.plannedSeconds) setPlannedSeconds(m.plannedSeconds);
     setScore(m.score ?? 0);
     setShotsCount(m.shots ?? 0);
     setHitsCount(m.hits ?? 0);
-    setReactivations(m.reactivations ?? 0);
-    if (m.sectorHits) setSectorHits(m.sectorHits);
     if (m.activeSector) setActiveSectorId(m.activeSector);
     if (m.sectorStates) setSectorStates(m.sectorStates);
     if (m.durationSeconds !== undefined) setUsedDurationSeconds(m.durationSeconds);
-
     setMatchStartedAt(m.startedAt || null);
 
-    if (m.state === 'PREPARING') {
+    if (m.state === 'PREPARING' || m.state === 'ACTIVE') {
       setMatchEndsAt(m.endsAt);
       setGameWon(false);
-      setMatchStatus('PREPARING');
-    } else if (m.state === 'ACTIVE') {
-      setMatchEndsAt(m.endsAt);
-      setGameWon(false);
-      setMatchStatus('PLAYING');
+      setMatchStatus(m.state === 'PREPARING' ? 'PREPARING' : 'PLAYING');
     } else if (m.state === 'CANCELLED') {
       prepareIdleGame(m.mode || mode, m.plannedSeconds || 300);
     } else {
       setMatchEndsAt(null);
-      const isWon = Boolean(m.won || m.state === 'WON' || m.endReason === 'WON');
-      setGameWon(isWon);
+      setGameWon(Boolean(m.won || m.state === 'WON' || m.endReason === 'WON'));
       setMatchStatus('FINISHED');
     }
   };
@@ -207,47 +214,18 @@ function PersonalPlay({ isWebDemo = false }) {
     if (isWebDemo) return;
     let isMounted = true;
     api.getWallConfig()
-      .then((cfg) => {
-        if (isMounted && cfg) {
-          const geo = cfg.geometry || cfg;
-          setWallConfig({
-            preset: cfg.preset || '3x2',
-            width: cfg.widthM || geo.width || 3.0,
-            height: cfg.heightM || geo.height || 2.0,
-            label: cfg.label || geo.label || '3 × 2 metros',
-            aspectRatio: cfg.aspectRatio || geo.aspectRatio || '3/2',
-            canConfigureWall: Boolean(cfg.canConfigureWall),
-            sensors: cfg.sensors || geo.sensors || null,
-            sensorOffsetsCm: cfg.sensorOffsetsCm || null
-          });
-        }
-      })
+      .then((cfg) => { if (isMounted && cfg) applyWallConfig(cfg); })
       .catch(() => {});
 
     const unsubWall = wsClient.on('WALL_CONFIG_UPDATED', (payload) => {
-      if (payload) {
-        if (payload.userId && user?.id && Number(payload.userId) !== Number(user.id)) {
-          return;
-        }
-        const geo = payload.geometry || payload;
-        setWallConfig((prev) => ({
-          ...prev,
-          preset: payload.preset || prev.preset,
-          width: payload.widthM || geo.width || prev.width,
-          height: payload.heightM || geo.height || prev.height,
-          label: payload.label || geo.label || prev.label,
-          aspectRatio: payload.aspectRatio || geo.aspectRatio || prev.aspectRatio,
-          sensors: payload.sensors || geo.sensors || prev.sensors,
-          sensorOffsetsCm: payload.sensorOffsetsCm || prev.sensorOffsetsCm
-        }));
-      }
+      if (!payload) return;
+      if (payload.userId && user?.id && Number(payload.userId) !== Number(user.id)) return;
+      applyWallConfig(payload);
     });
 
     const unsubMatch = wsClient.on('PERSONAL_MATCH_UPDATED', (m) => {
       if (!m || isGuest) return;
-      if (matchIdRef.current && m.id === matchIdRef.current) {
-        applyBackendMatchState(m);
-      }
+      if (matchIdRef.current && m.id === matchIdRef.current) applyBackendMatchState(m);
     });
 
     return () => {
@@ -260,10 +238,7 @@ function PersonalPlay({ isWebDemo = false }) {
   const handleSelectNicolasWallPreset = async (newPreset) => {
     if (!wallConfig.canConfigureWall || savingWall) return;
     if (matchStatus === 'PREPARING' || matchStatus === 'PLAYING') {
-      setWallFeedback({
-        ok: false,
-        text: 'Não é permitido alterar o tamanho da parede durante uma partida em andamento.'
-      });
+      setWallFeedback({ ok: false, text: 'Não é permitido alterar o tamanho da parede durante uma partida em andamento.' });
       return;
     }
 
@@ -271,26 +246,13 @@ function PersonalPlay({ isWebDemo = false }) {
     setWallFeedback(null);
     try {
       const cfg = await api.updateMyWallConfig({ preset: newPreset });
-      const geo = cfg.geometry || cfg;
-      setWallConfig((prev) => ({
-        ...prev,
-        preset: cfg.preset || newPreset,
-        width: cfg.widthM || geo.width || prev.width,
-        height: cfg.heightM || geo.height || prev.height,
-        label: cfg.label || geo.label || prev.label,
-        aspectRatio: cfg.aspectRatio || geo.aspectRatio || prev.aspectRatio,
-        sensors: cfg.sensors || geo.sensors || prev.sensors,
-        sensorOffsetsCm: cfg.sensorOffsetsCm || prev.sensorOffsetsCm
-      }));
+      applyWallConfig(cfg, newPreset);
       setWallFeedback({
         ok: true,
         text: `Parede configurada para ${cfg.label || newPreset} (${cfg.widthM}m × ${cfg.heightM}m) e salva no banco SQLite.`
       });
     } catch (err) {
-      setWallFeedback({
-        ok: false,
-        text: err.message || 'Erro ao atualizar tamanho da parede.'
-      });
+      setWallFeedback({ ok: false, text: err.message || 'Erro ao atualizar tamanho da parede.' });
     } finally {
       setSavingWall(false);
     }
@@ -309,38 +271,24 @@ function PersonalPlay({ isWebDemo = false }) {
       return;
     }
     let alive = true;
-    (async () => {
-      try {
-        const data = await api.personalMatch.getCurrent(mode);
+    api.personalMatch.getCurrent(mode)
+      .then((data) => {
         if (!alive) return;
-        if (data?.serverNow) {
-          serverOffsetRef.current = data.serverNow - Date.now();
-        }
+        if (data?.serverNow) serverOffsetRef.current = data.serverNow - Date.now();
         const pSec = data?.plannedSeconds || 300;
         setPlannedSeconds(pSec);
-
         if (data?.match && (data.match.state === 'PREPARING' || data.match.state === 'ACTIVE')) {
           applyBackendMatchState(data.match);
-          if (data.match.state === 'PREPARING') {
-            setLastFeedbackText('Preparação em andamento! Prepare-se para o início da partida.');
-          } else {
-            setLastFeedbackText('Partida de 05:00 em andamento — sincronizada com o servidor.');
-          }
-          return;
+        } else {
+          prepareIdleGame(mode, pSec);
         }
-
-        prepareIdleGame(mode, pSec);
-      } catch (err) {
-        if (alive) prepareIdleGame(mode, 300);
-      }
-    })();
+      })
+      .catch(() => { if (alive) prepareIdleGame(mode, 300); });
     return () => { alive = false; };
   }, [mode]);
 
   useEffect(() => {
-    const tick = setInterval(() => {
-      setNowTick(Date.now());
-    }, 100);
+    const tick = setInterval(() => setNowTick(Date.now()), 100);
     return () => clearInterval(tick);
   }, []);
 
@@ -349,14 +297,11 @@ function PersonalPlay({ isWebDemo = false }) {
     const poll = setInterval(() => {
       api.personalMatch.getCurrent(mode)
         .then((data) => {
-          if (data?.serverNow) {
-            serverOffsetRef.current = data.serverNow - Date.now();
-          }
+          if (data?.serverNow) serverOffsetRef.current = data.serverNow - Date.now();
           if (data?.match && (data.match.state === 'PREPARING' || data.match.state === 'ACTIVE')) {
             applyBackendMatchState(data.match);
           } else if (data?.lastMatch && matchIdRef.current && data.lastMatch.id === matchIdRef.current) {
             applyBackendMatchState(data.lastMatch);
-            setLastFeedbackText('Tempo limite de 05:00 encerrado!');
           }
         })
         .catch(() => {});
@@ -365,7 +310,6 @@ function PersonalPlay({ isWebDemo = false }) {
   }, [matchStatus, mode]);
 
   const serverNow = nowTick + serverOffsetRef.current;
-
   const prepRemainingMs = matchStartedAt ? Math.max(0, matchStartedAt - serverNow) : 0;
   const prepRemainingSeconds = Math.ceil(prepRemainingMs / 1000);
   const msSinceOfficialStart = matchStartedAt ? serverNow - matchStartedAt : -1;
@@ -373,20 +317,11 @@ function PersonalPlay({ isWebDemo = false }) {
   useEffect(() => {
     if (matchStatus === 'PREPARING' && matchStartedAt && prepRemainingMs <= 0) {
       setMatchStatus('PLAYING');
-      setLastFeedbackText(
-        mode === 'single'
-          ? `JÁ! Partida iniciada! Acerte o Setor ${activeSectorId}.`
-          : mode === 'clear_all'
-            ? 'JÁ! Partida iniciada! Apague todos os 6 setores.'
-            : 'JÁ! Partida iniciada! Todos os 6 setores disponíveis.'
-      );
       api.personalMatch.getCurrent(mode)
-        .then((data) => {
-          if (data?.match) applyBackendMatchState(data.match);
-        })
+        .then((data) => { if (data?.match) applyBackendMatchState(data.match); })
         .catch(() => {});
     }
-  }, [matchStatus, matchStartedAt, prepRemainingMs, mode, activeSectorId]);
+  }, [matchStatus, matchStartedAt, prepRemainingMs, mode]);
 
   const showGoBanner = (matchStatus === 'PLAYING' || matchStatus === 'PREPARING') &&
     matchStartedAt !== null &&
@@ -394,34 +329,24 @@ function PersonalPlay({ isWebDemo = false }) {
     msSinceOfficialStart < 700;
 
   const showCountdownOverlay = (matchStatus === 'PREPARING' && prepRemainingMs > 0) || showGoBanner;
-  const countdownText = showGoBanner
-    ? 'JÁ!'
-    : String(Math.max(1, Math.min(5, prepRemainingSeconds)));
+  const countdownText = showGoBanner ? 'JÁ!' : String(Math.max(1, Math.min(5, prepRemainingSeconds)));
 
   const remainingMs = matchStatus === 'PLAYING' && matchEndsAt
     ? Math.max(0, Math.min(plannedSeconds * 1000, matchEndsAt - serverNow))
     : (matchStatus === 'IDLE' || matchStatus === 'PREPARING')
       ? plannedSeconds * 1000
       : 0;
-
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-  const timerProgressPct = matchStatus === 'PLAYING' && plannedSeconds > 0
-    ? Math.min(100, Math.max(0, ((plannedSeconds - remainingSeconds) / plannedSeconds) * 100))
-    : 0;
 
   useEffect(() => {
     if (matchStatus === 'PLAYING' && matchEndsAt && remainingSeconds <= 0) {
       api.personalMatch.getCurrent(mode)
         .then((data) => {
-          if (data?.match && data.match.state === 'ACTIVE') {
-            applyBackendMatchState(data.match);
-          } else if (data?.lastMatch) {
-            applyBackendMatchState(data.lastMatch);
-            setLastFeedbackText('Tempo limite de 05:00 encerrado!');
-          } else {
+          if (data?.match && data.match.state === 'ACTIVE') applyBackendMatchState(data.match);
+          else if (data?.lastMatch) applyBackendMatchState(data.lastMatch);
+          else {
             setMatchStatus('FINISHED');
             setUsedDurationSeconds(plannedSeconds);
-            setLastFeedbackText('Tempo limite de 05:00 encerrado! Partida finalizada.');
           }
         })
         .catch(() => {
@@ -433,54 +358,19 @@ function PersonalPlay({ isWebDemo = false }) {
 
   useEffect(() => {
     const unsubHit = wsClient.on('HIT_REGISTERED', (payload) => {
-      if (!payload || !payload.hit || isGuest) return;
-
+      if (!payload?.hit || isGuest) return;
       if (payload.client_event_id && recentLocalEvents.current.has(payload.client_event_id)) {
         recentLocalEvents.current.delete(payload.client_event_id);
         return;
       }
-
       if (payload.match && matchIdRef.current && payload.match.id === matchIdRef.current) {
         applyBackendMatchState(payload.match);
       }
       setLastHitSectorId(payload.hit.sensor_id || null);
       setLastImpactCoords({ x: payload.hit.x, y: payload.hit.y, hit: Boolean(payload.hit.is_hit) });
     });
-
     return () => unsubHit();
   }, [isGuest]);
-
-  const prepareIdleGame = (gameMode, durationSec = 300) => {
-    setMatchId(null);
-    matchIdRef.current = null;
-    setMatchStartedAt(null);
-    setMatchEndsAt(null);
-    setUsedDurationSeconds(0);
-    setPlannedSeconds(durationSec);
-    setShotsCount(0);
-    setHitsCount(0);
-    setScore(0);
-    setSectorHits({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 });
-    setLastHitSectorId(null);
-    setLastImpactCoords(null);
-    setGameWon(false);
-    setMatchStatus('IDLE');
-    setReactivations(0);
-    setSyncWarning(null);
-    setSyncState({ status: 'idle', hitId: null, message: null });
-
-    if (gameMode === 'single') {
-      setActiveSectorId(1);
-      setLastFeedbackText('Liga um por vez selecionado. Clique em JOGAR para iniciar a contagem de 5 segundos.');
-    } else if (gameMode === 'clear_all') {
-      const allOn = {};
-      FIXED_SECTORS.forEach(s => { allOn[s.id] = true; });
-      setSectorStates(allOn);
-      setLastFeedbackText('Apagar Todos selecionado. Clique em JOGAR para iniciar a contagem de 5 segundos.');
-    } else {
-      setLastFeedbackText('Treino Livre selecionado. Clique em JOGAR para iniciar a contagem de 5 segundos.');
-    }
-  };
 
   const handleStartMatch = async (forceNew = false) => {
     if (startingMatch) return;
@@ -488,7 +378,9 @@ function PersonalPlay({ isWebDemo = false }) {
 
     if (isWebDemo) {
       const now = Date.now();
-      const demoMatch = {
+      setLastHitSectorId(null);
+      setLastImpactCoords(null);
+      applyBackendMatchState({
         id: 'demo_' + now,
         mode,
         state: 'PREPARING',
@@ -498,20 +390,14 @@ function PersonalPlay({ isWebDemo = false }) {
         score: 0,
         shots: 0,
         hits: 0,
-        reactivations: 0,
         activeSector: mode === 'single' ? Math.floor(Math.random() * 6) + 1 : 1,
-        sectorStates: { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true },
+        sectorStates: ALL_SECTORS_ON(),
         durationSeconds: 0
-      };
-      setLastHitSectorId(null);
-      setLastImpactCoords(null);
-      applyBackendMatchState(demoMatch);
-      setLastFeedbackText('Prepare-se! A partida começará após a contagem de 5 segundos.');
+      });
       return;
     }
 
     setStartingMatch(true);
-    setSyncWarning(null);
     try {
       const res = await api.personalMatch.start({
         mode,
@@ -522,26 +408,17 @@ function PersonalPlay({ isWebDemo = false }) {
         setLastHitSectorId(null);
         setLastImpactCoords(null);
         applyBackendMatchState(res.match);
-        setLastFeedbackText('Prepare-se! A partida começará após a contagem de 5 segundos.');
       }
-    } catch (err) {
-      setSyncWarning(err.message || 'Falha ao iniciar partida no servidor.');
-    } finally {
+    } catch {} finally {
       setStartingMatch(false);
     }
   };
 
   const handleEndOrCancelMatch = async () => {
     const wasPreparing = matchStatus === 'PREPARING';
-
     if (isWebDemo) {
-      if (wasPreparing) {
-        prepareIdleGame(mode, plannedSeconds);
-        setLastFeedbackText('Contagem cancelada. Nenhuma sessão foi registrada.');
-      } else {
-        setMatchStatus('FINISHED');
-        setLastFeedbackText('Partida demonstrativa encerrada.');
-      }
+      if (wasPreparing) prepareIdleGame(mode, plannedSeconds);
+      else setMatchStatus('FINISHED');
       return;
     }
 
@@ -549,37 +426,21 @@ function PersonalPlay({ isWebDemo = false }) {
       const res = await api.personalMatch.finish({ match_id: matchIdRef.current });
       if (wasPreparing || res?.match?.state === 'CANCELLED') {
         prepareIdleGame(mode, plannedSeconds);
-        setLastFeedbackText('Contagem cancelada. Nenhuma sessão foi registrada.');
-        return;
-      }
-      if (res?.match) {
+      } else if (res?.match) {
         applyBackendMatchState(res.match);
-        if (!isGuest) {
-          setSyncState({
-            status: 'persisted',
-            hitId: null,
-            message: 'Sessão oficial salva no SQLite'
-          });
-        }
       } else {
         setMatchStatus('FINISHED');
       }
-      setLastFeedbackText('Partida encerrada! Confira o resultado.');
-    } catch (err) {
-      if (wasPreparing) {
-        prepareIdleGame(mode, plannedSeconds);
-      } else {
-        setMatchStatus('FINISHED');
-      }
+    } catch {
+      if (wasPreparing) prepareIdleGame(mode, plannedSeconds);
+      else setMatchStatus('FINISHED');
     }
   };
 
   const handleModeChange = async (newMode) => {
     if (newMode === mode) return;
     if ((matchStatus === 'PREPARING' || matchStatus === 'PLAYING') && matchIdRef.current) {
-      try {
-        await api.personalMatch.finish({ match_id: matchIdRef.current });
-      } catch (e) {}
+      try { await api.personalMatch.finish({ match_id: matchIdRef.current }); } catch {}
     }
     prepareIdleGame(newMode, plannedSeconds);
     setMode(newMode);
@@ -594,24 +455,17 @@ function PersonalPlay({ isWebDemo = false }) {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      if (arenaContainerRef.current?.requestFullscreen) {
-        arenaContainerRef.current.requestFullscreen();
-      } else if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen();
-      }
+      const el = arenaContainerRef.current?.requestFullscreen ? arenaContainerRef.current : document.documentElement;
+      el.requestFullscreen?.();
       setIsFullscreen(true);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen?.();
       setIsFullscreen(false);
     }
   };
 
   useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
+    const handleFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
@@ -622,26 +476,16 @@ function PersonalPlay({ isWebDemo = false }) {
   };
 
   const sendImpactToBackend = async ({ sectorId, x, y, isNeutral = false }) => {
-    if (matchStatus !== 'PLAYING' || showCountdownOverlay || gameWon || remainingSeconds <= 0) {
-      return;
-    }
+    if (matchStatus !== 'PLAYING' || showCountdownOverlay || gameWon || remainingSeconds <= 0) return;
 
     const clientEventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     recentLocalEvents.current.add(clientEventId);
-
     setLastImpactCoords({ x, y, hit: !isNeutral });
-    setSyncState({
-      status: 'simulated',
-      hitId: null,
-      message: isWebDemo ? 'Impacto demonstrativo em memória' : 'Impacto simulado localmente'
-    });
 
     if (isWebDemo) {
       setShotsCount((prev) => prev + 1);
-
       if (isNeutral) {
         setLastHitSectorId(null);
-        setLastFeedbackText('Espaçamento entre alvos atingido! Área neutra — 0 pontos.');
         playMiss();
         return;
       }
@@ -652,48 +496,34 @@ function PersonalPlay({ isWebDemo = false }) {
       if (mode === 'free') {
         setHitsCount((prev) => prev + 1);
         setScore((prev) => prev + 85);
-        setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
         playBallHit(88);
-        setLastFeedbackText(`Setor ${hitSector} atingido! +85 pts`);
       } else if (mode === 'single') {
         if (hitSector === activeSectorId) {
           setHitsCount((prev) => prev + 1);
           setScore((prev) => prev + 1);
-          setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
           const others = [1, 2, 3, 4, 5, 6].filter((s) => s !== hitSector);
-          const nextSector = others[Math.floor(Math.random() * others.length)];
-          setActiveSectorId(nextSector);
+          setActiveSectorId(others[Math.floor(Math.random() * others.length)]);
           playBullseye();
-          setLastFeedbackText(`Ponto! Setor ${hitSector} acertado. Próximo alvo: Setor ${nextSector}`);
         } else {
           playMiss();
-          setLastFeedbackText(`Erro! O setor aceso é o Setor ${activeSectorId}.`);
         }
       } else if (mode === 'clear_all') {
-        const isLit = sectorStates[hitSector] !== false;
-        if (isLit) {
+        if (sectorStates[hitSector] !== false) {
           const nextStates = { ...sectorStates, [hitSector]: false };
           setSectorStates(nextStates);
           setHitsCount((prev) => prev + 1);
-          setSectorHits((prev) => ({ ...prev, [hitSector]: (prev[hitSector] || 0) + 1 }));
-
-          const allOff = [1, 2, 3, 4, 5, 6].every((s) => nextStates[s] === false);
-          if (allOff) {
+          if ([1, 2, 3, 4, 5, 6].every((s) => nextStates[s] === false)) {
             setGameWon(true);
             setMatchStatus('FINISHED');
-            setScore((prev) => prev + 100 + 500);
+            setScore((prev) => prev + 600);
             playBullseye();
-            setLastFeedbackText('DESAFIO CONCLUÍDO! Todos os 6 setores foram apagados (+500 pts bônus)!');
           } else {
             setScore((prev) => prev + 100);
             playBallHit(90);
-            setLastFeedbackText(`Excelente! Setor ${hitSector} APAGADO.`);
           }
         } else {
           setSectorStates((prev) => ({ ...prev, [hitSector]: true }));
-          setReactivations((prev) => prev + 1);
           playMiss();
-          setLastFeedbackText(`Atenção: Setor ${hitSector} foi REACENDIDO!`);
         }
       }
       return;
@@ -716,95 +546,34 @@ function PersonalPlay({ isWebDemo = false }) {
         session_id: isGuest ? null : sessionId
       });
 
-      if (res?.received_by_backend) {
-        setSyncState({
-          status: 'received',
-          hitId: null,
-          message: 'Impacto recebido pelo backend'
-        });
-      }
-
       const payload = res?.data || res;
-      const savedHitId = res?.hit_id || payload?.hit_id || payload?.hit?.id;
       const matchData = payload?.match;
-
-      if (matchData) {
-        applyBackendMatchState(matchData);
-      }
+      if (matchData) applyBackendMatchState(matchData);
 
       if (isNeutral || payload?.reason === 'NEUTRAL_AREA') {
         setLastHitSectorId(null);
-        setLastFeedbackText('Espaçamento entre alvos atingido! Área neutra — 0 pontos.');
         playMiss();
       } else {
-        const hitSector = Number(sectorId);
-        setLastHitSectorId(hitSector);
-
-        if (payload?.won || matchData?.state === 'WON') {
+        setLastHitSectorId(Number(sectorId));
+        if (payload?.won || matchData?.state === 'WON' || (mode === 'single' && payload?.is_match_hit)) {
           playBullseye();
-          setLastFeedbackText('DESAFIO CONCLUÍDO! Todos os 6 setores foram apagados.');
-        } else if (payload?.reactivated || payload?.reason === 'REACTIVATED') {
+        } else if (payload?.reactivated || payload?.reason === 'REACTIVATED' || payload?.reason === 'WRONG_SECTOR') {
           playMiss();
-          setLastFeedbackText(`Atenção: Setor ${hitSector} foi REACENDIDO!`);
-        } else if (payload?.reason === 'WRONG_SECTOR') {
-          playMiss();
-          setLastFeedbackText(`Erro! O setor aceso é o Setor ${matchData?.activeSector || activeSectorId}.`);
-        } else if (mode === 'single' && payload?.is_match_hit) {
-          playBullseye();
-          setLastFeedbackText(`Ponto! Setor ${hitSector} acertado. Próximo alvo: Setor ${matchData?.activeSector}`);
-        } else if (mode === 'clear_all' && payload?.is_match_hit) {
-          playBallHit(90);
-          setLastFeedbackText(`Excelente! Setor ${hitSector} APAGADO.`);
         } else {
-          playBallHit(88);
-          setLastFeedbackText(`Setor ${hitSector} atingido! +${payload?.match_points ?? 85} pts`);
+          playBallHit(mode === 'clear_all' ? 90 : 88);
         }
       }
-
-      if (isGuest || res?.is_guest) {
-        setSyncState({
-          status: 'persisted',
-          hitId: null,
-          message: 'Pontuação temporária atualizada (Visitante)'
-        });
-        setSyncWarning(null);
-      } else if (res?.persisted_in_db || payload?.persisted_in_db) {
-        setSyncState({
-          status: 'persisted',
-          hitId: savedHitId,
-          message: savedHitId ? `Impacto salvo no SQLite (#${savedHitId})` : 'Impacto salvo no SQLite'
-        });
-        setSyncWarning(null);
-      }
     } catch (err) {
-      if (err.data?.reason === 'PREPARING_BLOCKED') {
-        setLastFeedbackText('Aguarde o fim da contagem de 5 segundos (JÁ!) para pontuar.');
-        return;
-      }
-      if (err.message && err.message.includes('Partida encerrada')) {
+      if (err.message?.includes('Partida encerrada')) {
         setMatchStatus('FINISHED');
-        setLastFeedbackText('Partida encerrada. Clique em JOGAR NOVAMENTE para continuar.');
-        return;
       }
-      setSyncState({
-        status: 'error',
-        hitId: null,
-        message: 'Falha ao comunicar impacto'
-      });
-      setSyncWarning(`Falha de comunicação com o servidor: ${err.message || 'verifique se o backend está ativo.'}`);
     }
   };
 
   const handleWallSectorHit = (hitData) => {
-    if (!hitData) return;
-    if (matchStatus !== 'PLAYING' || showCountdownOverlay || gameWon || remainingSeconds <= 0) return;
-
-    const { hit, sectorId, x, y, classification } = hitData;
-    if (hit === false || classification === 'NEUTRAL_AREA') {
-      sendImpactToBackend({ sectorId: null, x, y, isNeutral: true });
-      return;
-    }
-    sendImpactToBackend({ sectorId, x, y, isNeutral: false });
+    if (!hitData || matchStatus !== 'PLAYING' || showCountdownOverlay || gameWon || remainingSeconds <= 0) return;
+    const isNeutral = hitData.hit === false || hitData.classification === 'NEUTRAL_AREA';
+    sendImpactToBackend({ sectorId: isNeutral ? null : hitData.sectorId, x: hitData.x, y: hitData.y, isNeutral });
   };
 
   const accuracyRate = shotsCount > 0 ? Math.round((hitsCount / shotsCount) * 100) : 0;
@@ -812,27 +581,19 @@ function PersonalPlay({ isWebDemo = false }) {
 
   const formatTime = (seconds) => {
     const total = Math.max(0, Math.floor(seconds || 0));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   };
 
   const currentInfo = GAME_INFO[mode] || GAME_INFO.free;
 
   return (
     <div ref={arenaContainerRef} className="space-y-4 max-w-6xl mx-auto">
-
-      
-      
-      
       {(matchStatus === 'PREPARING' || matchStatus === 'PLAYING') && (
         <div
           data-testid="focus-game-viewport"
           className="fixed inset-0 z-50 bg-[#050D07] flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none"
         >
-          
           <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[#09150E]/90 border border-[#16C96B]/30 shadow-xl backdrop-blur-md">
-            
             <div className="flex items-center space-x-2.5">
               <span className="px-3 py-1 rounded-xl bg-[#102216] border border-[#39FF88]/40 text-xs font-mono font-bold text-[#39FF88] shadow-sm">
                 {currentInfo.title}
@@ -845,7 +606,6 @@ function PersonalPlay({ isWebDemo = false }) {
               </div>
             </div>
 
-            
             <div className="flex items-center gap-4 sm:gap-6 font-mono">
               <div className="text-center">
                 <div className="text-[10px] text-[#8C9891] uppercase">Tempo</div>
@@ -883,7 +643,6 @@ function PersonalPlay({ isWebDemo = false }) {
               </div>
             </div>
 
-            
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleSound}
@@ -923,7 +682,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          
           <div className="flex-1 w-full max-w-7xl mx-auto relative flex items-center justify-center my-auto min-h-0">
             <CourtTarget
               gameMode={mode}
@@ -942,7 +700,6 @@ function PersonalPlay({ isWebDemo = false }) {
               isFullscreen={true}
             />
 
-            
             {showCountdownOverlay && (
               <div
                 data-testid="countdown-overlay"
@@ -964,7 +721,6 @@ function PersonalPlay({ isWebDemo = false }) {
             )}
           </div>
 
-          
           {showExitModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
               <div className="max-w-sm w-full p-6 rounded-3xl bg-[#0C1A11] border-2 border-rose-500/50 shadow-2xl text-center space-y-4">
@@ -972,9 +728,7 @@ function PersonalPlay({ isWebDemo = false }) {
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-[#F5F7F5] uppercase tracking-wide">
-                    Encerrar Partida?
-                  </h3>
+                  <h3 className="text-lg font-black text-[#F5F7F5] uppercase tracking-wide">Encerrar Partida?</h3>
                   <p className="text-xs text-[#8C9891] leading-relaxed">
                     Deseja realmente sair da partida em andamento? O resultado atual será gravado e exibido no resumo.
                   </p>
@@ -1002,9 +756,6 @@ function PersonalPlay({ isWebDemo = false }) {
         </div>
       )}
 
-      
-      
-      
       {(matchStatus === 'FINISHED' || gameWon) && (
         <div
           data-testid="personal-summary-panel"
@@ -1016,18 +767,13 @@ function PersonalPlay({ isWebDemo = false }) {
               <span>{gameWon ? 'DESAFIO CONCLUÍDO' : remainingSeconds <= 0 ? 'TEMPO ESGOTADO' : 'PARTIDA CONCLUÍDA'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-[#142B3D] dark:text-[#F1F5F9] tracking-tight">
-              {gameWon
-                ? 'Desafio Concluído com Sucesso!'
-                : remainingSeconds <= 0
-                ? 'Tempo Limite Encerrado (05:00)'
-                : 'Resumo Oficial da Partida'}
+              {gameWon ? 'Desafio Concluído com Sucesso!' : remainingSeconds <= 0 ? 'Tempo Limite Encerrado (05:00)' : 'Resumo Oficial da Partida'}
             </h2>
             <p className="text-xs text-[#475569] dark:text-[#A8BAC8]">
               {currentInfo.title} • Duração total: {formatTime(usedDurationSeconds || Math.max(1, plannedSeconds - remainingSeconds))}
             </p>
           </div>
 
-          
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
             <div className="p-4 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653]">
               <div className="text-[10px] font-mono uppercase text-[#475569] dark:text-[#A8BAC8]">Pontuação</div>
@@ -1064,7 +810,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          
           <div className="p-3.5 rounded-2xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-xs font-mono flex items-center justify-center gap-2">
             {isWebDemo ? (
               <>
@@ -1090,7 +835,6 @@ function PersonalPlay({ isWebDemo = false }) {
             )}
           </div>
 
-          
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               data-testid="btn-play-again"
@@ -1114,10 +858,7 @@ function PersonalPlay({ isWebDemo = false }) {
 
             <button
               data-testid="btn-back-lobby"
-              onClick={() => {
-                prepareIdleGame(mode, plannedSeconds);
-                setMatchStatus('IDLE');
-              }}
+              onClick={() => prepareIdleGame(mode, plannedSeconds)}
               className="px-5 py-3.5 rounded-xl bg-[#E8EDF1] dark:bg-[#18242E] border border-[#B8C6D0] dark:border-[#344653] text-[#475569] dark:text-[#A8BAC8] hover:text-[#142B3D] dark:hover:text-[#F1F5F9] font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
             >
               <span>VOLTAR AO LOBBY</span>
@@ -1126,12 +867,8 @@ function PersonalPlay({ isWebDemo = false }) {
         </div>
       )}
 
-      
-      
-      
       {matchStatus === 'IDLE' && (
         <div className="space-y-4">
-          
           {isWebDemo && (
             <div
               data-testid="web-demo-discreet-badge"
@@ -1147,7 +884,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          
           {isGuest && (
             <div
               data-testid="guest-play-banner"
@@ -1166,47 +902,26 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <button
-                data-testid="mode-btn-free"
-                onClick={() => handleModeChange('free')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                  mode === 'free'
-                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
-                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
-                }`}
-              >
-                <Play className="w-4 h-4" />
-                <span>1. Treino Livre</span>
-              </button>
-
-              <button
-                data-testid="mode-btn-single"
-                onClick={() => handleModeChange('single')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                  mode === 'single'
-                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
-                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
-                }`}
-              >
-                <Zap className="w-4 h-4" />
-                <span>2. Liga um por vez</span>
-              </button>
-
-              <button
-                data-testid="mode-btn-clear_all"
-                onClick={() => handleModeChange('clear_all')}
-                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                  mode === 'clear_all'
-                    ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
-                    : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>3. Apagar todos</span>
-              </button>
+              {Object.entries(GAME_INFO).map(([key, info]) => {
+                const Icon = info.icon;
+                return (
+                  <button
+                    key={key}
+                    data-testid={`mode-btn-${key}`}
+                    onClick={() => handleModeChange(key)}
+                    className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
+                      mode === key
+                        ? 'bg-[#B8F044] text-[#101820] shadow-sm font-black'
+                        : 'bg-[#E8EDF1] dark:bg-[#18242E] text-[#475569] dark:text-[#A8BAC8] border border-[#B8C6D0] dark:border-[#344653] hover:text-[#142B3D] dark:hover:text-[#F1F5F9]'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{info.title}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex items-center space-x-2 text-xs font-mono">
@@ -1220,7 +935,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          
           <div className="p-6 rounded-3xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] shadow-sm space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div className="space-y-1.5">
@@ -1238,7 +952,6 @@ function PersonalPlay({ isWebDemo = false }) {
                 </p>
               </div>
 
-              
               <div className="flex items-center gap-3 shrink-0 self-stretch sm:self-auto justify-end">
                 <button
                   data-testid="btn-play-start"
@@ -1261,7 +974,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           </div>
 
-          
           {!isWebDemo && !isGuest && (wallConfig.canConfigureWall || user?.role === 'admin') && (
             <div className="rounded-2xl bg-[#F4F6F8] dark:bg-[#22313D] border border-[#B8C6D0] dark:border-[#344653] overflow-hidden transition-all shadow-sm">
               <button
@@ -1330,7 +1042,7 @@ function PersonalPlay({ isWebDemo = false }) {
                                 {optW}m × {optH}m
                               </span>
                               <span className="text-[10px] text-[#475569] dark:text-[#A8BAC8]">
-                                S1(0,{optH}) • S2({optW},{optH}) • S3(0,0)
+                                S1(0,0) • S2(0,{optH}) • S3({optW},0)
                               </span>
                             </div>
                           </button>
@@ -1353,7 +1065,6 @@ function PersonalPlay({ isWebDemo = false }) {
                     )}
                   </div>
 
-                  
                   <div className="flex items-center justify-between pt-1">
                     <button
                       data-testid="btn-toggle-iot-panel"
@@ -1387,7 +1098,6 @@ function PersonalPlay({ isWebDemo = false }) {
             </div>
           )}
 
-          
           <div className="w-full flex justify-center py-2 relative">
             <div className="w-full relative flex justify-center">
               <CourtTarget
@@ -1410,7 +1120,6 @@ function PersonalPlay({ isWebDemo = false }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

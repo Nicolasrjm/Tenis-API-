@@ -1,23 +1,26 @@
 
-# Dependências
-node_modules/
-.venv/
-__pycache__/
+# Dependências e arquivos gerados
+**/node_modules/
+**/.venv/
+**/__pycache__/
 *.pyc
+**/dist/
+**/build/
+**/.gradle/
+**/server/public/
+supabase/.temp/
 
-# Configurações privadas
+# Credenciais
 .env
 .env.*
 !.env.example
-!.env.vercel
-!.env.android
 *.pem
 *.key
 *.jks
 *.keystore
 key.properties
 
-# Bancos de dados e backups
+# Bancos e backups
 *.db
 *.db-shm
 *.db-wal
@@ -26,58 +29,17 @@ key.properties
 backups/
 *.bak
 
-# Arquivos gerados
-dist/
-build/
-.gradle/
-server/public/
+# Android e arquivos locais
 *.apk
+!motiontennisapp.apk
 *.aab
 *.log
-
-# Android - configurações locais
-local.properties
+**/local.properties
 .cxx/
 captures/
 
-# Sistema operacional e IDE
+# Sistema e IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-# Arquivos compilados do frontend
-**/server/public/
-
-# Dependências e ambientes locais
-**/node_modules/
-**/.venv/
-**/__pycache__/
-**/dist/
-**/build/
-**/.gradle/
-
-# Bancos de dados reais
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-
-# Credenciais e configurações privadas
-.env
-.env.*
-!.env.example
-!.env.vercel
-!.env.android
-*.pem
-*.key
-*.jks
-*.keystore
-key.properties
-
-# Arquivos gerados
-*.apk
-*.aab
-*.log
-**/local.properties
-/backups/

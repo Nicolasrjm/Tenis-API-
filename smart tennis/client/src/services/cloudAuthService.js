@@ -488,12 +488,40 @@ export async function registerWithCloudAccount({ name, email, password, fetchFn 
   });
 
   if (!signupRes.requiresConfirmation && signupRes.session?.access_token) {
-    const res = await api.loginWithSupabaseToken(signupRes.session.access_token, {
-      create_if_missing: true,
-      name,
-      password
+    saveCloudSession({
+      accessToken: signupRes.session.access_token,
+      refreshToken: signupRes.session.refresh_token,
+      expiresIn: signupRes.session.expires_in,
+      user: signupRes.user
     });
-    return { ...signupRes, localLogin: res };
+    try {
+      const res = await api.loginWithSupabaseToken(signupRes.session.access_token, {
+        create_if_missing: true,
+        name,
+        password
+      });
+      return { ...signupRes, localLogin: res };
+    } catch (_) {
+      return {
+        ...signupRes,
+        localLogin: {
+          success: true,
+          token: signupRes.session.access_token,
+          authType: 'supabase_cloud',
+          isCloudOnly: true,
+          user: {
+            id: signupRes.user?.id,
+            cloudUserId: signupRes.user?.id,
+            name: name || signupRes.user?.user_metadata?.name || email.split('@')[0],
+            email: signupRes.user?.email || email,
+            role: 'player',
+            avatar: '🎾',
+            status: 'active',
+            isCloudOnly: true
+          }
+        }
+      };
+    }
   }
 
   return signupRes;

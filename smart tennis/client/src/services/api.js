@@ -426,7 +426,21 @@ export const api = {
       } catch (e) {
         return {
           lessons: [],
-          totalCount: 0,
+          initialModulesPreview: [
+            { slot_number: 1, id: 'prec_1', category: 'Precisão & Direção', level: 'Iniciante', duration: '6 min', status: 'EM BREVE', published: false, title: 'Fundamentos de Precisão', description: 'Como trabalhar direção e controle da bola com posicionamento correto do corpo.' },
+            { slot_number: 2, id: 'prec_2', category: 'Precisão & Direção', level: 'Iniciante', duration: '8 min', status: 'EM BREVE', published: false, title: 'Controle de Direção', description: 'Exercícios para aumentar a capacidade de direcionamento em cruzadas e paralelas.' },
+            { slot_number: 3, id: 'cons_1', category: 'Consistência & Ritmo', level: 'Iniciante', duration: '5 min', status: 'EM BREVE', published: false, title: 'Regularidade', description: 'Desenvolvimento de ritmo respiratório e padrão motor repetitivo em trocas longas.' },
+            { slot_number: 4, id: 'cons_2', category: 'Consistência & Ritmo', level: 'Iniciante', duration: '7 min', status: 'EM BREVE', published: false, title: 'Repetição Técnica', description: 'Séries focadas na mesma preparação de braço e terminação de golpe.' },
+            { slot_number: 5, id: 'speed_1', category: 'Velocidade & Potência', level: 'Iniciante', duration: '6 min', status: 'EM BREVE', published: false, title: 'Potência', description: 'Uso da cadeia cinética e rotação de tronco para gerar força com menor esforço de braço.' },
+            { slot_number: 6, id: 'speed_2', category: 'Velocidade & Potência', level: 'Iniciante', duration: '8 min', status: 'EM BREVE', published: false, title: 'Aceleração', description: 'Soltura de punho na terminação do movimento para ganho de topspin acelerado.' },
+            { slot_number: 7, id: 'ctrl_1', category: 'Controle & Sensibilidade', level: 'Iniciante', duration: '5 min', status: 'EM BREVE', published: false, title: 'Controle da Bola', description: 'Absorção de impacto e sensação tátil no ponto de contato das cordas.' },
+            { slot_number: 8, id: 'ctrl_2', category: 'Controle & Sensibilidade', level: 'Iniciante', duration: '7 min', status: 'EM BREVE', published: false, title: 'Direcionamento', description: 'Ajuste do ângulo da face da raquete no momento exato do impacto com o alvo.' },
+            { slot_number: 9, id: 'refl_1', category: 'Reflexo & Agilidade', level: 'Iniciante', duration: '6 min', status: 'EM BREVE', published: false, title: 'Tempo de Reação', description: 'Redução do tempo de leitura visual da bola e sincronização do split-step.' },
+            { slot_number: 10, id: 'refl_2', category: 'Reflexo & Agilidade', level: 'Iniciante', duration: '8 min', status: 'EM BREVE', published: false, title: 'Resposta Rápida', description: 'Bloqueio de bolas rápidas com menor amplitude de backswing.' },
+            { slot_number: 11, id: 'strat_1', category: 'Estratégia & Tática', level: 'Iniciante', duration: '6 min', status: 'EM BREVE', published: false, title: 'Escolha de Alvo', description: 'Critérios táticos para escolher entre o centro seguro ou arriscar os cantos.' },
+            { slot_number: 12, id: 'strat_2', category: 'Estratégia & Tática', level: 'Iniciante', duration: '8 min', status: 'EM BREVE', published: false, title: 'Sequências', description: 'Combinações de jogadas planejadas para desestabilizar o posicionamento adversário.' }
+          ],
+          totalCount: 12,
           publishedCount: 0,
           isWebDemo: true,
           notice: 'O catálogo de videoaulas está disponível no equipamento conectado à quadra.'
@@ -454,9 +468,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ completed })
     }),
-
-  getTrainings: () => fetchJson('/trainings'),
-  completeTraining: (id, data) => fetchJson(`/trainings/${id}/complete`, { method: 'POST', body: JSON.stringify(data) }),
 
   getAchievements: async () => {
     const token = getActiveCloudToken();
